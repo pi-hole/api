@@ -1,0 +1,4 @@
+[[package]]
+name = "pihole_api"
+version = "0.1.0"
+
