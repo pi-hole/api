@@ -5,6 +5,7 @@ version: 2
     - image: "japaric/$TARGET:v0.1.14"
   environment:
     - CARGO_HOME: "$CIRCLE_WORKING_DIRECTORY/cargo"
+    - RUSTUP_HOME: "$CIRCLE_WORKING_DIRECTORY/rustup"
   steps:
     - checkout
     - restore_cache:
@@ -20,6 +21,8 @@ version: 2
     - run:
         name: "Setup Rust"
         command: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends curl
           curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-2017-12-21
           "[[ $SKIP_ADDING_TARGET ]] || rustup target add $TARGET"
     - run:
@@ -30,6 +33,7 @@ version: 2
         paths:
           - target
           - cargo
+          - rustup
     - store_artifacts:
         path: target/$TARGET/release/pihole_api
         destination: $BIN_NAME
