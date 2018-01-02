@@ -36,38 +36,38 @@ version: 2
 jobs:
   arm:
     <<: *job_template
-    variables:
+    environment:
       BIN_NAME: "pihole-API-arm-linux-gnueabi"
       TARGET: "arm-unknown-linux-gnueabi"
 
   armhf:
     <<: *job_template
-    variables:
+    environment:
       BIN_NAME: "pihole-API-arm-linux-gnueabihf"
       TARGET: "arm-unknown-linux-gnueabihf"
 
   aarch64:
     <<: *job_template
-    variables:
+    environment:
       BIN_NAME: "pihole-API-aarch64-linux-gnu"
       TARGET: "aarch64-unknown-linux-gnu"
 
   x86_64:
     <<: *job_template
-    variables:
+    environment:
       BIN_NAME: "pihole-API-linux-x86_64"
       TARGET: "x86_64-unknown-linux-gnu"
       SKIP_ADDING_TARGET: "1" # We're already running on x86_64
 
   x86_64-musl:
     <<: *job_template
-    variables:
+    environment:
       BIN_NAME: "pihole-API-musl-linux-x86_64"
       TARGET: "x86_64-unknown-linux-musl"
 
   x86_32:
     <<: *job_template
-    variables:
+    environment:
       BIN_NAME: "pihole-API-linux-x86_32"
       TARGET: "i686-unknown-linux-gnu"
 
