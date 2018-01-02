@@ -26,7 +26,9 @@ version: 2
           [[ $SKIP_ADDING_TARGET ]] || rustup target add $TARGET
     - run:
         name: "Build"
-        command: time cargo build --release --target $TARGET
+        command: |
+          time cargo build --release --target $TARGET
+          cp target/$TARGET/release/pihole_api .
     - save_cache:
         key: cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ checksum "Cargo.lock" }}
         paths:
@@ -34,8 +36,7 @@ version: 2
           - $HOME/.cargo
           - $HOME/.rustup
     - store_artifacts:
-        path: target/$TARGET/release/pihole_api
-        destination: $BIN_NAME
+        path: pihole_api
 
 jobs:
   arm:
