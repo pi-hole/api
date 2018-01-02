@@ -22,6 +22,7 @@ version: 2
           apt-get install -y --no-install-recommends curl
           curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2017-12-21
           export PATH=$HOME/.cargo/bin:$PATH
+          echo 'export PATH=$HOME/.cargo/bin:$PATH' >> $BASH_ENV
           [[ $SKIP_ADDING_TARGET ]] || rustup target add $TARGET
     - run:
         name: "Build"
