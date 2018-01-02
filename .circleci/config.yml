@@ -1,0 +1,72 @@
+version: 2
+
+.job_template: &job_template
+  docker:
+    - image: "japaric/$TARGET:v0.1.14"
+  steps:
+    - checkout
+    - restore_cache:
+        keys:
+          # Find a cache corresponding to this specific Cargo.toml checksum.
+          # When this file is changed, this key will fail.
+          - cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}
+          # Find a cache corresponding to any build in this branch, regardless of Cargo.toml checksum.
+          # The most recent one will be used.
+          - cargo-{{ .Branch }}
+          # Find the most recent cache used from any branch
+          - cargo
+    - run:
+        name: "Setup Rust"
+        command: |
+          curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-2017-12-21
+          export CARGO_HOME="$CIRCLE_WORKING_DIRECTORY/cargo"
+          "[[ $SKIP_ADDING_TARGET ]] || rustup target add $TARGET"
+    - run:
+        name: "Build"
+        command: time cargo build --release --target $TARGET
+    - save_cache:
+        key: cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ checksum "Cargo.lock" }}
+        paths:
+          - target
+          - cargo
+    - store_artifacts:
+        path: target/$TARGET/release/pihole_api
+        destination: $BIN_NAME
+
+jobs:
+  arm:
+    <<: *job_template
+    variables:
+      BIN_NAME: "pihole-API-arm-linux-gnueabi"
+      TARGET: "arm-unknown-linux-gnueabi"
+
+  armhf:
+    <<: *job_template
+    variables:
+      BIN_NAME: "pihole-API-arm-linux-gnueabihf"
+      TARGET: "arm-unknown-linux-gnueabihf"
+
+  aarch64:
+    <<: *job_template
+    variables:
+      BIN_NAME: "pihole-API-aarch64-linux-gnu"
+      TARGET: "aarch64-unknown-linux-gnu"
+
+  x86_64:
+    <<: *job_template
+    variables:
+      BIN_NAME: "pihole-API-linux-x86_64"
+      TARGET: "x86_64-unknown-linux-gnu"
+      SKIP_ADDING_TARGET: "1" # We're already running on x86_64
+
+  x86_64-musl:
+    <<: *job_template
+    variables:
+      BIN_NAME: "pihole-API-musl-linux-x86_64"
+      TARGET: "x86_64-unknown-linux-musl"
+
+  x86_32:
+    <<: *job_template
+    variables:
+      BIN_NAME: "pihole-API-linux-x86_32"
+      TARGET: "i686-unknown-linux-gnu"
