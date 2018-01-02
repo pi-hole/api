@@ -3,6 +3,8 @@ version: 2
 .job_template: &job_template
   docker:
     - image: "japaric/$TARGET:v0.1.14"
+  environment:
+    - CARGO_HOME: "$CIRCLE_WORKING_DIRECTORY/cargo"
   steps:
     - checkout
     - restore_cache:
@@ -19,7 +21,6 @@ version: 2
         name: "Setup Rust"
         command: |
           curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-2017-12-21
-          export CARGO_HOME="$CIRCLE_WORKING_DIRECTORY/cargo"
           "[[ $SKIP_ADDING_TARGET ]] || rustup target add $TARGET"
     - run:
         name: "Build"
