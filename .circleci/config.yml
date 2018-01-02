@@ -3,9 +3,6 @@ version: 2
 .job_template: &job_template
   docker:
     - image: "japaric/$TARGET:v0.1.14"
-  environment:
-    - CARGO_HOME: "$CIRCLE_WORKING_DIRECTORY/cargo"
-    - RUSTUP_HOME: "$CIRCLE_WORKING_DIRECTORY/rustup"
   steps:
     - checkout
     - restore_cache:
@@ -24,7 +21,7 @@ version: 2
           apt-get update
           apt-get install -y --no-install-recommends curl
           curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2017-12-21
-          export PATH=$CARGO_HOME/bin:$PATH
+          export PATH=$HOME/.cargo/bin:$PATH
           [[ $SKIP_ADDING_TARGET ]] || rustup target add $TARGET
     - run:
         name: "Build"
@@ -33,8 +30,8 @@ version: 2
         key: cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ checksum "Cargo.lock" }}
         paths:
           - target
-          - cargo
-          - rustup
+          - $HOME/.cargo
+          - $HOME/.rustup
     - store_artifacts:
         path: target/$TARGET/release/pihole_api
         destination: $BIN_NAME
