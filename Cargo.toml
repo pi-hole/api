@@ -3,4 +3,7 @@ name = "pihole_api"
 version = "0.1.0"
 authors = ["Mcat12 <mark@pi-hole.net>"]
 
+[profile.release]
+lto = true
+
 [dependencies]
