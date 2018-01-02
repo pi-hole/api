@@ -23,7 +23,7 @@ version: 2
         command: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends curl
-          curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-2017-12-21
+          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2017-12-21
           "[[ $SKIP_ADDING_TARGET ]] || rustup target add $TARGET"
     - run:
         name: "Build"
