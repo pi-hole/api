@@ -2,10 +2,12 @@ use std::os::unix::net::UnixStream;
 use std::io::prelude::*;
 use std::io::BufReader;
 
+const SOCKET_LOCATION: &'static str = "/var/run/pihole/FTL.sock";
+
 pub struct FtlIter(BufReader<UnixStream>);
 
 pub fn connect(command: &str) -> FtlIter {
-    let mut stream = UnixStream::connect("/var/run/pihole/FTL.sock").unwrap();
+    let mut stream = UnixStream::connect(SOCKET_LOCATION).unwrap();
     stream.write_all(format!(">{}\n", command).as_bytes()).unwrap();
 
     FtlIter(BufReader::new(stream))
