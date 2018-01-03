@@ -14,21 +14,10 @@ use std::io::BufReader;
 
 #[get("/stats/summary")]
 fn summary() -> util::Reply {
-    let mut stream = ftl::connect();
-    let mut data = String::new();
+    let mut stream = ftl::connect("stats");
 
-    stream.write_all(b">stats\n").unwrap();
-
-    let mut reader = BufReader::new(stream);
-
-    while reader.read_line(&mut data).is_ok() {
-        println!("{:?}", data);
-
-        if data.contains("---EOM---") {
-            break;
-        }
-
-        data.clear();
+    for line in stream {
+        println!("Received from FTL: {}", line);
     }
 
     util::reply_success()

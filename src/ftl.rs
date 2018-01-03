@@ -1,5 +1,31 @@
 use std::os::unix::net::UnixStream;
+use std::io::prelude::*;
+use std::io::BufReader;
 
-pub fn connect() -> UnixStream {
-    UnixStream::connect("/var/run/pihole/FTL.sock").unwrap()
+pub struct FtlIter(BufReader<UnixStream>);
+
+pub fn connect(command: &str) -> FtlIter {
+    let mut stream = UnixStream::connect("/var/run/pihole/FTL.sock").unwrap();
+    stream.write_all(format!(">{}\n", command).as_bytes()).unwrap();
+
+    FtlIter(BufReader::new(stream))
+}
+
+impl Iterator for FtlIter {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut data = String::new();
+        self.0.read_line(&mut data).unwrap();
+
+        if data.contains("---EOM---") {
+            return None;
+        }
+
+        if data.ends_with("\n") {
+            data.pop();
+        }
+
+        Some(data)
+    }
 }
