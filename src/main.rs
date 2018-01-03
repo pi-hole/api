@@ -9,12 +9,9 @@ extern crate serde;
 mod util;
 mod ftl;
 
-use std::io::prelude::*;
-use std::io::BufReader;
-
 #[get("/stats/summary")]
 fn summary() -> util::Reply {
-    let mut stream = ftl::connect("stats");
+    let stream = ftl::connect("stats");
 
     for line in stream {
         println!("Received from FTL: {}", line);
