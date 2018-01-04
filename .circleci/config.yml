@@ -7,6 +7,9 @@ version: 2
     - checkout
     - restore_cache:
         keys:
+          # Find a cache corresponding to this specific Cargo.toml checksum and target.
+          # When the target is different, this key will fail
+          - cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.TARGET }}
           # Find a cache corresponding to this specific Cargo.toml checksum.
           # When this file is changed, this key will fail.
           - cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}
@@ -30,11 +33,11 @@ version: 2
           time cargo build --release --target $TARGET
           cp target/$TARGET/release/pihole_api .
     - save_cache:
-        key: cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ checksum "Cargo.lock" }}
+        key: cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.TARGET }}-{{ checksum "Cargo.lock" }}
         paths:
           - target
-          - $HOME/.cargo
-          - $HOME/.rustup
+          - /root/.cargo
+          - /root/.rustup
     - store_artifacts:
         path: pihole_api
 
