@@ -8,11 +8,14 @@ const SOCKET_LOCATION: &'static str = "/var/run/pihole/FTL.sock";
 
 pub struct FtlConnection(BufReader<UnixStream>);
 
-pub fn connect(command: &str) -> FtlConnection {
-    let mut stream = UnixStream::connect(SOCKET_LOCATION).unwrap();
+pub fn connect(command: &str) -> Result<FtlConnection, String> {
+    let mut stream = match UnixStream::connect(SOCKET_LOCATION) {
+        Ok(s) => s,
+        Err(_) => return Err(format!("Unable to connect to the FTL socket at {}", SOCKET_LOCATION))
+    };
     stream.write_all(format!(">{}\n", command).as_bytes()).unwrap();
 
-    FtlConnection(BufReader::new(stream))
+    Ok(FtlConnection(BufReader::new(stream)))
 }
 
 impl FtlConnection {

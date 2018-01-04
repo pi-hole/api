@@ -3,7 +3,10 @@ use ftl;
 
 #[get("/stats/summary")]
 pub fn summary() -> util::Reply {
-    let mut con = ftl::connect("stats");
+    let mut con = match ftl::connect("stats") {
+        Ok(c) => c,
+        Err(e) => return util::reply_error(util::Error::Custom(e))
+    };
 
     let domains_blocked = con.read_i32().unwrap();
     let total_queries = con.read_i32().unwrap();

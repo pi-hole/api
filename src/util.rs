@@ -33,6 +33,7 @@ pub fn reply_success() -> Reply {
 
 pub enum Error {
     Unknown,
+    Custom(String),
     AlreadyExists,
     DoesNotExist
 }
@@ -41,6 +42,7 @@ impl Error {
     pub fn message(&self) -> &str {
         match *self {
             Error::Unknown => "Unknown error",
+            Error::Custom(ref msg) => msg,
             Error::AlreadyExists => "Item already exists",
             Error::DoesNotExist => "Item does not exist"
         }
@@ -49,6 +51,7 @@ impl Error {
     pub fn key(&self) -> &str {
         match *self {
             Error::Unknown => "unknown",
+            Error::Custom(_) => "custom",
             Error::AlreadyExists => "already_exists",
             Error::DoesNotExist => "does_not_exist"
         }
