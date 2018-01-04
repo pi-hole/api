@@ -9,7 +9,7 @@ version: 2
         keys:
           # Find a cache corresponding to this specific Cargo.toml checksum and target.
           # When the target is different, this key will fail
-          - cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.TARGET }}
+          - cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}
           # Find a cache corresponding to this specific Cargo.toml checksum.
           # When this file is changed, this key will fail.
           - cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}
