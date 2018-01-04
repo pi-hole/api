@@ -21,8 +21,8 @@ pub fn reply_data<D: Serialize>(data: D) -> Reply {
     reply(data, &[])
 }
 
-pub fn reply_error(errors: Error) -> Reply {
-    reply([0; 0], &[errors])
+pub fn reply_error(error: Error) -> Reply {
+    reply([0; 0], &[error])
 }
 
 pub fn reply_success() -> Reply {
