@@ -33,7 +33,7 @@ version: 2
           time cargo build --release --target $TARGET
           cp target/$TARGET/release/pihole_api .
     - save_cache:
-        key: cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.TARGET }}-{{ checksum "Cargo.lock" }}
+        key: cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cargo.lock" }}
         paths:
           - target
           - /root/.cargo
