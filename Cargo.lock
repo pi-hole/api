@@ -222,6 +222,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "pihole_api"
 version = "0.1.0"
 dependencies = [
+ "rmp 0.8.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "rocket 0.3.5 (git+https://github.com/SergioBenitez/Rocket?branch=v0.3)",
  "rocket_codegen 0.3.5 (git+https://github.com/SergioBenitez/Rocket?branch=v0.3)",
  "rocket_contrib 0.3.5 (git+https://github.com/SergioBenitez/Rocket?branch=v0.3)",
@@ -286,6 +287,15 @@ dependencies = [
  "libc 0.2.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "untrusted 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "rmp"
+version = "0.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num-traits 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -546,6 +556,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum redox_syscall 0.1.33 (registry+https://github.com/rust-lang/crates.io-index)" = "07b8f011e3254d5a9b318fde596d409a0001c9ae4c6e7907520c2eaa4d988c99"
 "checksum redox_termios 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7e891cfe48e9100a70a3b6eb652fef28920c117d366339687bd5576160db0f76"
 "checksum ring 0.11.1 (git+https://github.com/SergioBenitez/ring?branch=v0.11)" = "<none>"
+"checksum rmp 0.8.7 (registry+https://github.com/rust-lang/crates.io-index)" = "a3d45d7afc9b132b34a2479648863aa95c5c88e98b32285326a6ebadc80ec5c9"
 "checksum rocket 0.3.5 (git+https://github.com/SergioBenitez/Rocket?branch=v0.3)" = "<none>"
 "checksum rocket_codegen 0.3.5 (git+https://github.com/SergioBenitez/Rocket?branch=v0.3)" = "<none>"
 "checksum rocket_contrib 0.3.5 (git+https://github.com/SergioBenitez/Rocket?branch=v0.3)" = "<none>"

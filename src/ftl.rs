@@ -1,33 +1,28 @@
 use std::os::unix::net::UnixStream;
+use std::error::Error;
 use std::io::prelude::*;
 use std::io::BufReader;
 
 const SOCKET_LOCATION: &'static str = "/var/run/pihole/FTL.sock";
 
-pub struct FtlIter(BufReader<UnixStream>);
-
-pub fn connect(command: &str) -> FtlIter {
+pub fn connect(command: &str) -> BufReader<UnixStream> {
     let mut stream = UnixStream::connect(SOCKET_LOCATION).unwrap();
     stream.write_all(format!(">{}\n", command).as_bytes()).unwrap();
 
-    FtlIter(BufReader::new(stream))
+    BufReader::new(stream)
 }
 
-impl Iterator for FtlIter {
-    type Item = String;
+pub fn expect_eom<T: Read>(stream: &mut T) -> Result<(), String> {
+    let mut buffer: [u8; 1] = [0];
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut data = String::new();
-        self.0.read_line(&mut data).unwrap();
-
-        if data.contains("---EOM---") {
-            return None;
-        }
-
-        if data.ends_with("\n") {
-            data.pop();
-        }
-
-        Some(data)
+    match stream.read_exact(&mut buffer) {
+        Ok(_) => (),
+        Err(e) => return Err(e.description().to_string())
     }
+
+    if buffer[0] != 0xc1 {
+        return Err(format!("Expected EOM (0xc1), got {:2x}", buffer[0]));
+    }
+
+    Ok(())
 }
