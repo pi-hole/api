@@ -68,20 +68,15 @@ pub fn history() -> util::Reply {
     let mut str_buffer = [0u8; 4096];
 
     loop {
-        match con.read_array_len() {
-            Ok(length) => {
-                if length != 6 {
-                    return util::reply_error(util::Error::Unknown);
-                }
-            },
+        let timestamp = match con.read_i32() {
+            Ok(timestamp) => timestamp,
             Err(e) => {
-                println!("{}", e.description());
+                println!("{:?}", e);
                 // Probably the end of the queries
                 break;
             }
-        }
+        };
 
-        let timestamp = con.read_i32().unwrap();
         let query_type = con.read_str(&mut str_buffer).unwrap().to_owned();
         let domain = con.read_str(&mut str_buffer).unwrap().to_owned();
         let client = con.read_str(&mut str_buffer).unwrap().to_owned();

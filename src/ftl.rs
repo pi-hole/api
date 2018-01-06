@@ -51,10 +51,6 @@ impl FtlConnection {
         decode::read_str(&mut self.0, buffer)
     }
 
-    pub fn read_array_len(&mut self) -> Result<u32, decode::ValueReadError> {
-        decode::read_array_len(&mut self.0)
-    }
-
     pub fn read_map_len(&mut self) -> Result<u32, decode::ValueReadError> {
         decode::read_map_len(&mut self.0)
     }
