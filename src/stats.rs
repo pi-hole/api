@@ -1,7 +1,8 @@
 use util;
 use ftl;
 
-use std::error::Error;
+use rmp::decode::ValueReadError;
+use rmp::Marker;
 
 #[get("/stats/summary")]
 pub fn summary() -> util::Reply {
@@ -71,9 +72,15 @@ pub fn history() -> util::Reply {
         let timestamp = match con.read_i32() {
             Ok(timestamp) => timestamp,
             Err(e) => {
-                println!("{:?}", e);
-                // Probably the end of the queries
-                break;
+                if let ValueReadError::TypeMismatch(marker) = e {
+                    if marker == Marker::Reserved {
+                        // Received EOM
+                        break;
+                    }
+                }
+
+                // Unknown read error
+                return util::reply_error(util::Error::Unknown);
             }
         };
 
