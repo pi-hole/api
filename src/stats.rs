@@ -33,3 +33,19 @@ pub fn summary() -> util::Reply {
         "status": status
     }))
 }
+
+#[get("/stats/overTime")]
+pub fn over_time() -> util::Reply {
+    let mut con = match ftl::connect("overTime") {
+        Ok(c) => c,
+        Err(e) => return util::reply_error(util::Error::Custom(e))
+    };
+
+    let domains_over_time = con.read_int_map().unwrap();
+    let blocked_over_time = con.read_int_map().unwrap();
+
+    util::reply_data(json!({
+        "domains_over_time": domains_over_time,
+        "blocked_over_time": blocked_over_time
+    }))
+}

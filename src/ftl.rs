@@ -2,6 +2,7 @@ use std::os::unix::net::UnixStream;
 use std::error::Error;
 use std::io::prelude::*;
 use std::io::BufReader;
+use std::collections::HashMap;
 use rmp::decode;
 
 const SOCKET_LOCATION: &'static str = "/var/run/pihole/FTL.sock";
@@ -44,6 +45,23 @@ impl FtlConnection {
 
     pub fn read_u8(&mut self) -> Result<u8, decode::ValueReadError> {
         decode::read_u8(&mut self.0)
+    }
+
+    pub fn read_map_len(&mut self) -> Result<u32, decode::ValueReadError> {
+        decode::read_map_len(&mut self.0)
+    }
+
+    pub fn read_int_map(&mut self) -> Result<HashMap<i32, i32>, decode::ValueReadError> {
+        let map_len = self.read_map_len()? as usize;
+        let mut map: HashMap<i32, i32> = HashMap::with_capacity(map_len);
+
+        for _ in 0..map_len {
+            let key = self.read_i32()?;
+            let value = self.read_i32()?;
+            map.insert(key, value);
+        }
+
+        Ok(map)
     }
 }
 

@@ -11,5 +11,10 @@ mod ftl;
 mod stats;
 
 fn main() {
-    rocket::ignite().mount("/", routes![stats::summary]).launch();
+    rocket::ignite()
+        .mount("/", routes![
+            stats::summary,
+            stats::over_time
+        ])
+        .launch();
 }
