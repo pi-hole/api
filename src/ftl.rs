@@ -35,6 +35,10 @@ impl FtlConnection {
         Ok(())
     }
 
+    pub fn read_u8(&mut self) -> Result<u8, decode::ValueReadError> {
+        decode::read_u8(&mut self.0)
+    }
+
     pub fn read_i32(&mut self) -> Result<i32, decode::ValueReadError> {
         decode::read_i32(&mut self.0)
     }
@@ -43,8 +47,12 @@ impl FtlConnection {
         decode::read_f32(&mut self.0)
     }
 
-    pub fn read_u8(&mut self) -> Result<u8, decode::ValueReadError> {
-        decode::read_u8(&mut self.0)
+    pub fn read_str<'r>(&mut self, buffer: &'r mut [u8]) -> Result<&'r str, decode::DecodeStringError<'r>> {
+        decode::read_str(&mut self.0, buffer)
+    }
+
+    pub fn read_array_len(&mut self) -> Result<u32, decode::ValueReadError> {
+        decode::read_array_len(&mut self.0)
     }
 
     pub fn read_map_len(&mut self) -> Result<u32, decode::ValueReadError> {

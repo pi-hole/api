@@ -11,6 +11,7 @@ rocket = { git = "https://github.com/SergioBenitez/Rocket", branch = "v0.3" }
 rocket_codegen = { git = "https://github.com/SergioBenitez/Rocket", branch = "v0.3" }
 rocket_contrib = { git = "https://github.com/SergioBenitez/Rocket", branch = "v0.3" }
 serde = "1.0"
+serde_derive = "1.0"
 rmp = "0.8"
 
 [patch.crates-io]

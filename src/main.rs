@@ -4,6 +4,7 @@
 extern crate rocket;
 #[macro_use] extern crate rocket_contrib;
 extern crate serde;
+#[macro_use] extern crate serde_derive;
 extern crate rmp;
 
 mod util;
@@ -14,7 +15,8 @@ fn main() {
     rocket::ignite()
         .mount("/", routes![
             stats::summary,
-            stats::over_time
+            stats::over_time,
+            stats::history
         ])
         .launch();
 }

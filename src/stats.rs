@@ -1,6 +1,8 @@
 use util;
 use ftl;
 
+use std::error::Error;
+
 #[get("/stats/summary")]
 pub fn summary() -> util::Reply {
     let mut con = match ftl::connect("stats") {
@@ -47,5 +49,49 @@ pub fn over_time() -> util::Reply {
     util::reply_data(json!({
         "domains_over_time": domains_over_time,
         "blocked_over_time": blocked_over_time
+    }))
+}
+
+#[derive(Serialize)]
+struct Query(i32, String, String, String, u8, u8);
+
+#[get("/stats/history")]
+pub fn history() -> util::Reply {
+    let mut con = match ftl::connect("getallqueries") {
+        Ok(c) => c,
+        Err(e) => return util::reply_error(util::Error::Custom(e))
+    };
+
+    let mut history: Vec<Query> = Vec::new();
+
+    // Create a 4KiB string buffer
+    let mut str_buffer = [0u8; 4096];
+
+    loop {
+        match con.read_array_len() {
+            Ok(length) => {
+                if length != 6 {
+                    return util::reply_error(util::Error::Unknown);
+                }
+            },
+            Err(e) => {
+                println!("{}", e.description());
+                // Probably the end of the queries
+                break;
+            }
+        }
+
+        let timestamp = con.read_i32().unwrap();
+        let query_type = con.read_str(&mut str_buffer).unwrap().to_owned();
+        let domain = con.read_str(&mut str_buffer).unwrap().to_owned();
+        let client = con.read_str(&mut str_buffer).unwrap().to_owned();
+        let status = con.read_u8().unwrap();
+        let dnssec = con.read_u8().unwrap();
+
+        history.push(Query(timestamp, query_type, domain, client, status, dnssec));
+    }
+
+    util::reply_data(json!({
+        "history": history
     }))
 }
