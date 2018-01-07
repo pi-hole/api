@@ -188,6 +188,19 @@ pub fn forward_destinations() -> util::Reply {
     }))
 }
 
+#[get("/stats/query_types")]
+pub fn query_types() -> util::Reply {
+    let mut con = ftl_connect!("querytypes");
+
+    let ipv4 = con.read_f32().unwrap();
+    let ipv6 = con.read_f32().unwrap();
+
+    util::reply_data(json!({
+        "A": ipv4,
+        "AAAA": ipv6
+    }))
+}
+
 #[get("/stats/history")]
 pub fn history() -> util::Reply {
     let mut con = ftl_connect!("getallqueries");

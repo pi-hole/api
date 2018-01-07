@@ -20,6 +20,7 @@ fn main() {
             stats::top_blocked,
             stats::top_clients,
             stats::forward_destinations,
+            stats::query_types,
             stats::history
         ])
         .launch();
