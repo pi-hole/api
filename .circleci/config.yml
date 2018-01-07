@@ -31,15 +31,23 @@ version: 2
         name: "Build"
         command: |
           time cargo build --release --target $TARGET
-          cp target/$TARGET/release/pihole_api .
+          cp target/$TARGET/release/pihole_api ${BIN_NAME}
+    - run:
+        name: "Upload"
+        command: |
+          sha1sum ${BIN_NAME} > ${BIN_NAME}.sha1
+          cat ${BIN_NAME}.sha1
+          curl https://ftl.pi-hole.net:8080/FTL-client -o FTL-client
+          chmod +x ./FTL-client
+          [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}" "${FTL_SECRET}"
+          [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}.sha1" "${FTL_SECRET}"
+          rm ./FTL-client
     - save_cache:
         key: cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cargo.lock" }}
         paths:
           - target
           - /root/.cargo
           - /root/.rustup
-    - store_artifacts:
-        path: pihole_api
 
 jobs:
   arm:
