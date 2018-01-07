@@ -104,6 +104,49 @@ pub fn top_blocked() -> util::Reply {
     get_top_domains(true)
 }
 
+#[get("/stats/top_clients")]
+pub fn top_clients() -> util::Reply {
+    let mut con = ftl_connect!("top-clients");
+    let total_queries = con.read_i32().unwrap();
+
+    // Create a 4KiB string buffer
+    let mut str_buffer = [0u8; 4096];
+    let mut top_clients: HashMap<String, i32> = HashMap::new();
+
+    loop {
+        let name = match con.read_str(&mut str_buffer) {
+            Ok(name) => name.to_string(),
+            Err(e) => {
+                if let DecodeStringError::TypeMismatch(marker) = e {
+                    if marker == Marker::Reserved {
+                        // Received EOM
+                        break;
+                    }
+                }
+
+                // Unknown read error
+                return util::reply_error(util::Error::Unknown);
+            }
+        };
+
+        let ip = con.read_str(&mut str_buffer).unwrap();
+        let count = con.read_i32().unwrap();
+
+        let key = if ip.len() > 0 {
+            format!("{}|{}", name, ip)
+        } else {
+            name
+        };
+
+        top_clients.insert(key, count);
+    }
+
+    util::reply_data(json!({
+        "top_clients": top_clients,
+        "total_queries": total_queries
+    }))
+}
+
 #[get("/stats/history")]
 pub fn history() -> util::Reply {
     let mut con = ftl_connect!("getallqueries");
