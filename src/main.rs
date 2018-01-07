@@ -10,10 +10,12 @@ extern crate rmp;
 mod util;
 #[macro_use] mod ftl;
 mod stats;
+mod web;
 
 fn main() {
     rocket::ignite()
         .mount("/", routes![
+            web::index,
             stats::summary,
             stats::over_time,
             stats::top_domains,
