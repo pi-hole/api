@@ -19,6 +19,7 @@ fn main() {
             stats::top_domains,
             stats::top_blocked,
             stats::top_clients,
+            stats::forward_destinations,
             stats::history
         ])
         .launch();
