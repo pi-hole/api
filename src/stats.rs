@@ -57,19 +57,20 @@ pub fn over_time() -> util::Reply {
     }))
 }
 
-#[get("/stats/top_domains")]
-pub fn top_domains() -> util::Reply {
-    let mut con = match ftl::connect("top-domains") {
+fn get_top_domains(blocked: bool) -> util::Reply {
+    let command = if blocked { "top-ads" } else { "top-domains" };
+
+    let mut con = match ftl::connect(command) {
         Ok(c) => c,
         Err(e) => return util::reply_error(util::Error::Custom(e))
     };
 
-    let total_queries = con.read_i32().unwrap();
+    let queries = con.read_i32().unwrap();
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
 
-    let mut top_domains: HashMap<String, i32> = HashMap::new();
+    let mut top: HashMap<String, i32> = HashMap::new();
 
     loop {
         let domain = match con.read_str(&mut str_buffer) {
@@ -89,13 +90,29 @@ pub fn top_domains() -> util::Reply {
 
         let count = con.read_i32().unwrap();
 
-        top_domains.insert(domain.to_string(), count);
+        top.insert(domain.to_string(), count);
     }
 
+    let (top_type, queries_type) = if blocked {
+        ("top_ads", "blocked_queries")
+    } else {
+        ("top_domains", "total_queries")
+    };
+
     util::reply_data(json!({
-        "top_domains": top_domains,
-        "total_queries": total_queries
+        top_type: top,
+        queries_type: queries
     }))
+}
+
+#[get("/stats/top_domains")]
+pub fn top_domains() -> util::Reply {
+    get_top_domains(false)
+}
+
+#[get("/stats/top_blocked")]
+pub fn top_blocked() -> util::Reply {
+    get_top_domains(true)
 }
 
 #[get("/stats/history")]
