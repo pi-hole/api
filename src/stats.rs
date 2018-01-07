@@ -1,8 +1,12 @@
 use util;
 use ftl;
 
-use rmp::decode::ValueReadError;
+use std::collections::HashMap;
+use rmp::decode::{ValueReadError, DecodeStringError};
 use rmp::Marker;
+
+#[derive(Serialize)]
+struct Query(i32, String, String, String, u8, u8);
 
 #[get("/stats/summary")]
 pub fn summary() -> util::Reply {
@@ -53,8 +57,46 @@ pub fn over_time() -> util::Reply {
     }))
 }
 
-#[derive(Serialize)]
-struct Query(i32, String, String, String, u8, u8);
+#[get("/stats/top_domains")]
+pub fn top_domains() -> util::Reply {
+    let mut con = match ftl::connect("top-domains") {
+        Ok(c) => c,
+        Err(e) => return util::reply_error(util::Error::Custom(e))
+    };
+
+    let total_queries = con.read_i32().unwrap();
+
+    // Create a 4KiB string buffer
+    let mut str_buffer = [0u8; 4096];
+
+    let mut top_domains: HashMap<String, i32> = HashMap::new();
+
+    loop {
+        let domain = match con.read_str(&mut str_buffer) {
+            Ok(domain) => domain,
+            Err(e) => {
+                if let DecodeStringError::TypeMismatch(marker) = e {
+                    if marker == Marker::Reserved {
+                        // Received EOM
+                        break;
+                    }
+                }
+
+                // Unknown read error
+                return util::reply_error(util::Error::Unknown);
+            }
+        };
+
+        let count = con.read_i32().unwrap();
+
+        top_domains.insert(domain.to_string(), count);
+    }
+
+    util::reply_data(json!({
+        "top_domains": top_domains,
+        "total_queries": total_queries
+    }))
+}
 
 #[get("/stats/history")]
 pub fn history() -> util::Reply {

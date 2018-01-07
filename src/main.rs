@@ -16,6 +16,7 @@ fn main() {
         .mount("/", routes![
             stats::summary,
             stats::over_time,
+            stats::top_domains,
             stats::history
         ])
         .launch();
