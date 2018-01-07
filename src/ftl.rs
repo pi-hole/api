@@ -9,6 +9,16 @@ const SOCKET_LOCATION: &'static str = "/var/run/pihole/FTL.sock";
 
 pub struct FtlConnection(BufReader<UnixStream>);
 
+/// This provides a simple command to get an FtlConnection while also throwing an error if it fails
+macro_rules! ftl_connect {
+    ($command:expr) => {
+        match ftl::connect($command) {
+            Ok(c) => c,
+            Err(e) => return util::reply_error(util::Error::Custom(e))
+        };
+    };
+}
+
 pub fn connect(command: &str) -> Result<FtlConnection, String> {
     let mut stream = match UnixStream::connect(SOCKET_LOCATION) {
         Ok(s) => s,

@@ -10,10 +10,7 @@ struct Query(i32, String, String, String, u8, u8);
 
 #[get("/stats/summary")]
 pub fn summary() -> util::Reply {
-    let mut con = match ftl::connect("stats") {
-        Ok(c) => c,
-        Err(e) => return util::reply_error(util::Error::Custom(e))
-    };
+    let mut con = ftl_connect!("stats");
 
     let domains_blocked = con.read_i32().unwrap();
     let total_queries = con.read_i32().unwrap();
@@ -43,10 +40,7 @@ pub fn summary() -> util::Reply {
 
 #[get("/stats/overTime")]
 pub fn over_time() -> util::Reply {
-    let mut con = match ftl::connect("overTime") {
-        Ok(c) => c,
-        Err(e) => return util::reply_error(util::Error::Custom(e))
-    };
+    let mut con = ftl_connect!("overTime");
 
     let domains_over_time = con.read_int_map().unwrap();
     let blocked_over_time = con.read_int_map().unwrap();
@@ -60,16 +54,11 @@ pub fn over_time() -> util::Reply {
 fn get_top_domains(blocked: bool) -> util::Reply {
     let command = if blocked { "top-ads" } else { "top-domains" };
 
-    let mut con = match ftl::connect(command) {
-        Ok(c) => c,
-        Err(e) => return util::reply_error(util::Error::Custom(e))
-    };
-
+    let mut con = ftl_connect!(command);
     let queries = con.read_i32().unwrap();
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
-
     let mut top: HashMap<String, i32> = HashMap::new();
 
     loop {
@@ -117,10 +106,7 @@ pub fn top_blocked() -> util::Reply {
 
 #[get("/stats/history")]
 pub fn history() -> util::Reply {
-    let mut con = match ftl::connect("getallqueries") {
-        Ok(c) => c,
-        Err(e) => return util::reply_error(util::Error::Custom(e))
-    };
+    let mut con = ftl_connect!("getallqueries");
 
     let mut history: Vec<Query> = Vec::new();
 

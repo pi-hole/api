@@ -8,7 +8,7 @@ extern crate serde;
 extern crate rmp;
 
 mod util;
-mod ftl;
+#[macro_use] mod ftl;
 mod stats;
 
 fn main() {
