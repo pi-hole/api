@@ -11,6 +11,23 @@ struct Query(i32, String, String, String, u8, u8);
 #[derive(Serialize)]
 struct UnknownQuery(i32, i32, String, String, String, u8, bool);
 
+#[derive(FromForm)]
+pub struct TopParams {
+    limit: Option<usize>,
+    audit: Option<bool>,
+    desc: Option<bool>
+}
+
+impl Default for TopParams {
+    fn default() -> Self {
+        TopParams {
+            limit: Some(10),
+            audit: Some(false),
+            desc: Some(true)
+        }
+    }
+}
+
 #[get("/stats/summary")]
 pub fn summary() -> util::Reply {
     let mut con = ftl_connect!("stats");
@@ -41,10 +58,17 @@ pub fn summary() -> util::Reply {
     }))
 }
 
-fn get_top_domains(blocked: bool) -> util::Reply {
+fn get_top_domains(blocked: bool, params: TopParams) -> util::Reply {
     let command = if blocked { "top-ads" } else { "top-domains" };
+    let default_limit: usize = 10;
 
-    let mut con = ftl_connect!(command);
+    let mut con = ftl_connect!(&format!(
+        "{} ({}) {} {}",
+        command,
+        params.limit.unwrap_or(default_limit),
+        if params.audit.unwrap_or(false) { "for audit" } else { "" },
+        if params.desc.unwrap_or(true) { "desc" } else { "" }
+    ));
     let queries = con.read_i32().unwrap();
 
     // Create a 4KiB string buffer
@@ -86,12 +110,22 @@ fn get_top_domains(blocked: bool) -> util::Reply {
 
 #[get("/stats/top_domains")]
 pub fn top_domains() -> util::Reply {
-    get_top_domains(false)
+    get_top_domains(false, TopParams::default())
+}
+
+#[get("/stats/top_domains?<params>")]
+pub fn top_domains_params(params: TopParams) -> util::Reply {
+    get_top_domains(false, params)
 }
 
 #[get("/stats/top_blocked")]
 pub fn top_blocked() -> util::Reply {
-    get_top_domains(true)
+    get_top_domains(true, TopParams::default())
+}
+
+#[get("/stats/top_blocked?<params>")]
+pub fn top_blocked_params(params: TopParams) -> util::Reply {
+    get_top_domains(true, params)
 }
 
 #[get("/stats/top_clients")]

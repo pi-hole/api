@@ -1,4 +1,4 @@
-#![feature(plugin)]
+#![feature(plugin, custom_derive)]
 #![plugin(rocket_codegen)]
 
 extern crate rocket;
@@ -18,7 +18,9 @@ fn main() {
             web::index,
             stats::summary,
             stats::top_domains,
+            stats::top_domains_params,
             stats::top_blocked,
+            stats::top_blocked_params,
             stats::top_clients,
             stats::forward_destinations,
             stats::query_types,
