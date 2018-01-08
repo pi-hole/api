@@ -170,9 +170,7 @@ pub fn forward_destinations() -> util::Reply {
         forward_destinations.insert(key, percentage);
     }
 
-    util::reply_data(json!({
-        "forward_destinations": forward_destinations
-    }))
+    util::reply_data(forward_destinations)
 }
 
 #[get("/stats/query_types")]
@@ -222,9 +220,7 @@ pub fn history() -> util::Reply {
         history.push(Query(timestamp, query_type, domain, client, status, dnssec));
     }
 
-    util::reply_data(json!({
-        "history": history
-    }))
+    util::reply_data(history)
 }
 
 #[get("/stats/recent_blocked")]
@@ -254,9 +250,7 @@ pub fn recent_blocked() -> util::Reply {
         domains.push(domain);
     }
 
-    util::reply_data(json!({
-        "recent_blocked": domains
-    }))
+    util::reply_data(domains)
 }
 
 #[get("/stats/overTime/history")]
@@ -304,9 +298,7 @@ pub fn over_time_forward_destinations() -> util::Reply {
         over_time.insert(timestamp, step);
     }
 
-    util::reply_data(json!({
-        "forward_destinations_over_time": over_time
-    }))
+    util::reply_data(over_time)
 }
 
 #[get("/stats/overTime/query_types")]
@@ -337,7 +329,5 @@ pub fn over_time_query_types() -> util::Reply {
         over_time.insert(timestamp, (ipv4, ipv6));
     }
 
-    util::reply_data(json!({
-        "query_types_over_time": over_time
-    }))
+    util::reply_data(over_time)
 }
