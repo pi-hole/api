@@ -38,19 +38,6 @@ pub fn summary() -> util::Reply {
     }))
 }
 
-#[get("/stats/overTime")]
-pub fn over_time() -> util::Reply {
-    let mut con = ftl_connect!("overTime");
-
-    let domains_over_time = con.read_int_map().unwrap();
-    let blocked_over_time = con.read_int_map().unwrap();
-
-    util::reply_data(json!({
-        "domains_over_time": domains_over_time,
-        "blocked_over_time": blocked_over_time
-    }))
-}
-
 fn get_top_domains(blocked: bool) -> util::Reply {
     let command = if blocked { "top-ads" } else { "top-domains" };
 
@@ -272,8 +259,21 @@ pub fn recent_blocked() -> util::Reply {
     }))
 }
 
+#[get("/stats/overTime/history")]
+pub fn over_time_history() -> util::Reply {
+    let mut con = ftl_connect!("overTime");
+
+    let domains_over_time = con.read_int_map().unwrap();
+    let blocked_over_time = con.read_int_map().unwrap();
+
+    util::reply_data(json!({
+        "domains_over_time": domains_over_time,
+        "blocked_over_time": blocked_over_time
+    }))
+}
+
 #[get("/stats/overTime/forward_destinations")]
-pub fn forward_destinations_over_time() -> util::Reply {
+pub fn over_time_forward_destinations() -> util::Reply {
     let mut con = ftl_connect!("ForwardedoverTime");
 
     let forward_dest_num = con.read_i32().unwrap();

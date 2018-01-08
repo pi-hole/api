@@ -17,7 +17,6 @@ fn main() {
         .mount("/", routes![
             web::index,
             stats::summary,
-            stats::over_time,
             stats::top_domains,
             stats::top_blocked,
             stats::top_clients,
@@ -25,7 +24,8 @@ fn main() {
             stats::query_types,
             stats::history,
             stats::recent_blocked,
-            stats::forward_destinations_over_time
+            stats::over_time_history,
+            stats::over_time_forward_destinations
         ])
         .launch();
 }
