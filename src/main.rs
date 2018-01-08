@@ -24,6 +24,7 @@ fn main() {
             stats::query_types,
             stats::history,
             stats::recent_blocked,
+            stats::clients,
             stats::over_time_history,
             stats::over_time_forward_destinations,
             stats::over_time_query_types,

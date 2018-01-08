@@ -253,6 +253,39 @@ pub fn recent_blocked() -> util::Reply {
     util::reply_data(domains)
 }
 
+#[get("/stats/clients")]
+pub fn clients() -> util::Reply {
+    let mut con = ftl_connect!("client-names");
+
+    // Create a 4KiB string buffer
+    let mut str_buffer = [0u8; 4096];
+    let mut client_data: Vec<(String, String, i32)> = Vec::new();
+
+    loop {
+        let name = match con.read_str(&mut str_buffer) {
+            Ok(name) => name.to_owned(),
+            Err(e) => {
+                if let DecodeStringError::TypeMismatch(marker) = e {
+                    if marker == Marker::Reserved {
+                        // Received EOM
+                        break;
+                    }
+                }
+
+                // Unknown read error
+                return util::reply_error(util::Error::Unknown);
+            }
+        };
+
+        let ip = con.read_str(&mut str_buffer).unwrap().to_owned();
+        let count = con.read_i32().unwrap();
+
+        client_data.push((name, ip, count));
+    }
+
+    util::reply_data(client_data)
+}
+
 #[get("/stats/overTime/history")]
 pub fn over_time_history() -> util::Reply {
     let mut con = ftl_connect!("overTime");
