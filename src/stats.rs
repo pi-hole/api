@@ -331,3 +331,45 @@ pub fn over_time_query_types() -> util::Reply {
 
     util::reply_data(over_time)
 }
+
+#[get("/stats/overTime/clients")]
+pub fn over_time_clients() -> util::Reply {
+    let mut con = ftl_connect!("ClientsoverTime");
+
+    let mut over_time: HashMap<i32, Vec<i32>> = HashMap::new();
+
+    loop {
+        let timestamp = match con.read_i32() {
+            Ok(timestamp) => timestamp,
+            Err(e) => {
+                if let ValueReadError::TypeMismatch(marker) = e {
+                    if marker == Marker::Reserved {
+                        // Received EOM
+                        break;
+                    }
+                }
+
+                // Unknown read error
+                return util::reply_error(util::Error::Unknown);
+            }
+        };
+
+        let mut step = Vec::new();
+
+        // Get all the data for this step
+        loop {
+            let client = con.read_i32().unwrap();
+
+            // Marker for the end of this step
+            if client == -1 {
+                break;
+            }
+
+            step.push(client);
+        }
+
+        over_time.insert(timestamp, step);
+    }
+
+    util::reply_data(over_time)
+}
