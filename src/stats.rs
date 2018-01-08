@@ -201,38 +201,6 @@ pub fn query_types() -> util::Reply {
     }))
 }
 
-#[get("/stats/recent_blocked")]
-pub fn recent_blocked() -> util::Reply {
-    let mut con = ftl_connect!("recentBlocked");
-
-    // Create a 4KiB string buffer
-    let mut str_buffer = [0u8; 4096];
-    let mut domains = Vec::new();
-
-    loop {
-        let domain = match con.read_str(&mut str_buffer) {
-            Ok(domain) => domain.to_owned(),
-            Err(e) => {
-                if let DecodeStringError::TypeMismatch(marker) = e {
-                    if marker == Marker::Reserved {
-                        // Received EOM
-                        break;
-                    }
-                }
-
-                // Unknown read error
-                return util::reply_error(util::Error::Unknown);
-            }
-        };
-
-        domains.push(domain);
-    }
-
-    util::reply_data(json!({
-        "recent_blocked": domains
-    }))
-}
-
 #[get("/stats/history")]
 pub fn history() -> util::Reply {
     let mut con = ftl_connect!("getallqueries");
@@ -269,5 +237,37 @@ pub fn history() -> util::Reply {
 
     util::reply_data(json!({
         "history": history
+    }))
+}
+
+#[get("/stats/recent_blocked")]
+pub fn recent_blocked() -> util::Reply {
+    let mut con = ftl_connect!("recentBlocked");
+
+    // Create a 4KiB string buffer
+    let mut str_buffer = [0u8; 4096];
+    let mut domains = Vec::new();
+
+    loop {
+        let domain = match con.read_str(&mut str_buffer) {
+            Ok(domain) => domain.to_owned(),
+            Err(e) => {
+                if let DecodeStringError::TypeMismatch(marker) = e {
+                    if marker == Marker::Reserved {
+                        // Received EOM
+                        break;
+                    }
+                }
+
+                // Unknown read error
+                return util::reply_error(util::Error::Unknown);
+            }
+        };
+
+        domains.push(domain);
+    }
+
+    util::reply_data(json!({
+        "recent_blocked": domains
     }))
 }
