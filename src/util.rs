@@ -2,11 +2,12 @@ use serde::Serialize;
 use rocket_contrib::{Json, Value};
 use rocket::request::Request;
 use rocket::response::{Response, Responder};
+use std::fmt::Display;
 
-pub type Reply = CORS<Json<Value>>;
+pub type Reply = Result<CORS<Json<Value>>, Error>;
 
 pub fn reply<D: Serialize>(data: D, errors: &[Error]) -> Reply {
-    CORS(Json(json!({
+    Ok(CORS(Json(json!({
         "data": data,
         "errors": errors.iter()
                         .map(|error| json!({
@@ -14,7 +15,7 @@ pub fn reply<D: Serialize>(data: D, errors: &[Error]) -> Reply {
                             "message": error.message()
                         }))
                         .collect::<Vec<Value>>()
-    })))
+    }))))
 }
 
 pub fn reply_data<D: Serialize>(data: D) -> Reply {
@@ -31,6 +32,7 @@ pub fn reply_success() -> Reply {
     }), &[])
 }
 
+#[derive(Debug)]
 pub enum Error {
     Unknown,
     Custom(String),
@@ -55,6 +57,18 @@ impl Error {
             Error::AlreadyExists => "already_exists",
             Error::DoesNotExist => "does_not_exist"
         }
+    }
+}
+
+impl<T: Display> From<T> for Error {
+    fn from(e: T) -> Self {
+        Error::Custom(format!("{}", e))
+    }
+}
+
+impl<'r> Responder<'r> for Error {
+    fn respond_to(self, request: &Request) -> super::rocket::response::Result<'r> {
+        reply_error(self).unwrap().respond_to(request)
     }
 }
 

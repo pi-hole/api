@@ -32,17 +32,17 @@ impl Default for TopParams {
 pub fn summary() -> util::Reply {
     let mut con = ftl_connect!("stats");
 
-    let domains_blocked = con.read_i32().unwrap();
-    let total_queries = con.read_i32().unwrap();
-    let blocked_queries = con.read_i32().unwrap();
-    let percent_blocked = con.read_f32().unwrap();
-    let unique_domains = con.read_i32().unwrap();
-    let forwarded_queries = con.read_i32().unwrap();
-    let cached_queries = con.read_i32().unwrap();
-    let total_clients = con.read_i32().unwrap();
-    let unique_clients = con.read_i32().unwrap();
-    let status = con.read_u8().unwrap();
-    con.expect_eom().unwrap();
+    let domains_blocked = con.read_i32()?;
+    let total_queries = con.read_i32()?;
+    let blocked_queries = con.read_i32()?;
+    let percent_blocked = con.read_f32()?;
+    let unique_domains = con.read_i32()?;
+    let forwarded_queries = con.read_i32()?;
+    let cached_queries = con.read_i32()?;
+    let total_clients = con.read_i32()?;
+    let unique_clients = con.read_i32()?;
+    let status = con.read_u8()?;
+    con.expect_eom()?;
 
     util::reply_data(json!({
         "domains_blocked": domains_blocked,
@@ -69,7 +69,7 @@ fn get_top_domains(blocked: bool, params: TopParams) -> util::Reply {
         if params.audit.unwrap_or(false) { "for audit" } else { "" },
         if params.desc.unwrap_or(true) { "desc" } else { "" }
     ));
-    let queries = con.read_i32().unwrap();
+    let queries = con.read_i32()?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -91,7 +91,7 @@ fn get_top_domains(blocked: bool, params: TopParams) -> util::Reply {
             }
         };
 
-        let count = con.read_i32().unwrap();
+        let count = con.read_i32()?;
 
         top.insert(domain.to_string(), count);
     }
@@ -131,7 +131,7 @@ pub fn top_blocked_params(params: TopParams) -> util::Reply {
 #[get("/stats/top_clients")]
 pub fn top_clients() -> util::Reply {
     let mut con = ftl_connect!("top-clients");
-    let total_queries = con.read_i32().unwrap();
+    let total_queries = con.read_i32()?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -153,8 +153,8 @@ pub fn top_clients() -> util::Reply {
             }
         };
 
-        let ip = con.read_str(&mut str_buffer).unwrap();
-        let count = con.read_i32().unwrap();
+        let ip = con.read_str(&mut str_buffer)?;
+        let count = con.read_i32()?;
 
         let key = if ip.len() > 0 {
             format!("{}|{}", name, ip)
@@ -195,8 +195,8 @@ pub fn forward_destinations() -> util::Reply {
             }
         };
 
-        let ip = con.read_str(&mut str_buffer).unwrap();
-        let percentage = con.read_f32().unwrap();
+        let ip = con.read_str(&mut str_buffer)?;
+        let percentage = con.read_f32()?;
 
         let key = if ip.len() > 0 {
             format!("{}|{}", name, ip)
@@ -214,8 +214,8 @@ pub fn forward_destinations() -> util::Reply {
 pub fn query_types() -> util::Reply {
     let mut con = ftl_connect!("querytypes");
 
-    let ipv4 = con.read_f32().unwrap();
-    let ipv6 = con.read_f32().unwrap();
+    let ipv4 = con.read_f32()?;
+    let ipv6 = con.read_f32()?;
 
     util::reply_data(json!({
         "A": ipv4,
@@ -247,11 +247,11 @@ pub fn history() -> util::Reply {
             }
         };
 
-        let query_type = con.read_str(&mut str_buffer).unwrap().to_owned();
-        let domain = con.read_str(&mut str_buffer).unwrap().to_owned();
-        let client = con.read_str(&mut str_buffer).unwrap().to_owned();
-        let status = con.read_u8().unwrap();
-        let dnssec = con.read_u8().unwrap();
+        let query_type = con.read_str(&mut str_buffer)?.to_owned();
+        let domain = con.read_str(&mut str_buffer)?.to_owned();
+        let client = con.read_str(&mut str_buffer)?.to_owned();
+        let status = con.read_u8()?;
+        let dnssec = con.read_u8()?;
 
         history.push(Query(timestamp, query_type, domain, client, status, dnssec));
     }
@@ -313,8 +313,8 @@ pub fn clients() -> util::Reply {
             }
         };
 
-        let ip = con.read_str(&mut str_buffer).unwrap().to_owned();
-        let count = con.read_i32().unwrap();
+        let ip = con.read_str(&mut str_buffer)?.to_owned();
+        let count = con.read_i32()?;
 
         client_data.push((name, ip, count));
     }
@@ -346,12 +346,12 @@ pub fn unknown_queries() -> util::Reply {
             }
         };
 
-        let id = con.read_i32().unwrap();
-        let query_type = con.read_str(&mut str_buffer).unwrap().to_owned();
-        let domain = con.read_str(&mut str_buffer).unwrap().to_owned();
-        let client = con.read_str(&mut str_buffer).unwrap().to_owned();
-        let status = con.read_u8().unwrap();
-        let complete = con.read_bool().unwrap();
+        let id = con.read_i32()?;
+        let query_type = con.read_str(&mut str_buffer)?.to_owned();
+        let domain = con.read_str(&mut str_buffer)?.to_owned();
+        let client = con.read_str(&mut str_buffer)?.to_owned();
+        let status = con.read_u8()?;
+        let complete = con.read_bool()?;
 
         queries.push(UnknownQuery(timestamp, id, query_type, domain, client, status, complete));
     }
@@ -363,8 +363,8 @@ pub fn unknown_queries() -> util::Reply {
 pub fn over_time_history() -> util::Reply {
     let mut con = ftl_connect!("overTime");
 
-    let domains_over_time = con.read_int_map().unwrap();
-    let blocked_over_time = con.read_int_map().unwrap();
+    let domains_over_time = con.read_int_map()?;
+    let blocked_over_time = con.read_int_map()?;
 
     util::reply_data(json!({
         "domains_over_time": domains_over_time,
@@ -376,7 +376,7 @@ pub fn over_time_history() -> util::Reply {
 pub fn over_time_forward_destinations() -> util::Reply {
     let mut con = ftl_connect!("ForwardedoverTime");
 
-    let forward_dest_num = con.read_i32().unwrap();
+    let forward_dest_num = con.read_i32()?;
     let mut over_time: HashMap<i32, Vec<f32>> = HashMap::new();
 
     loop {
@@ -398,7 +398,7 @@ pub fn over_time_forward_destinations() -> util::Reply {
         let mut step = Vec::new();
 
         for _ in 0..forward_dest_num {
-            step.push(con.read_f32().unwrap());
+            step.push(con.read_f32()?);
         }
 
         over_time.insert(timestamp, step);
@@ -429,8 +429,8 @@ pub fn over_time_query_types() -> util::Reply {
             }
         };
 
-        let ipv4 = con.read_f32().unwrap();
-        let ipv6 = con.read_f32().unwrap();
+        let ipv4 = con.read_f32()?;
+        let ipv6 = con.read_f32()?;
 
         over_time.insert(timestamp, (ipv4, ipv6));
     }
@@ -464,7 +464,7 @@ pub fn over_time_clients() -> util::Reply {
 
         // Get all the data for this step
         loop {
-            let client = con.read_i32().unwrap();
+            let client = con.read_i32()?;
 
             // Marker for the end of this step
             if client == -1 {
