@@ -308,3 +308,36 @@ pub fn over_time_forward_destinations() -> util::Reply {
         "forward_destinations_over_time": over_time
     }))
 }
+
+#[get("/stats/overTime/query_types")]
+pub fn over_time_query_types() -> util::Reply {
+    let mut con = ftl_connect!("QueryTypesoverTime");
+
+    let mut over_time: HashMap<i32, (f32, f32)> = HashMap::new();
+
+    loop {
+        let timestamp = match con.read_i32() {
+            Ok(timestamp) => timestamp,
+            Err(e) => {
+                if let ValueReadError::TypeMismatch(marker) = e {
+                    if marker == Marker::Reserved {
+                        // Received EOM
+                        break;
+                    }
+                }
+
+                // Unknown read error
+                return util::reply_error(util::Error::Unknown);
+            }
+        };
+
+        let ipv4 = con.read_f32().unwrap();
+        let ipv6 = con.read_f32().unwrap();
+
+        over_time.insert(timestamp, (ipv4, ipv6));
+    }
+
+    util::reply_data(json!({
+        "query_types_over_time": over_time
+    }))
+}
