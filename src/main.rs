@@ -24,7 +24,8 @@ fn main() {
             stats::forward_destinations,
             stats::query_types,
             stats::history,
-            stats::recent_blocked
+            stats::recent_blocked,
+            stats::forward_destinations_over_time
         ])
         .launch();
 }

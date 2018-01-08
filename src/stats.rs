@@ -271,3 +271,40 @@ pub fn recent_blocked() -> util::Reply {
         "recent_blocked": domains
     }))
 }
+
+#[get("/stats/overTime/forward_destinations")]
+pub fn forward_destinations_over_time() -> util::Reply {
+    let mut con = ftl_connect!("ForwardedoverTime");
+
+    let forward_dest_num = con.read_i32().unwrap();
+    let mut over_time: HashMap<i32, Vec<f32>> = HashMap::new();
+
+    loop {
+        let timestamp = match con.read_i32() {
+            Ok(timestamp) => timestamp,
+            Err(e) => {
+                if let ValueReadError::TypeMismatch(marker) = e {
+                    if marker == Marker::Reserved {
+                        // Received EOM
+                        break;
+                    }
+                }
+
+                // Unknown read error
+                return util::reply_error(util::Error::Unknown);
+            }
+        };
+
+        let mut step = Vec::new();
+
+        for _ in 0..forward_dest_num {
+            step.push(con.read_f32().unwrap());
+        }
+
+        over_time.insert(timestamp, step);
+    }
+
+    util::reply_data(json!({
+        "forward_destinations_over_time": over_time
+    }))
+}
