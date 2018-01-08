@@ -45,6 +45,10 @@ impl FtlConnection {
         Ok(())
     }
 
+    pub fn read_bool(&mut self) -> Result<bool, decode::ValueReadError> {
+        decode::read_bool(&mut self.0)
+    }
+
     pub fn read_u8(&mut self) -> Result<u8, decode::ValueReadError> {
         decode::read_u8(&mut self.0)
     }

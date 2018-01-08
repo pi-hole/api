@@ -8,6 +8,9 @@ use rmp::Marker;
 #[derive(Serialize)]
 struct Query(i32, String, String, String, u8, u8);
 
+#[derive(Serialize)]
+struct UnknownQuery(i32, i32, String, String, String, u8, bool);
+
 #[get("/stats/summary")]
 pub fn summary() -> util::Reply {
     let mut con = ftl_connect!("stats");
@@ -190,10 +193,9 @@ pub fn query_types() -> util::Reply {
 pub fn history() -> util::Reply {
     let mut con = ftl_connect!("getallqueries");
 
-    let mut history: Vec<Query> = Vec::new();
-
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
+    let mut history: Vec<Query> = Vec::new();
 
     loop {
         let timestamp = match con.read_i32() {
@@ -284,6 +286,43 @@ pub fn clients() -> util::Reply {
     }
 
     util::reply_data(client_data)
+}
+
+#[get("/stats/unknown_queries")]
+pub fn unknown_queries() -> util::Reply {
+    let mut con = ftl_connect!("unknown");
+
+    // Create a 4KiB string buffer
+    let mut str_buffer = [0u8; 4096];
+    let mut queries: Vec<UnknownQuery> = Vec::new();
+
+    loop {
+        let timestamp = match con.read_i32() {
+            Ok(timestamp) => timestamp,
+            Err(e) => {
+                if let ValueReadError::TypeMismatch(marker) = e {
+                    if marker == Marker::Reserved {
+                        // Received EOM
+                        break;
+                    }
+                }
+
+                // Unknown read error
+                return util::reply_error(util::Error::Unknown);
+            }
+        };
+
+        let id = con.read_i32().unwrap();
+        let query_type = con.read_str(&mut str_buffer).unwrap().to_owned();
+        let domain = con.read_str(&mut str_buffer).unwrap().to_owned();
+        let client = con.read_str(&mut str_buffer).unwrap().to_owned();
+        let status = con.read_u8().unwrap();
+        let complete = con.read_bool().unwrap();
+
+        queries.push(UnknownQuery(timestamp, id, query_type, domain, client, status, complete));
+    }
+
+    util::reply_data(queries)
 }
 
 #[get("/stats/overTime/history")]
