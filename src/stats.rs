@@ -108,7 +108,7 @@ fn get_top_domains(blocked: bool, params: TopParams) -> util::Reply {
     }
 
     let (top_type, queries_type) = if blocked {
-        ("top_ads", "blocked_queries")
+        ("top_blocked", "blocked_queries")
     } else {
         ("top_domains", "total_queries")
     };
