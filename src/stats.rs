@@ -391,8 +391,8 @@ pub fn over_time_forward_destinations() -> util::Reply {
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
 
-    let forward_dest_num = con.read_i32()?;
-    let mut forward_data: Vec<(String, String)> = Vec::new();
+    let forward_dest_num = con.read_i32()? as usize;
+    let mut forward_data: Vec<String> = Vec::with_capacity(forward_dest_num);
     let mut over_time: HashMap<i32, Vec<f32>> = HashMap::new();
 
     // Read in forward destination names and IPs
@@ -400,7 +400,13 @@ pub fn over_time_forward_destinations() -> util::Reply {
         let name = con.read_str(&mut str_buffer)?.to_owned();
         let ip = con.read_str(&mut str_buffer)?.to_owned();
 
-        forward_data.push((name, ip));
+        forward_data.push(
+            if name.is_empty() {
+                ip
+            } else {
+                format!("{}|{}", name, ip)
+            }
+        );
     }
 
     loop {
@@ -419,7 +425,7 @@ pub fn over_time_forward_destinations() -> util::Reply {
             }
         };
 
-        let mut step = Vec::new();
+        let mut step = Vec::with_capacity(forward_dest_num);
 
         for _ in 0..forward_dest_num {
             step.push(con.read_f32()?);
