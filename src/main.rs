@@ -26,7 +26,9 @@ fn main() {
     rocket::ignite()
         .mount("/", routes![
             web::web_interface_index,
-            web::web_interface,
+            web::web_interface
+        ])
+        .mount("/admin/api", routes![
             stats::summary,
             stats::top_domains,
             stats::top_domains_params,
