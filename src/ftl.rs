@@ -52,7 +52,8 @@ impl FtlConnection {
         decode::read_f32(&mut self.0)
     }
 
-    pub fn read_str<'r>(&mut self, buffer: &'r mut [u8]) -> Result<&'r str, decode::DecodeStringError<'r>> {
+    pub fn read_str<'r>(&mut self, buffer: &'r mut [u8])
+            -> Result<&'r str, decode::DecodeStringError<'r>> {
         decode::read_str(&mut self.0, buffer)
     }
 
