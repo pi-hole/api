@@ -1,7 +1,7 @@
 use rocket::response::NamedFile;
-use std::io;
+use std::path::{Path, PathBuf};
 
-#[get("/")]
-pub fn index() -> io::Result<NamedFile> {
-    NamedFile::open("static/index.html")
+#[get("/admin/<path..>")]
+pub fn web_interface(path: PathBuf) -> Option<NamedFile> {
+    NamedFile::open(Path::new("static/").join(path)).ok()
 }

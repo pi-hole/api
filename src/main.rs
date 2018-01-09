@@ -15,7 +15,7 @@ mod web;
 fn main() {
     rocket::ignite()
         .mount("/", routes![
-            web::index,
+            web::web_interface,
             stats::summary,
             stats::top_domains,
             stats::top_domains_params,
