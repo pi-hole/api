@@ -30,7 +30,7 @@ impl Default for TopParams {
 
 #[get("/stats/summary")]
 pub fn summary() -> util::Reply {
-    let mut con = ftl_connect!("stats");
+    let mut con = ftl::connect("stats")?;
 
     let domains_blocked = con.read_i32()?;
     let total_queries = con.read_i32()?;
@@ -59,16 +59,17 @@ pub fn summary() -> util::Reply {
 }
 
 fn get_top_domains(blocked: bool, params: TopParams) -> util::Reply {
-    let command = if blocked { "top-ads" } else { "top-domains" };
     let default_limit: usize = 10;
 
-    let mut con = ftl_connect!(&format!(
+    let command = format!(
         "{} ({}) {} {}",
-        command,
+        if blocked { "top-ads" } else { "top-domains" },
         params.limit.unwrap_or(default_limit),
         if params.audit.unwrap_or(false) { "for audit" } else { "" },
         if params.desc.unwrap_or(true) { "desc" } else { "" }
-    ));
+    );
+
+    let mut con = ftl::connect(&command)?;
     let queries = con.read_i32()?;
 
     // Create a 4KiB string buffer
@@ -130,7 +131,7 @@ pub fn top_blocked_params(params: TopParams) -> util::Reply {
 
 #[get("/stats/top_clients")]
 pub fn top_clients() -> util::Reply {
-    let mut con = ftl_connect!("top-clients");
+    let mut con = ftl::connect("top-clients")?;
     let total_queries = con.read_i32()?;
 
     // Create a 4KiB string buffer
@@ -173,7 +174,7 @@ pub fn top_clients() -> util::Reply {
 
 #[get("/stats/forward_destinations")]
 pub fn forward_destinations() -> util::Reply {
-    let mut con = ftl_connect!("forward-dest");
+    let mut con = ftl::connect("forward-dest")?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -212,7 +213,7 @@ pub fn forward_destinations() -> util::Reply {
 
 #[get("/stats/query_types")]
 pub fn query_types() -> util::Reply {
-    let mut con = ftl_connect!("querytypes");
+    let mut con = ftl::connect("querytypes")?;
 
     let ipv4 = con.read_f32()?;
     let ipv6 = con.read_f32()?;
@@ -225,7 +226,7 @@ pub fn query_types() -> util::Reply {
 
 #[get("/stats/history")]
 pub fn history() -> util::Reply {
-    let mut con = ftl_connect!("getallqueries");
+    let mut con = ftl::connect("getallqueries")?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -261,7 +262,7 @@ pub fn history() -> util::Reply {
 
 #[get("/stats/recent_blocked")]
 pub fn recent_blocked() -> util::Reply {
-    let mut con = ftl_connect!("recentBlocked");
+    let mut con = ftl::connect("recentBlocked")?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -291,7 +292,7 @@ pub fn recent_blocked() -> util::Reply {
 
 #[get("/stats/clients")]
 pub fn clients() -> util::Reply {
-    let mut con = ftl_connect!("client-names");
+    let mut con = ftl::connect("client-names")?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -324,7 +325,7 @@ pub fn clients() -> util::Reply {
 
 #[get("/stats/unknown_queries")]
 pub fn unknown_queries() -> util::Reply {
-    let mut con = ftl_connect!("unknown");
+    let mut con = ftl::connect("unknown")?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -361,7 +362,7 @@ pub fn unknown_queries() -> util::Reply {
 
 #[get("/stats/overTime/history")]
 pub fn over_time_history() -> util::Reply {
-    let mut con = ftl_connect!("overTime");
+    let mut con = ftl::connect("overTime")?;
 
     let domains_over_time = con.read_int_map()?;
     let blocked_over_time = con.read_int_map()?;
@@ -374,7 +375,7 @@ pub fn over_time_history() -> util::Reply {
 
 #[get("/stats/overTime/forward_destinations")]
 pub fn over_time_forward_destinations() -> util::Reply {
-    let mut con = ftl_connect!("ForwardedoverTime");
+    let mut con = ftl::connect("ForwardedoverTime")?;
 
     let forward_dest_num = con.read_i32()?;
     let mut over_time: HashMap<i32, Vec<f32>> = HashMap::new();
@@ -409,7 +410,7 @@ pub fn over_time_forward_destinations() -> util::Reply {
 
 #[get("/stats/overTime/query_types")]
 pub fn over_time_query_types() -> util::Reply {
-    let mut con = ftl_connect!("QueryTypesoverTime");
+    let mut con = ftl::connect("QueryTypesoverTime")?;
 
     let mut over_time: HashMap<i32, (f32, f32)> = HashMap::new();
 
@@ -440,7 +441,7 @@ pub fn over_time_query_types() -> util::Reply {
 
 #[get("/stats/overTime/clients")]
 pub fn over_time_clients() -> util::Reply {
-    let mut con = ftl_connect!("ClientsoverTime");
+    let mut con = ftl::connect("ClientsoverTime")?;
 
     let mut over_time: HashMap<i32, Vec<i32>> = HashMap::new();
 

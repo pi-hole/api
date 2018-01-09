@@ -4,27 +4,18 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::collections::HashMap;
 use rmp::decode;
+use util;
 
 const SOCKET_LOCATION: &'static str = "/var/run/pihole/FTL.sock";
 
 pub struct FtlConnection(BufReader<UnixStream>);
 
-/// This provides a simple command to get an FtlConnection while also throwing an error if it fails
-macro_rules! ftl_connect {
-    ($command:expr) => {
-        match ftl::connect($command) {
-            Ok(c) => c,
-            Err(e) => return util::reply_error(util::Error::Custom(e))
-        };
-    };
-}
-
-pub fn connect(command: &str) -> Result<FtlConnection, String> {
+pub fn connect(command: &str) -> Result<FtlConnection, util::Error> {
     let mut stream = match UnixStream::connect(SOCKET_LOCATION) {
         Ok(s) => s,
-        Err(_) => return Err(format!("Unable to connect to the FTL socket at {}", SOCKET_LOCATION))
+        Err(_) => return Err(util::Error::FtlConnectionFail)
     };
-    stream.write_all(format!(">{}\n", command).as_bytes()).unwrap();
+    stream.write_all(format!(">{}\n", command).as_bytes())?;
 
     Ok(FtlConnection(BufReader::new(stream)))
 }

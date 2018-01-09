@@ -36,6 +36,7 @@ pub fn reply_success() -> Reply {
 pub enum Error {
     Unknown,
     Custom(String),
+    FtlConnectionFail,
     AlreadyExists,
     DoesNotExist
 }
@@ -45,6 +46,7 @@ impl Error {
         match *self {
             Error::Unknown => "Unknown error",
             Error::Custom(ref msg) => msg,
+            Error::FtlConnectionFail => "Failed to connect to FTL",
             Error::AlreadyExists => "Item already exists",
             Error::DoesNotExist => "Item does not exist"
         }
@@ -54,6 +56,7 @@ impl Error {
         match *self {
             Error::Unknown => "unknown",
             Error::Custom(_) => "custom",
+            Error::FtlConnectionFail => "ftl_connection_fail",
             Error::AlreadyExists => "already_exists",
             Error::DoesNotExist => "does_not_exist"
         }
