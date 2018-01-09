@@ -435,7 +435,7 @@ pub fn over_time_forward_destinations() -> util::Reply {
     }
 
     util::reply_data(json!({
-        "forward_data": forward_data,
+        "forward_destinations": forward_data,
         "over_time": over_time
     }))
 }
