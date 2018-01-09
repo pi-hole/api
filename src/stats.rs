@@ -388,8 +388,20 @@ pub fn over_time_history() -> util::Reply {
 pub fn over_time_forward_destinations() -> util::Reply {
     let mut con = ftl::connect("ForwardedoverTime")?;
 
+    // Create a 4KiB string buffer
+    let mut str_buffer = [0u8; 4096];
+
     let forward_dest_num = con.read_i32()?;
+    let mut forward_data: Vec<(String, String)> = Vec::new();
     let mut over_time: HashMap<i32, Vec<f32>> = HashMap::new();
+
+    // Read in forward destination names and IPs
+    for _ in 0..forward_dest_num {
+        let name = con.read_str(&mut str_buffer)?.to_owned();
+        let ip = con.read_str(&mut str_buffer)?.to_owned();
+
+        forward_data.push((name, ip));
+    }
 
     loop {
         let timestamp = match con.read_i32() {
@@ -416,7 +428,10 @@ pub fn over_time_forward_destinations() -> util::Reply {
         over_time.insert(timestamp, step);
     }
 
-    util::reply_data(over_time)
+    util::reply_data(json!({
+        "forward_data": forward_data,
+        "over_time": over_time
+    }))
 }
 
 #[get("/stats/overTime/query_types")]
