@@ -217,6 +217,7 @@ pub fn query_types() -> util::Reply {
 
     let ipv4 = con.read_f32()?;
     let ipv6 = con.read_f32()?;
+    con.expect_eom()?;
 
     util::reply_data(json!({
         "A": ipv4,
