@@ -2,6 +2,12 @@
 name = "pihole_api"
 version = "0.1.0"
 authors = ["Mcat12 <mark@pi-hole.net>"]
+description = "Work in progress HTTP API for Pi-hole."
+homepage = "https://pi-hole.net"
+repository = "https://github.com/pi-hole/api"
+readme = "README.md"
+license = "EUPL-1.2"
+publish = false
 
 [profile.release]
 lto = true
