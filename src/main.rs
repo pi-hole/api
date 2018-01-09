@@ -15,6 +15,7 @@ mod web;
 fn main() {
     rocket::ignite()
         .mount("/", routes![
+            web::web_interface_index,
             web::web_interface,
             stats::summary,
             stats::top_domains,
@@ -33,5 +34,11 @@ fn main() {
             stats::over_time_query_types,
             stats::over_time_clients
         ])
+        .catch(errors![not_found])
         .launch();
+}
+
+#[error(404)]
+fn not_found() -> util::Reply {
+    util::reply_error(util::Error::NotFound)
 }

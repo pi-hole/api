@@ -38,7 +38,7 @@ pub enum Error {
     Custom(String),
     FtlConnectionFail,
     AlreadyExists,
-    DoesNotExist
+    NotFound
 }
 
 impl Error {
@@ -48,7 +48,7 @@ impl Error {
             Error::Custom(ref msg) => msg,
             Error::FtlConnectionFail => "Failed to connect to FTL",
             Error::AlreadyExists => "Item already exists",
-            Error::DoesNotExist => "Item does not exist"
+            Error::NotFound => "Not found"
         }
     }
 
@@ -58,7 +58,7 @@ impl Error {
             Error::Custom(_) => "custom",
             Error::FtlConnectionFail => "ftl_connection_fail",
             Error::AlreadyExists => "already_exists",
-            Error::DoesNotExist => "does_not_exist"
+            Error::NotFound => "not_found"
         }
     }
 }
