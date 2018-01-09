@@ -8,7 +8,7 @@ extern crate serde;
 extern crate rmp;
 
 mod util;
-#[macro_use] mod ftl;
+mod ftl;
 mod stats;
 mod web;
 
