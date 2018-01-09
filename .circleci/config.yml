@@ -32,7 +32,6 @@ version: 2
         command: |
           time cargo build --release --target $TARGET -v
           cp target/$TARGET/release/pihole_api ${BIN_NAME}
-          strip ${BIN_NAME}
     - run:
         name: "Upload"
         command: |
