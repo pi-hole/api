@@ -167,10 +167,10 @@ pub fn top_clients() -> util::Reply {
         let ip = con.read_str(&mut str_buffer)?;
         let count = con.read_i32()?;
 
-        let key = if ip.len() > 0 {
-            format!("{}|{}", name, ip)
+        let key = if name.is_empty() {
+            ip.to_owned()
         } else {
-            name
+            format!("{}|{}", name, ip)
         };
 
         top_clients.insert(key, count);
