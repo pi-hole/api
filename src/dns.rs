@@ -37,7 +37,18 @@ fn read_setup_vars(entry: &str) -> io::Result<Option<String>> {
 }
 
 fn get_domains(file_name: &str) -> util::Reply {
-    let file = File::open(file_name)?;
+    let file = match File::open(file_name) {
+        Ok(f) => f,
+        Err(e) => {
+            if e.kind() == io::ErrorKind::NotFound {
+                // If the file is not found, then the list is empty. [0; 0] is an empty list of
+                // type i32. We can't use [] because the type needs to be known.
+                return util::reply_data([0; 0]);
+            } else {
+                return Err(e.into());
+            }
+        }
+    };
     let reader = BufReader::new(file);
     let mut skip_lines = false;
 
