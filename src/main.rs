@@ -20,6 +20,7 @@ extern crate rmp;
 mod util;
 mod ftl;
 mod stats;
+mod dns;
 mod web;
 
 fn main() {
@@ -44,7 +45,10 @@ fn main() {
             stats::over_time_history,
             stats::over_time_forward_destinations,
             stats::over_time_query_types,
-            stats::over_time_clients
+            stats::over_time_clients,
+            dns::get_whitelist,
+            dns::get_blacklist,
+            dns::get_wildlist
         ])
         .catch(errors![not_found])
         .launch();
