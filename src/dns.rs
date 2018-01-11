@@ -57,3 +57,19 @@ pub fn get_blacklist() -> util::Reply {
 pub fn get_wildlist() -> util::Reply {
     get_domains(">getWildlist")
 }
+
+#[get("/dns/status")]
+pub fn status() -> util::Reply {
+    let mut con = ftl::connect(">status")?;
+
+    let status = match con.read_u8()? {
+        0 => "disabled",
+        1 => "enabled",
+        _ => "unknown"
+    };
+    con.expect_eom()?;
+
+    util::reply_data(json!({
+        "status": status
+    }))
+}

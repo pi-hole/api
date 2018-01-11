@@ -48,7 +48,8 @@ fn main() {
             stats::over_time_clients,
             dns::get_whitelist,
             dns::get_blacklist,
-            dns::get_wildlist
+            dns::get_wildlist,
+            dns::status
         ])
         .catch(errors![not_found])
         .launch();
