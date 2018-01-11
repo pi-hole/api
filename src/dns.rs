@@ -8,54 +8,97 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
+use std::io::prelude::*;
+use std::io::{self, BufReader};
+use std::fs::File;
+
 use util;
 use ftl;
 
-use rmp::decode::DecodeStringError;
-use rmp::Marker;
+/// Read in a value from setupVars.conf
+fn read_setup_vars(entry: &str) -> io::Result<Option<String>> {
+    let file = File::open("/etc/pihole/setupVars.conf")?;
+    let reader = BufReader::new(file);
 
-fn get_domains(command: &str) -> util::Reply {
-    let mut con = ftl::connect(command)?;
-
-    // Create a 4KiB string buffer
-    let mut str_buffer = [0u8; 4096];
-    let mut domains = Vec::new();
-
-    loop {
-        let domain = match con.read_str(&mut str_buffer) {
-            Ok(name) => name.to_string(),
-            Err(e) => {
-                if let DecodeStringError::TypeMismatch(marker) = e {
-                    if marker == Marker::Reserved {
-                        // Received EOM
-                        break;
-                    }
-                }
-
-                // Unknown read error
-                return util::reply_error(util::Error::Unknown);
-            }
-        };
-
-        domains.push(domain);
+    // Check every line for the key
+    for line in reader.lines().filter_map(|item| item.ok()) {
+        if line.contains(entry) {
+            return Ok(
+                // Get the right hand side if it exists and is not empty
+                line.split("=")
+                    .nth(1)
+                    .and_then(|item| if item.len() == 0 { None } else { Some(item) })
+                    .map(|item| item.to_owned())
+            )
+        }
     }
 
-    util::reply_data(domains)
+    Ok(None)
+}
+
+fn get_domains(file_name: &str) -> util::Reply {
+    let file = File::open(file_name)?;
+    let reader = BufReader::new(file);
+    let mut skip_lines = false;
+
+    let is_wildcard = file_name == "/etc/dnsmasq.d/03-pihole-wildcard.conf";
+
+    if is_wildcard {
+        // Check if both IPv4 and IPv6 are used.
+        // If so, skip every other line if we're getting wildcard domains.
+        let ipv4 = read_setup_vars("IPV4_ADDRESS")?;
+        let ipv6 = read_setup_vars("IPV6_ADDRESS")?;
+
+        skip_lines = ipv4.is_some() && ipv6.is_some();
+    }
+
+    let mut skip = true;
+    let mut lines = Vec::new();
+    for line in reader.lines().filter_map(|item| item.ok()) {
+        // Skip empty lines
+        if line.len() == 0 {
+            continue;
+        }
+
+        // Wildcard skip every other, see above
+        if skip_lines {
+            skip = !skip;
+
+            if skip {
+                continue;
+            }
+        }
+
+        // Parse the line
+        let mut parsed_line = if is_wildcard {
+            // If we're reading wildcards, the domain is between two forward slashes
+            match line.split("/").nth(1) {
+                Some(s) => s.to_owned(),
+                None => continue
+            }
+        } else {
+            line
+        };
+
+        lines.push(parsed_line);
+    }
+
+    util::reply_data(lines)
 }
 
 #[get("/dns/whitelist")]
 pub fn get_whitelist() -> util::Reply {
-    get_domains(">getWhitelist")
+    get_domains("/etc/pihole/whitelist.txt")
 }
 
 #[get("/dns/blacklist")]
 pub fn get_blacklist() -> util::Reply {
-    get_domains(">getBlacklist")
+    get_domains("/etc/pihole/blacklist.txt")
 }
 
 #[get("/dns/wildlist")]
 pub fn get_wildlist() -> util::Reply {
-    get_domains(">getWildlist")
+    get_domains("/etc/dnsmasq.d/03-pihole-wildcard.conf")
 }
 
 #[get("/dns/status")]
