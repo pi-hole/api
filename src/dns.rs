@@ -212,3 +212,45 @@ pub fn add_blacklist(domain_input: Json<DomainInput>) -> util::Reply {
 pub fn add_wildlist(domain_input: Json<DomainInput>) -> util::Reply {
     add_list(List::Wildlist, &domain_input.0.domain)
 }
+
+fn remove_list(list: List, domain: &str) -> util::Reply {
+    if !is_valid_domain(domain) {
+        return util::reply_error(util::Error::InvalidDomain);
+    }
+
+    let status = Command::new("sudo")
+        .arg("pihole")
+        .arg(match list {
+            List::Whitelist => "-w",
+            List::Blacklist => "-b",
+            List::Wildlist => "-wild"
+        })
+        .arg("-q")
+        .arg("-d")
+        .arg(domain)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()?;
+
+    if status.success() {
+        util::reply_success()
+    } else {
+        util::reply_error(util::Error::Unknown)
+    }
+}
+
+#[delete("/dns/whitelist/<domain>")]
+pub fn delete_whitelist(domain: String) -> util::Reply {
+    remove_list(List::Whitelist, &domain)
+}
+
+#[delete("/dns/blacklist/<domain>")]
+pub fn delete_blacklist(domain: String) -> util::Reply {
+    remove_list(List::Blacklist, &domain)
+}
+
+#[delete("/dns/wildlist/<domain>")]
+pub fn delete_wildlist(domain: String) -> util::Reply {
+    remove_list(List::Wildlist, &domain)
+}

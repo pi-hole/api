@@ -53,7 +53,10 @@ fn main() {
             dns::status,
             dns::add_whitelist,
             dns::add_blacklist,
-            dns::add_wildlist
+            dns::add_wildlist,
+            dns::delete_whitelist,
+            dns::delete_blacklist,
+            dns::delete_wildlist
         ])
         .catch(errors![not_found])
         .launch();
