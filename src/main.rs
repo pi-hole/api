@@ -16,6 +16,7 @@ extern crate rocket;
 extern crate serde;
 #[macro_use] extern crate serde_derive;
 extern crate rmp;
+extern crate regex;
 
 mod util;
 mod ftl;
@@ -49,7 +50,10 @@ fn main() {
             dns::get_whitelist,
             dns::get_blacklist,
             dns::get_wildlist,
-            dns::status
+            dns::status,
+            dns::add_whitelist,
+            dns::add_blacklist,
+            dns::add_wildlist
         ])
         .catch(errors![not_found])
         .launch();

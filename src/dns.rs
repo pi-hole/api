@@ -11,6 +11,9 @@
 use std::io::prelude::*;
 use std::io::{self, BufReader};
 use std::fs::File;
+use std::process::{Command, Stdio};
+use rocket_contrib::Json;
+use regex::Regex;
 
 use util;
 
@@ -29,6 +32,21 @@ impl List {
             List::Wildlist => "/etc/dnsmasq.d/03-pihole-wildcard.conf"
         }
     }
+}
+
+#[derive(Deserialize)]
+pub struct DomainInput {
+    domain: String
+}
+
+fn is_valid_domain(domain: &str) -> bool {
+    let valid_chars_regex = Regex::new("^((-|_)*[a-z0-9]((-|_)*[a-z0-9])*(-|_)*)(\\.(-|_)*([a-z0-9]((-|_)*[a-z0-9])*))*$").unwrap();
+    let total_length_regex = Regex::new("^.{1,253}$").unwrap();
+    let label_length_regex = Regex::new("^[^\\.]{1,63}(\\.[^\\.]{1,63})*$").unwrap();
+
+    valid_chars_regex.is_match(domain)
+        && total_length_regex.is_match(domain)
+        && label_length_regex.is_match(domain)
 }
 
 /// Read in a value from setupVars.conf
@@ -152,4 +170,45 @@ pub fn status() -> util::Reply {
     util::reply_data(json!({
         "status": status
     }))
+}
+
+fn add_list(list: List, domain: &str) -> util::Reply {
+    if !is_valid_domain(domain) {
+        return util::reply_error(util::Error::InvalidDomain);
+    }
+
+    let status = Command::new("sudo")
+        .arg("pihole")
+        .arg(match list {
+            List::Whitelist => "-w",
+            List::Blacklist => "-b",
+            List::Wildlist => "-wild"
+        })
+        .arg("-q")
+        .arg(domain)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()?;
+
+    if status.success() {
+        util::reply_success()
+    } else {
+        util::reply_error(util::Error::Unknown)
+    }
+}
+
+#[post("/dns/whitelist", data = "<domain_input>")]
+pub fn add_whitelist(domain_input: Json<DomainInput>) -> util::Reply {
+    add_list(List::Whitelist, &domain_input.0.domain)
+}
+
+#[post("/dns/blacklist", data = "<domain_input>")]
+pub fn add_blacklist(domain_input: Json<DomainInput>) -> util::Reply {
+    add_list(List::Blacklist, &domain_input.0.domain)
+}
+
+#[post("/dns/wildlist", data = "<domain_input>")]
+pub fn add_wildlist(domain_input: Json<DomainInput>) -> util::Reply {
+    add_list(List::Wildlist, &domain_input.0.domain)
 }

@@ -49,7 +49,6 @@ pub enum Error {
     Unknown,
     Custom(String, Status),
     FtlConnectionFail,
-    AlreadyExists,
     NotFound,
     InvalidDomain
 }
@@ -60,7 +59,6 @@ impl Error {
             Error::Unknown => "Unknown error",
             Error::Custom(ref msg, _) => msg,
             Error::FtlConnectionFail => "Failed to connect to FTL",
-            Error::AlreadyExists => "Item already exists",
             Error::NotFound => "Not found",
             Error::InvalidDomain => "Bad request"
         }
@@ -71,7 +69,6 @@ impl Error {
             Error::Unknown => "unknown",
             Error::Custom(_, _) => "custom",
             Error::FtlConnectionFail => "ftl_connection_fail",
-            Error::AlreadyExists => "already_exists",
             Error::NotFound => "not_found",
             Error::InvalidDomain => "invalid_domain"
         }
@@ -82,7 +79,6 @@ impl Error {
             Error::Unknown => Status::InternalServerError,
             Error::Custom(_, status) => status,
             Error::FtlConnectionFail => Status::InternalServerError,
-            Error::AlreadyExists => Status::Conflict,
             Error::NotFound => Status::NotFound,
             Error::InvalidDomain => Status::BadRequest
         }
