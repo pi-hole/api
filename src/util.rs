@@ -11,13 +11,14 @@
 use serde::Serialize;
 use rocket_contrib::{Json, Value};
 use rocket::request::Request;
-use rocket::response::{Response, Responder};
+use rocket::response::{self, Response, Responder};
+use rocket::http::Status;
 use std::fmt::Display;
 
-pub type Reply = Result<CORS<Json<Value>>, Error>;
+pub type Reply = Result<CORS<SetStatus<Json<Value>>>, Error>;
 
-pub fn reply<D: Serialize>(data: D, errors: &[Error]) -> Reply {
-    Ok(CORS(Json(json!({
+pub fn reply<D: Serialize>(data: D, errors: &[Error], status: Status) -> Reply {
+    Ok(CORS(SetStatus(Json(json!({
         "data": data,
         "errors": errors.iter()
                         .map(|error| json!({
@@ -25,62 +26,77 @@ pub fn reply<D: Serialize>(data: D, errors: &[Error]) -> Reply {
                             "message": error.message()
                         }))
                         .collect::<Vec<Value>>()
-    }))))
+    })), status)))
 }
 
 pub fn reply_data<D: Serialize>(data: D) -> Reply {
-    reply(data, &[])
+    reply(data, &[], Status::Ok)
 }
 
 pub fn reply_error(error: Error) -> Reply {
-    reply([0; 0], &[error])
+    let status = error.status();
+    reply([0; 0], &[error], status)
 }
 
 pub fn reply_success() -> Reply {
     reply(json!({
         "status": "success"
-    }), &[])
+    }), &[], Status::Ok)
 }
 
 #[derive(Debug)]
 pub enum Error {
     Unknown,
-    Custom(String),
+    Custom(String, Status),
     FtlConnectionFail,
     AlreadyExists,
-    NotFound
+    NotFound,
+    InvalidDomain
 }
 
 impl Error {
     pub fn message(&self) -> &str {
         match *self {
             Error::Unknown => "Unknown error",
-            Error::Custom(ref msg) => msg,
+            Error::Custom(ref msg, _) => msg,
             Error::FtlConnectionFail => "Failed to connect to FTL",
             Error::AlreadyExists => "Item already exists",
-            Error::NotFound => "Not found"
+            Error::NotFound => "Not found",
+            Error::InvalidDomain => "Bad request"
         }
     }
 
     pub fn key(&self) -> &str {
         match *self {
             Error::Unknown => "unknown",
-            Error::Custom(_) => "custom",
+            Error::Custom(_, _) => "custom",
             Error::FtlConnectionFail => "ftl_connection_fail",
             Error::AlreadyExists => "already_exists",
-            Error::NotFound => "not_found"
+            Error::NotFound => "not_found",
+            Error::InvalidDomain => "invalid_domain"
+        }
+    }
+
+    pub fn status(&self) -> Status {
+        match *self {
+            Error::Unknown => Status::InternalServerError,
+            Error::Custom(_, status) => status,
+            Error::FtlConnectionFail => Status::InternalServerError,
+            Error::AlreadyExists => Status::Conflict,
+            Error::NotFound => Status::NotFound,
+            Error::InvalidDomain => Status::BadRequest
         }
     }
 }
 
 impl<T: Display> From<T> for Error {
     fn from(e: T) -> Self {
-        Error::Custom(format!("{}", e))
+        Error::Custom(format!("{}", e), Status::InternalServerError)
     }
 }
 
 impl<'r> Responder<'r> for Error {
-    fn respond_to(self, request: &Request) -> super::rocket::response::Result<'r> {
+    fn respond_to(self, request: &Request) -> response::Result<'r> {
         reply_error(self).unwrap().respond_to(request)
     }
 }
@@ -89,9 +105,20 @@ impl<'r> Responder<'r> for Error {
 pub struct CORS<R>(R);
 
 impl<'r, R: Responder<'r>> Responder<'r> for CORS<R> {
-    fn respond_to(self, request: &Request) -> super::rocket::response::Result<'r> {
+    fn respond_to(self, request: &Request) -> response::Result<'r> {
         Ok(Response::build_from(self.0.respond_to(request)?)
             .raw_header("Access-Control-Allow-Origin", "*")
+            .finalize())
+    }
+}
+
+#[derive(Debug)]
+pub struct SetStatus<R>(R, Status);
+
+impl<'r, R: Responder<'r>> Responder<'r> for SetStatus<R> {
+    fn respond_to(self, request: &Request) -> response::Result<'r> {
+        Ok(Response::build_from(self.0.respond_to(request)?)
+            .status(self.1)
             .finalize())
     }
 }
