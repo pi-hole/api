@@ -13,7 +13,6 @@ use std::io::{self, BufReader};
 use std::fs::File;
 
 use util;
-use ftl;
 
 /// Read in a value from setupVars.conf
 fn read_setup_vars(entry: &str) -> io::Result<Option<String>> {
@@ -114,14 +113,24 @@ pub fn get_wildlist() -> util::Reply {
 
 #[get("/dns/status")]
 pub fn status() -> util::Reply {
-    let mut con = ftl::connect(">status")?;
+    let file = File::open("/etc/dnsmasq.d/01-pihole.conf");
 
-    let status = match con.read_u8()? {
-        0 => "disabled",
-        1 => "enabled",
-        _ => "unknown"
+    let status = if file.is_err() {
+        "unknown"
+    } else {
+        let mut buffer = String::new();
+        file?.read_to_string(&mut buffer)?;
+
+        let disabled = buffer.lines()
+            .filter(|line| *line == "#addn-hosts=/etc/pihole/gravity.list")
+            .count();
+
+        match disabled {
+            0 => "enabled",
+            1 => "disabled",
+            _ => "unknown"
+        }
     };
-    con.expect_eom()?;
 
     util::reply_data(json!({
         "status": status
