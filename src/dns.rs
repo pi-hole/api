@@ -14,6 +14,23 @@ use std::fs::File;
 
 use util;
 
+#[derive(PartialEq)]
+enum List {
+    Whitelist,
+    Blacklist,
+    Wildlist
+}
+
+impl List {
+    fn location(&self) -> &str {
+        match *self {
+            List::Whitelist => "/etc/pihole/whitelist.txt",
+            List::Blacklist => "/etc/pihole/blacklist.txt",
+            List::Wildlist => "/etc/dnsmasq.d/03-pihole-wildcard.conf"
+        }
+    }
+}
+
 /// Read in a value from setupVars.conf
 fn read_setup_vars(entry: &str) -> io::Result<Option<String>> {
     let file = File::open("/etc/pihole/setupVars.conf")?;
@@ -35,8 +52,8 @@ fn read_setup_vars(entry: &str) -> io::Result<Option<String>> {
     Ok(None)
 }
 
-fn get_domains(file_name: &str) -> util::Reply {
-    let file = match File::open(file_name) {
+fn get_list(list: List) -> util::Reply {
+    let file = match File::open(list.location()) {
         Ok(f) => f,
         Err(e) => {
             if e.kind() == io::ErrorKind::NotFound {
@@ -51,7 +68,7 @@ fn get_domains(file_name: &str) -> util::Reply {
     let reader = BufReader::new(file);
     let mut skip_lines = false;
 
-    let is_wildcard = file_name == "/etc/dnsmasq.d/03-pihole-wildcard.conf";
+    let is_wildcard = list == List::Wildlist;
 
     if is_wildcard {
         // Check if both IPv4 and IPv6 are used.
@@ -98,17 +115,17 @@ fn get_domains(file_name: &str) -> util::Reply {
 
 #[get("/dns/whitelist")]
 pub fn get_whitelist() -> util::Reply {
-    get_domains("/etc/pihole/whitelist.txt")
+    get_list(List::Whitelist)
 }
 
 #[get("/dns/blacklist")]
 pub fn get_blacklist() -> util::Reply {
-    get_domains("/etc/pihole/blacklist.txt")
+    get_list(List::Blacklist)
 }
 
 #[get("/dns/wildlist")]
 pub fn get_wildlist() -> util::Reply {
-    get_domains("/etc/dnsmasq.d/03-pihole-wildcard.conf")
+    get_list(List::Wildlist)
 }
 
 #[get("/dns/status")]
