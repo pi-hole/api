@@ -37,6 +37,7 @@ fn main() {
             stats::top_blocked,
             stats::top_blocked_params,
             stats::top_clients,
+            stats::top_clients_params,
             stats::forward_destinations,
             stats::query_types,
             stats::history,

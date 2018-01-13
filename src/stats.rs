@@ -24,16 +24,29 @@ struct UnknownQuery(i32, i32, String, String, String, u8, bool);
 #[derive(FromForm)]
 pub struct TopParams {
     limit: Option<usize>,
-    audit: Option<bool>,
-    desc: Option<bool>
+    audit: Option<bool>
 }
 
 impl Default for TopParams {
     fn default() -> Self {
         TopParams {
             limit: Some(10),
-            audit: Some(false),
-            desc: Some(true)
+            audit: Some(false)
+        }
+    }
+}
+
+#[derive(FromForm)]
+pub struct TopClientParams {
+    limit: Option<usize>,
+    inactive: Option<bool>
+}
+
+impl Default for TopClientParams {
+    fn default() -> Self {
+        TopClientParams {
+            limit: Some(10),
+            inactive: Some(false)
         }
     }
 }
@@ -72,11 +85,10 @@ fn get_top_domains(blocked: bool, params: TopParams) -> util::Reply {
     let default_limit: usize = 10;
 
     let command = format!(
-        "{} ({}) {} {}",
+        "{} ({}) {}",
         if blocked { "top-ads" } else { "top-domains" },
         params.limit.unwrap_or(default_limit),
-        if params.audit.unwrap_or(false) { "for audit" } else { "" },
-        if params.desc.unwrap_or(true) { "desc" } else { "" }
+        if params.audit.unwrap_or(false) { "for audit" } else { "" }
     );
 
     let mut con = ftl::connect(&command)?;
@@ -139,9 +151,16 @@ pub fn top_blocked_params(params: TopParams) -> util::Reply {
     get_top_domains(true, params)
 }
 
-#[get("/stats/top_clients")]
-pub fn top_clients() -> util::Reply {
-    let mut con = ftl::connect("top-clients")?;
+fn get_top_clients(params: TopClientParams) -> util::Reply {
+    let default_limit: usize = 10;
+
+    let command = format!(
+        "top-clients ({}) {}",
+        params.limit.unwrap_or(default_limit),
+        if params.inactive.unwrap_or(false) { "withzero" } else { "" }
+    );
+
+    let mut con = ftl::connect(&command)?;
     let total_queries = con.read_i32()?;
 
     // Create a 4KiB string buffer
@@ -180,6 +199,16 @@ pub fn top_clients() -> util::Reply {
         "top_clients": top_clients,
         "total_queries": total_queries
     }))
+}
+
+#[get("/stats/top_clients")]
+pub fn top_clients() -> util::Reply {
+    get_top_clients(TopClientParams::default())
+}
+
+#[get("/stats/top_clients?<params>")]
+pub fn top_clients_params(params: TopClientParams) -> util::Reply {
+    get_top_clients(params)
 }
 
 #[get("/stats/forward_destinations")]
