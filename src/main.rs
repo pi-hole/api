@@ -41,6 +41,7 @@ fn main() {
             stats::forward_destinations,
             stats::query_types,
             stats::history,
+            stats::history_timespan,
             stats::recent_blocked,
             stats::clients,
             stats::unknown_queries,

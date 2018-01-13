@@ -51,6 +51,12 @@ impl Default for TopClientParams {
     }
 }
 
+#[derive(FromForm)]
+pub struct Timespan {
+    from: u64,
+    to: u64
+}
+
 #[get("/stats/summary")]
 pub fn summary() -> util::Reply {
     let mut con = ftl::connect("stats")?;
@@ -264,9 +270,8 @@ pub fn query_types() -> util::Reply {
     }))
 }
 
-#[get("/stats/history")]
-pub fn history() -> util::Reply {
-    let mut con = ftl::connect("getallqueries")?;
+fn get_history(command: &str) -> util::Reply {
+    let mut con = ftl::connect(command)?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -298,6 +303,16 @@ pub fn history() -> util::Reply {
     }
 
     util::reply_data(history)
+}
+
+#[get("/stats/history")]
+pub fn history() -> util::Reply {
+    get_history("getallqueries")
+}
+
+#[get("/stats/history?<timespan>")]
+pub fn history_timespan(timespan: Timespan) -> util::Reply {
+    get_history(&format!("getallqueries-time {} {}", timespan.from, timespan.to))
 }
 
 #[get("/stats/recent_blocked")]
