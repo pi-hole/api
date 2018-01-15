@@ -24,14 +24,16 @@ struct UnknownQuery(i32, i32, String, String, String, u8, bool);
 #[derive(FromForm)]
 pub struct TopParams {
     limit: Option<usize>,
-    audit: Option<bool>
+    audit: Option<bool>,
+    ascending: Option<bool>
 }
 
 impl Default for TopParams {
     fn default() -> Self {
         TopParams {
             limit: Some(10),
-            audit: Some(false)
+            audit: Some(false),
+            ascending: Some(false)
         }
     }
 }
@@ -39,14 +41,16 @@ impl Default for TopParams {
 #[derive(FromForm)]
 pub struct TopClientParams {
     limit: Option<usize>,
-    inactive: Option<bool>
+    inactive: Option<bool>,
+    ascending: Option<bool>
 }
 
 impl Default for TopClientParams {
     fn default() -> Self {
         TopClientParams {
             limit: Some(10),
-            inactive: Some(false)
+            inactive: Some(false),
+            ascending: Some(false)
         }
     }
 }
@@ -91,10 +95,11 @@ fn get_top_domains(blocked: bool, params: TopParams) -> util::Reply {
     let default_limit: usize = 10;
 
     let command = format!(
-        "{} ({}) {}",
+        "{} ({}) {} {}",
         if blocked { "top-ads" } else { "top-domains" },
         params.limit.unwrap_or(default_limit),
-        if params.audit.unwrap_or(false) { "for audit" } else { "" }
+        if params.audit.unwrap_or(false) { "for audit" } else { "" },
+        if params.ascending.unwrap_or(false) { "asc" } else { "" }
     );
 
     let mut con = ftl::connect(&command)?;
@@ -161,9 +166,10 @@ fn get_top_clients(params: TopClientParams) -> util::Reply {
     let default_limit: usize = 10;
 
     let command = format!(
-        "top-clients ({}) {}",
+        "top-clients ({}) {} {}",
         params.limit.unwrap_or(default_limit),
-        if params.inactive.unwrap_or(false) { "withzero" } else { "" }
+        if params.inactive.unwrap_or(false) { "withzero" } else { "" },
+        if params.ascending.unwrap_or(false) { "asc" } else { "" }
     );
 
     let mut con = ftl::connect(&command)?;
