@@ -10,7 +10,9 @@
 
 use std::io::prelude::*;
 use std::io::{self, BufReader};
-use std::fs::File;
+use std::fs::{File, OpenOptions};
+use std::os::unix::fs::OpenOptionsExt;
+use std::path::Path;
 use std::process::{Command, Stdio};
 use rocket_contrib::Json;
 use regex::Regex;
@@ -172,50 +174,103 @@ pub fn status() -> util::Reply {
     }))
 }
 
-fn add_list(list: List, domain: &str) -> util::Reply {
-    if !is_valid_domain(domain) {
-        return util::reply_error(util::Error::InvalidDomain);
-    }
-
+fn reload_gravity(list: List) -> Result<(), util::Error> {
     let status = Command::new("sudo")
         .arg("pihole")
+        .arg("-g")
+        .arg("--skip-download")
         .arg(match list {
-            List::Whitelist => "-w",
-            List::Blacklist => "-b",
-            List::Wildlist => "-wild"
+            List::Whitelist => "--whitelist-only",
+            List::Blacklist => "--blacklist-only",
+            List::Wildlist => "--wildcard-only"
         })
-        .arg("-q")
-        .arg(domain)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status()?;
 
     if status.success() {
-        util::reply_success()
+        Ok(())
     } else {
-        util::reply_error(util::Error::Unknown)
+        Err(util::Error::GravityError)
     }
+}
+
+fn add_list(list: List, domain: &str) -> Result<(), util::Error> {
+    if !is_valid_domain(domain) {
+        return Err(util::Error::InvalidDomain);
+    }
+
+    let list_path = Path::new(list.location());
+    let mut domains = Vec::new();
+
+    // Read list domains
+    if list_path.is_file() {
+        let reader = BufReader::new(File::open(list_path)?);
+
+        // Add domains
+        domains.extend(reader
+            .lines()
+            .filter_map(|line| line.ok())
+            // Only get valid domains
+            .filter(|domain| is_valid_domain(domain))
+        );
+    }
+
+    // Check if the domain is already in the list
+    if domains.contains(&domain.to_owned()) {
+        return Err(util::Error::AlreadyExists);
+    }
+
+    // Open the list file (and create it if it doesn't exist)
+    let mut list_file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .mode(0o644)
+        .open(list_path)?;
+
+    writeln!(list_file, "{}", domain)?;
+
+    Ok(())
 }
 
 #[post("/dns/whitelist", data = "<domain_input>")]
 pub fn add_whitelist(domain_input: Json<DomainInput>) -> util::Reply {
-    add_list(List::Whitelist, &domain_input.0.domain)
+    let domain = &domain_input.0.domain;
+
+    add_list(List::Whitelist, domain)?;
+    remove_list(List::Blacklist, domain)?;
+    remove_list(List::Wildlist, domain)?;
+
+    reload_gravity(List::Whitelist)?;
+    util::reply_success()
 }
 
 #[post("/dns/blacklist", data = "<domain_input>")]
 pub fn add_blacklist(domain_input: Json<DomainInput>) -> util::Reply {
-    add_list(List::Blacklist, &domain_input.0.domain)
+    let domain = &domain_input.0.domain;
+
+    add_list(List::Blacklist, domain)?;
+    remove_list(List::Whitelist, domain)?;
+    remove_list(List::Wildlist, domain)?;
+
+    reload_gravity(List::Blacklist)?;
+    util::reply_success()
 }
 
 #[post("/dns/wildlist", data = "<domain_input>")]
 pub fn add_wildlist(domain_input: Json<DomainInput>) -> util::Reply {
-    add_list(List::Wildlist, &domain_input.0.domain)
+    let domain = &domain_input.0.domain;
+
+    add_list(List::Wildlist, domain)?;
+
+    reload_gravity(List::Wildlist)?;
+    util::reply_success()
 }
 
-fn remove_list(list: List, domain: &str) -> util::Reply {
+fn remove_list(list: List, domain: &str) -> Result<(), util::Error> {
     if !is_valid_domain(domain) {
-        return util::reply_error(util::Error::InvalidDomain);
+        return Err(util::Error::InvalidDomain);
     }
 
     let status = Command::new("sudo")
@@ -234,23 +289,26 @@ fn remove_list(list: List, domain: &str) -> util::Reply {
         .status()?;
 
     if status.success() {
-        util::reply_success()
+        Ok(())
     } else {
-        util::reply_error(util::Error::Unknown)
+        Err(util::Error::Unknown)
     }
 }
 
 #[delete("/dns/whitelist/<domain>")]
 pub fn delete_whitelist(domain: String) -> util::Reply {
-    remove_list(List::Whitelist, &domain)
+    remove_list(List::Whitelist, &domain)?;
+    util::reply_success()
 }
 
 #[delete("/dns/blacklist/<domain>")]
 pub fn delete_blacklist(domain: String) -> util::Reply {
-    remove_list(List::Blacklist, &domain)
+    remove_list(List::Blacklist, &domain)?;
+    util::reply_success()
 }
 
 #[delete("/dns/wildlist/<domain>")]
 pub fn delete_wildlist(domain: String) -> util::Reply {
-    remove_list(List::Wildlist, &domain)
+    remove_list(List::Wildlist, &domain)?;
+    util::reply_success()
 }

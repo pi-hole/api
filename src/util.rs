@@ -47,9 +47,11 @@ pub fn reply_success() -> Reply {
 #[derive(Debug)]
 pub enum Error {
     Unknown,
+    GravityError,
     Custom(String, Status),
     FtlConnectionFail,
     NotFound,
+    AlreadyExists,
     InvalidDomain
 }
 
@@ -57,9 +59,11 @@ impl Error {
     pub fn message(&self) -> &str {
         match *self {
             Error::Unknown => "Unknown error",
+            Error::GravityError => "Gravity failed to form",
             Error::Custom(ref msg, _) => msg,
             Error::FtlConnectionFail => "Failed to connect to FTL",
             Error::NotFound => "Not found",
+            Error::AlreadyExists => "Item already exists",
             Error::InvalidDomain => "Bad request"
         }
     }
@@ -67,9 +71,11 @@ impl Error {
     pub fn key(&self) -> &str {
         match *self {
             Error::Unknown => "unknown",
+            Error::GravityError => "gravity_error",
             Error::Custom(_, _) => "custom",
             Error::FtlConnectionFail => "ftl_connection_fail",
             Error::NotFound => "not_found",
+            Error::AlreadyExists => "already_exists",
             Error::InvalidDomain => "invalid_domain"
         }
     }
@@ -77,9 +83,11 @@ impl Error {
     pub fn status(&self) -> Status {
         match *self {
             Error::Unknown => Status::InternalServerError,
+            Error::GravityError => Status::InternalServerError,
             Error::Custom(_, status) => status,
             Error::FtlConnectionFail => Status::InternalServerError,
             Error::NotFound => Status::NotFound,
+            Error::AlreadyExists => Status::Conflict,
             Error::InvalidDomain => Status::BadRequest
         }
     }
