@@ -63,13 +63,19 @@ fn read_setup_vars(entry: &str) -> io::Result<Option<String>> {
 
     // Check every line for the key (filter out lines which could not be read)
     for line in reader.lines().filter_map(|item| item.ok()) {
-        // Check if we found the key
-        // TODO: check if the key is on the left before trying to return
-        if line.contains(entry) {
+        // Ignore lines without the entry as a substring
+        if !line.contains(entry) {
+            continue;
+        }
+
+        let mut split = line.split("=");
+
+        // Check if we found the key by checking if the line starts with `entry=`
+        if split.next().map_or(false, |section| section == entry) {
             return Ok(
                 // Get the right hand side if it exists and is not empty
-                line.split("=")
-                    .nth(1)
+                split
+                    .next()
                     .and_then(|item| if item.len() == 0 { None } else { Some(item) })
                     .map(|item| item.to_owned())
             )
