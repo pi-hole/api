@@ -15,12 +15,15 @@ use std::collections::HashMap;
 use rmp::decode::{ValueReadError, DecodeStringError};
 use rmp::Marker;
 
+/// Represents a query returned in `/stats/history`
 #[derive(Serialize)]
 struct Query(i32, String, String, String, u8, u8);
 
+/// Represents a query returned in `/stats/unknown_queries`
 #[derive(Serialize)]
 struct UnknownQuery(i32, i32, String, String, String, u8, bool);
 
+/// Represents the possible GET parameters on `/stats/top_domains` and `/stats/top_blocked`
 #[derive(FromForm)]
 pub struct TopParams {
     limit: Option<usize>,
@@ -29,6 +32,7 @@ pub struct TopParams {
 }
 
 impl Default for TopParams {
+    /// The default parameters of top_domains and top_blocked requests
     fn default() -> Self {
         TopParams {
             limit: Some(10),
@@ -38,6 +42,7 @@ impl Default for TopParams {
     }
 }
 
+/// Represents the possible GET parameters on `/stats/top_clients`
 #[derive(FromForm)]
 pub struct TopClientParams {
     limit: Option<usize>,
@@ -46,6 +51,7 @@ pub struct TopClientParams {
 }
 
 impl Default for TopClientParams {
+    /// The default parameters of top_clients requests
     fn default() -> Self {
         TopClientParams {
             limit: Some(10),
@@ -55,16 +61,19 @@ impl Default for TopClientParams {
     }
 }
 
+/// Represents the possible GET parameters on `/stats/history`
 #[derive(FromForm)]
 pub struct Timespan {
     from: u64,
     to: u64
 }
 
+/// Get the summary data
 #[get("/stats/summary")]
 pub fn summary() -> util::Reply {
     let mut con = ftl::connect("stats")?;
 
+    // Read in the data
     let domains_blocked = con.read_i32()?;
     let total_queries = con.read_i32()?;
     let blocked_queries = con.read_i32()?;
@@ -91,9 +100,11 @@ pub fn summary() -> util::Reply {
     }))
 }
 
+/// Get the top domains (blocked or not)
 fn get_top_domains(blocked: bool, params: TopParams) -> util::Reply {
-    let default_limit: usize = 10;
+    let default_limit: usize = TopParams::default().limit.unwrap_or(10);
 
+    // Create the command to send to FTL
     let command = format!(
         "{} ({}) {} {}",
         if blocked { "top-ads" } else { "top-domains" },
@@ -102,17 +113,25 @@ fn get_top_domains(blocked: bool, params: TopParams) -> util::Reply {
         if params.ascending.unwrap_or(false) { "asc" } else { "" }
     );
 
+    // Connect to FTL
     let mut con = ftl::connect(&command)?;
+
+    // Read the number of queries (blocked or total)
     let queries = con.read_i32()?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
+
+    // Store the domain -> number data here
     let mut top: HashMap<String, i32> = HashMap::new();
 
+    // Read in the data
     loop {
+        // Get the domain, unless we are at the end of the list
         let domain = match con.read_str(&mut str_buffer) {
             Ok(domain) => domain,
             Err(e) => {
+                // Check if we received the EOM
                 if let DecodeStringError::TypeMismatch(marker) = e {
                     if marker == Marker::Reserved {
                         // Received EOM
@@ -130,6 +149,7 @@ fn get_top_domains(blocked: bool, params: TopParams) -> util::Reply {
         top.insert(domain.to_string(), count);
     }
 
+    // Get the keys to send the data under
     let (top_type, queries_type) = if blocked {
         ("top_blocked", "blocked_queries")
     } else {
@@ -142,29 +162,35 @@ fn get_top_domains(blocked: bool, params: TopParams) -> util::Reply {
     }))
 }
 
+/// Return the top domains with default parameters
 #[get("/stats/top_domains")]
 pub fn top_domains() -> util::Reply {
     get_top_domains(false, TopParams::default())
 }
 
+/// Return the top domains with specified parameters
 #[get("/stats/top_domains?<params>")]
 pub fn top_domains_params(params: TopParams) -> util::Reply {
     get_top_domains(false, params)
 }
 
+/// Return the top blocked domains with default parameters
 #[get("/stats/top_blocked")]
 pub fn top_blocked() -> util::Reply {
     get_top_domains(true, TopParams::default())
 }
 
+/// Return the top blocked domains with specified parameters
 #[get("/stats/top_blocked?<params>")]
 pub fn top_blocked_params(params: TopParams) -> util::Reply {
     get_top_domains(true, params)
 }
 
+/// Read in the top clients, similar to top_domains and top_blocked but different
 fn get_top_clients(params: TopClientParams) -> util::Reply {
     let default_limit: usize = 10;
 
+    // Create the command to send to FTL
     let command = format!(
         "top-clients ({}) {} {}",
         params.limit.unwrap_or(default_limit),
@@ -172,17 +198,24 @@ fn get_top_clients(params: TopClientParams) -> util::Reply {
         if params.ascending.unwrap_or(false) { "asc" } else { "" }
     );
 
+    // Connect to FTL
     let mut con = ftl::connect(&command)?;
+
+    // Get the total number of queries
     let total_queries = con.read_i32()?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
+
+    // Store the hostname -> number data here
     let mut top_clients: HashMap<String, i32> = HashMap::new();
 
     loop {
+        // Get the hostname, unless we are at the end of the list
         let name = match con.read_str(&mut str_buffer) {
             Ok(name) => name.to_string(),
             Err(e) => {
+                // Check if we received the EOM
                 if let DecodeStringError::TypeMismatch(marker) = e {
                     if marker == Marker::Reserved {
                         // Received EOM
@@ -198,6 +231,7 @@ fn get_top_clients(params: TopClientParams) -> util::Reply {
         let ip = con.read_str(&mut str_buffer)?;
         let count = con.read_i32()?;
 
+        // The key will be `hostname|IP` if the hostname exists, otherwise just the IP address
         let key = if name.is_empty() {
             ip.to_owned()
         } else {
@@ -213,16 +247,19 @@ fn get_top_clients(params: TopClientParams) -> util::Reply {
     }))
 }
 
+/// Get the top clients with default parameters
 #[get("/stats/top_clients")]
 pub fn top_clients() -> util::Reply {
     get_top_clients(TopClientParams::default())
 }
 
+/// Get the top clients with specified parameters
 #[get("/stats/top_clients?<params>")]
 pub fn top_clients_params(params: TopClientParams) -> util::Reply {
     get_top_clients(params)
 }
 
+/// Get the forward destinations
 #[get("/stats/forward_destinations")]
 pub fn forward_destinations() -> util::Reply {
     let mut con = ftl::connect("forward-dest")?;
@@ -232,9 +269,11 @@ pub fn forward_destinations() -> util::Reply {
     let mut forward_destinations: HashMap<String, f32> = HashMap::new();
 
     loop {
+        // Read in the hostname, unless we are at the end of the list
         let name = match con.read_str(&mut str_buffer) {
             Ok(name) => name.to_string(),
             Err(e) => {
+                // Check if we received the EOM
                 if let DecodeStringError::TypeMismatch(marker) = e {
                     if marker == Marker::Reserved {
                         // Received EOM
@@ -250,6 +289,7 @@ pub fn forward_destinations() -> util::Reply {
         let ip = con.read_str(&mut str_buffer)?;
         let percentage = con.read_f32()?;
 
+        // The key will be `hostname|IP` if the hostname exists, otherwise just the IP address
         let key = if ip.len() > 0 {
             format!("{}|{}", name, ip)
         } else {
@@ -262,6 +302,7 @@ pub fn forward_destinations() -> util::Reply {
     util::reply_data(forward_destinations)
 }
 
+/// Get the query types
 #[get("/stats/query_types")]
 pub fn query_types() -> util::Reply {
     let mut con = ftl::connect("querytypes")?;
@@ -276,6 +317,7 @@ pub fn query_types() -> util::Reply {
     }))
 }
 
+/// Get the query history according to the specified command
 fn get_history(command: &str) -> util::Reply {
     let mut con = ftl::connect(command)?;
 
@@ -284,9 +326,11 @@ fn get_history(command: &str) -> util::Reply {
     let mut history: Vec<Query> = Vec::new();
 
     loop {
+        // Get the timestamp, unless we are at the end of the list
         let timestamp = match con.read_i32() {
             Ok(timestamp) => timestamp,
             Err(e) => {
+                // Check if we received the EOM
                 if let ValueReadError::TypeMismatch(marker) = e {
                     if marker == Marker::Reserved {
                         // Received EOM
@@ -299,6 +343,7 @@ fn get_history(command: &str) -> util::Reply {
             }
         };
 
+        // Get the rest of the query data
         let query_type = con.read_str(&mut str_buffer)?.to_owned();
         let domain = con.read_str(&mut str_buffer)?.to_owned();
         let client = con.read_str(&mut str_buffer)?.to_owned();
@@ -311,16 +356,20 @@ fn get_history(command: &str) -> util::Reply {
     util::reply_data(history)
 }
 
+/// Get the entire query history (as stored in FTL)
 #[get("/stats/history")]
 pub fn history() -> util::Reply {
     get_history("getallqueries")
 }
 
+/// Get the query history within the specified timespan
 #[get("/stats/history?<timespan>")]
 pub fn history_timespan(timespan: Timespan) -> util::Reply {
     get_history(&format!("getallqueries-time {} {}", timespan.from, timespan.to))
 }
 
+/// Get the most recently blocked domains
+// TODO: add an endpoint to return the last X blocked domains
 #[get("/stats/recent_blocked")]
 pub fn recent_blocked() -> util::Reply {
     let mut con = ftl::connect("recentBlocked")?;
@@ -333,6 +382,7 @@ pub fn recent_blocked() -> util::Reply {
         let domain = match con.read_str(&mut str_buffer) {
             Ok(domain) => domain.to_owned(),
             Err(e) => {
+                // Check if we received the EOM
                 if let DecodeStringError::TypeMismatch(marker) = e {
                     if marker == Marker::Reserved {
                         // Received EOM
@@ -351,6 +401,8 @@ pub fn recent_blocked() -> util::Reply {
     util::reply_data(domains)
 }
 
+/// Get the names of clients
+// TODO: return only the names and IP addresses
 #[get("/stats/clients")]
 pub fn clients() -> util::Reply {
     let mut con = ftl::connect("client-names")?;
@@ -360,9 +412,11 @@ pub fn clients() -> util::Reply {
     let mut client_data: Vec<(String, String, i32)> = Vec::new();
 
     loop {
+        // Get the hostname, unless we are at the end of the list
         let name = match con.read_str(&mut str_buffer) {
             Ok(name) => name.to_owned(),
             Err(e) => {
+                // Check if we received the EOM
                 if let DecodeStringError::TypeMismatch(marker) = e {
                     if marker == Marker::Reserved {
                         // Received EOM
@@ -384,6 +438,7 @@ pub fn clients() -> util::Reply {
     util::reply_data(client_data)
 }
 
+/// Get all unknown queries
 #[get("/stats/unknown_queries")]
 pub fn unknown_queries() -> util::Reply {
     let mut con = ftl::connect("unknown")?;
@@ -393,9 +448,11 @@ pub fn unknown_queries() -> util::Reply {
     let mut queries: Vec<UnknownQuery> = Vec::new();
 
     loop {
+        // Get the timestamp, unless we are at the end of the list
         let timestamp = match con.read_i32() {
             Ok(timestamp) => timestamp,
             Err(e) => {
+                // Check if we received the EOM
                 if let ValueReadError::TypeMismatch(marker) = e {
                     if marker == Marker::Reserved {
                         // Received EOM
@@ -408,6 +465,7 @@ pub fn unknown_queries() -> util::Reply {
             }
         };
 
+        // Read the rest of the data
         let id = con.read_i32()?;
         let query_type = con.read_str(&mut str_buffer)?.to_owned();
         let domain = con.read_str(&mut str_buffer)?.to_owned();
@@ -421,6 +479,7 @@ pub fn unknown_queries() -> util::Reply {
     util::reply_data(queries)
 }
 
+/// Get the query history over time (separated into blocked and not blocked)
 #[get("/stats/overTime/history")]
 pub fn over_time_history() -> util::Reply {
     let mut con = ftl::connect("overTime")?;
@@ -434,6 +493,7 @@ pub fn over_time_history() -> util::Reply {
     }))
 }
 
+/// Get the forward destination usage over time
 #[get("/stats/overTime/forward_destinations")]
 pub fn over_time_forward_destinations() -> util::Reply {
     let mut con = ftl::connect("ForwardedoverTime")?;
@@ -441,7 +501,10 @@ pub fn over_time_forward_destinations() -> util::Reply {
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
 
+    // Read in the number of forward destinations
     let forward_dest_num = con.read_i32()? as usize;
+
+    // Create the data structures to store the data in
     let mut forward_data: Vec<String> = Vec::with_capacity(forward_dest_num);
     let mut over_time: HashMap<i32, Vec<f32>> = HashMap::new();
 
@@ -451,6 +514,7 @@ pub fn over_time_forward_destinations() -> util::Reply {
         let ip = con.read_str(&mut str_buffer)?.to_owned();
 
         forward_data.push(
+            // The key will be `hostname|IP` if the hostname exists, otherwise just the IP address
             if name.is_empty() {
                 ip
             } else {
@@ -459,10 +523,13 @@ pub fn over_time_forward_destinations() -> util::Reply {
         );
     }
 
+    // Get the over time data
     loop {
+        // Get the timestamp, unless we are at the end of the list
         let timestamp = match con.read_i32() {
             Ok(timestamp) => timestamp,
             Err(e) => {
+                // Check if we received the EOM
                 if let ValueReadError::TypeMismatch(marker) = e {
                     if marker == Marker::Reserved {
                         // Received EOM
@@ -475,8 +542,10 @@ pub fn over_time_forward_destinations() -> util::Reply {
             }
         };
 
+        // Create a new step in the graph (stores the value of each destination usage at that time)
         let mut step = Vec::with_capacity(forward_dest_num);
 
+        // Read in the forward destination usage
         for _ in 0..forward_dest_num {
             step.push(con.read_f32()?);
         }
@@ -490,6 +559,7 @@ pub fn over_time_forward_destinations() -> util::Reply {
     }))
 }
 
+/// Get the query types usage over time
 #[get("/stats/overTime/query_types")]
 pub fn over_time_query_types() -> util::Reply {
     let mut con = ftl::connect("QueryTypesoverTime")?;
@@ -497,9 +567,11 @@ pub fn over_time_query_types() -> util::Reply {
     let mut over_time: HashMap<i32, (f32, f32)> = HashMap::new();
 
     loop {
+        // Get the timestamp, unless we are at the end of the list
         let timestamp = match con.read_i32() {
             Ok(timestamp) => timestamp,
             Err(e) => {
+                // Check if we received the EOM
                 if let ValueReadError::TypeMismatch(marker) = e {
                     if marker == Marker::Reserved {
                         // Received EOM
@@ -521,6 +593,7 @@ pub fn over_time_query_types() -> util::Reply {
     util::reply_data(over_time)
 }
 
+/// Get the client queries over time
 #[get("/stats/overTime/clients")]
 pub fn over_time_clients() -> util::Reply {
     let mut con = ftl::connect("ClientsoverTime")?;
@@ -528,9 +601,11 @@ pub fn over_time_clients() -> util::Reply {
     let mut over_time: HashMap<i32, Vec<i32>> = HashMap::new();
 
     loop {
+        // Get the timestamp, unless we are at the end of the list
         let timestamp = match con.read_i32() {
             Ok(timestamp) => timestamp,
             Err(e) => {
+                // Check if we received the EOM
                 if let ValueReadError::TypeMismatch(marker) = e {
                     if marker == Marker::Reserved {
                         // Received EOM
@@ -543,6 +618,7 @@ pub fn over_time_clients() -> util::Reply {
             }
         };
 
+        // Create a new step in the graph (stores the value of each client usage at that time)
         let mut step = Vec::new();
 
         // Get all the data for this step
