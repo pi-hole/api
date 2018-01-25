@@ -46,6 +46,7 @@ fn main() {
             stats::history,
             stats::history_timespan,
             stats::recent_blocked,
+            stats::recent_blocked_multi,
             stats::clients,
             stats::unknown_queries,
             stats::over_time_history,

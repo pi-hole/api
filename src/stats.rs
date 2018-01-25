@@ -68,6 +68,12 @@ pub struct Timespan {
     to: u64
 }
 
+/// Represents the possible GET parameters on `/stats/recent_blocked`
+#[derive(FromForm)]
+pub struct RecentBlockedParams {
+    num: usize
+}
+
 /// Get the summary data
 #[get("/stats/summary")]
 pub fn summary() -> util::Reply {
@@ -368,17 +374,18 @@ pub fn history_timespan(timespan: Timespan) -> util::Reply {
     get_history(&format!("getallqueries-time {} {}", timespan.from, timespan.to))
 }
 
-/// Get the most recently blocked domains
-// TODO: add an endpoint to return the last X blocked domains
-#[get("/stats/recent_blocked")]
-pub fn recent_blocked() -> util::Reply {
-    let mut con = ftl::connect("recentBlocked")?;
+/// Get `num`-many most recently blocked domains
+pub fn get_recent_blocked(num: usize) -> util::Reply {
+    let mut con = ftl::connect(&format!("recentBlocked ({})", num))?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
-    let mut domains = Vec::new();
+    let mut domains = Vec::with_capacity(num);
+    let mut less_domains_than_expected = false;
 
-    loop {
+    for _ in 0..num {
+        // Get the next domain. If FTL returns less than what we asked (there haven't been enough
+        // blocked domains), then exit the loop
         let domain = match con.read_str(&mut str_buffer) {
             Ok(domain) => domain.to_owned(),
             Err(e) => {
@@ -386,6 +393,7 @@ pub fn recent_blocked() -> util::Reply {
                 if let DecodeStringError::TypeMismatch(marker) = e {
                     if marker == Marker::Reserved {
                         // Received EOM
+                        less_domains_than_expected = true;
                         break;
                     }
                 }
@@ -398,7 +406,24 @@ pub fn recent_blocked() -> util::Reply {
         domains.push(domain);
     }
 
+    // If we got the number of domains we expected, then we still need to read the EOM
+    if !less_domains_than_expected {
+        con.expect_eom()?;
+    }
+
     util::reply_data(domains)
+}
+
+/// Get the most recent blocked domain
+#[get("/stats/recent_blocked")]
+pub fn recent_blocked() -> util::Reply {
+    get_recent_blocked(1)
+}
+
+/// Get the `num` most recently blocked domains
+#[get("/stats/recent_blocked?<params>")]
+pub fn recent_blocked_multi(params: RecentBlockedParams) -> util::Reply {
+    get_recent_blocked(params.num)
 }
 
 /// Get the names of clients
