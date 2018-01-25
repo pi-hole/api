@@ -25,11 +25,14 @@ mod dns;
 mod web;
 
 fn main() {
+    // Start up the server
     rocket::ignite()
+        // Mount the web interface
         .mount("/", routes![
             web::web_interface_index,
             web::web_interface
         ])
+        // Mount the API
         .mount("/admin/api", routes![
             stats::summary,
             stats::top_domains,
@@ -60,10 +63,12 @@ fn main() {
             dns::delete_blacklist,
             dns::delete_wildlist
         ])
+        // Add custom error handlers
         .catch(errors![not_found])
         .launch();
 }
 
+/// This is run when no route could be found and returns a custom 404 message.
 #[error(404)]
 fn not_found() -> util::Reply {
     util::reply_error(util::Error::NotFound)
