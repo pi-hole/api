@@ -9,7 +9,7 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use std::io::prelude::*;
-use std::io::{self, BufReader};
+use std::io::{self, BufReader, BufWriter};
 use std::fs::{File, OpenOptions};
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
@@ -239,8 +239,8 @@ pub fn add_whitelist(domain_input: Json<DomainInput>) -> util::Reply {
     let domain = &domain_input.0.domain;
 
     add_list(List::Whitelist, domain)?;
-    remove_list(List::Blacklist, domain)?;
-    remove_list(List::Wildlist, domain)?;
+    try_remove_list(List::Blacklist, domain)?;
+    try_remove_list(List::Wildlist, domain)?;
 
     reload_gravity(List::Whitelist)?;
     util::reply_success()
@@ -251,8 +251,8 @@ pub fn add_blacklist(domain_input: Json<DomainInput>) -> util::Reply {
     let domain = &domain_input.0.domain;
 
     add_list(List::Blacklist, domain)?;
-    remove_list(List::Whitelist, domain)?;
-    remove_list(List::Wildlist, domain)?;
+    try_remove_list(List::Whitelist, domain)?;
+    try_remove_list(List::Wildlist, domain)?;
 
     reload_gravity(List::Blacklist)?;
     util::reply_success()
@@ -268,47 +268,83 @@ pub fn add_wildlist(domain_input: Json<DomainInput>) -> util::Reply {
     util::reply_success()
 }
 
+fn try_remove_list(list: List, domain: &str) -> Result<(), util::Error> {
+    match remove_list(list, domain) {
+        // Pass through successful results
+        Ok(ok) => Ok(ok),
+        Err(e) => {
+            // Ignore NotFound errors
+            if e == util::Error::NotFound {
+                Ok(())
+            } else {
+                Err(e)
+            }
+        }
+    }
+}
+
 fn remove_list(list: List, domain: &str) -> Result<(), util::Error> {
     if !is_valid_domain(domain) {
         return Err(util::Error::InvalidDomain);
     }
 
-    let status = Command::new("sudo")
-        .arg("pihole")
-        .arg(match list {
-            List::Whitelist => "-w",
-            List::Blacklist => "-b",
-            List::Wildlist => "-wild"
-        })
-        .arg("-q")
-        .arg("-d")
-        .arg(domain)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()?;
+    let list_path = Path::new(list.location());
+    let mut domains = Vec::new();
 
-    if status.success() {
-        Ok(())
-    } else {
-        Err(util::Error::Unknown)
+    // Read list domains
+    if list_path.is_file() {
+        let reader = BufReader::new(File::open(list_path)?);
+
+        // Add domains
+        domains.extend(reader
+            .lines()
+            .filter_map(|line| line.ok())
+            // Only get valid domains
+            .filter(|domain| is_valid_domain(domain))
+        );
     }
+
+    // Check if the domain is already in the list
+    if !domains.contains(&domain.to_owned()) {
+        return Err(util::Error::NotFound);
+    }
+
+    // Open the list file (and create it if it doesn't exist)
+    let list_file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .mode(0o644)
+        .open(list_path)?;
+
+    let mut writer = BufWriter::new(list_file);
+
+    // Write all domains but the one we're deleting
+    for domain in domains.into_iter().filter(|item| item != domain) {
+        writer.write_all(domain.as_bytes())?;
+        writer.write_all(b"\n")?;
+    }
+
+    Ok(())
 }
 
 #[delete("/dns/whitelist/<domain>")]
 pub fn delete_whitelist(domain: String) -> util::Reply {
     remove_list(List::Whitelist, &domain)?;
+    reload_gravity(List::Whitelist)?;
     util::reply_success()
 }
 
 #[delete("/dns/blacklist/<domain>")]
 pub fn delete_blacklist(domain: String) -> util::Reply {
     remove_list(List::Blacklist, &domain)?;
+    reload_gravity(List::Blacklist)?;
     util::reply_success()
 }
 
 #[delete("/dns/wildlist/<domain>")]
 pub fn delete_wildlist(domain: String) -> util::Reply {
     remove_list(List::Wildlist, &domain)?;
+    reload_gravity(List::Wildlist)?;
     util::reply_success()
 }

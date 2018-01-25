@@ -44,7 +44,7 @@ pub fn reply_success() -> Reply {
     }), &[], Status::Ok)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Error {
     Unknown,
     GravityError,
