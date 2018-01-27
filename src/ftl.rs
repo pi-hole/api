@@ -37,6 +37,7 @@ pub enum FtlConnectionType<'a> {
 impl<'a> FtlConnectionType<'a> {
     /// Connect to FTL and run the specified command
     pub fn connect(&self, command: &str) -> Result<FtlConnection, util::Error> {
+        // Determine the type of connection to create
         match *self {
             FtlConnectionType::Socket => {
                 // Try to connect to FTL
@@ -53,7 +54,13 @@ impl<'a> FtlConnectionType<'a> {
             },
             FtlConnectionType::Test(ref map) => {
                 // Return a connection reading the testing data
-                Ok(FtlConnection(Box::new(Cursor::new(map.get(command).unwrap()))))
+                Ok(FtlConnection(Box::new(Cursor::new(
+                    // Try to get the testing data for this command
+                    match map.get(command) {
+                        Some(data) => data,
+                        None => return Err(util::Error::FtlConnectionFail)
+                    }
+                ))))
             }
         }
     }
