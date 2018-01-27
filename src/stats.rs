@@ -8,12 +8,13 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use util;
-use ftl;
-
 use std::collections::HashMap;
 use rmp::decode::{ValueReadError, DecodeStringError};
 use rmp::Marker;
+use rocket::State;
+
+use util;
+use ftl::FtlConnectionType;
 
 /// Represents a query returned in `/stats/history`
 #[derive(Serialize)]
@@ -76,8 +77,8 @@ pub struct RecentBlockedParams {
 
 /// Get the summary data
 #[get("/stats/summary")]
-pub fn summary() -> util::Reply {
-    let mut con = ftl::connect("stats")?;
+pub fn summary(ftl: State<FtlConnectionType>) -> util::Reply {
+    let mut con = ftl.connect("stats")?;
 
     // Read in the data
     let domains_blocked = con.read_i32()?;
@@ -107,7 +108,7 @@ pub fn summary() -> util::Reply {
 }
 
 /// Get the top domains (blocked or not)
-fn get_top_domains(blocked: bool, params: TopParams) -> util::Reply {
+fn get_top_domains(ftl: &FtlConnectionType, blocked: bool, params: TopParams) -> util::Reply {
     let default_limit: usize = TopParams::default().limit.unwrap_or(10);
 
     // Create the command to send to FTL
@@ -120,7 +121,7 @@ fn get_top_domains(blocked: bool, params: TopParams) -> util::Reply {
     );
 
     // Connect to FTL
-    let mut con = ftl::connect(&command)?;
+    let mut con = ftl.connect(&command)?;
 
     // Read the number of queries (blocked or total)
     let queries = con.read_i32()?;
@@ -170,30 +171,30 @@ fn get_top_domains(blocked: bool, params: TopParams) -> util::Reply {
 
 /// Return the top domains with default parameters
 #[get("/stats/top_domains")]
-pub fn top_domains() -> util::Reply {
-    get_top_domains(false, TopParams::default())
+pub fn top_domains(ftl: State<FtlConnectionType>) -> util::Reply {
+    get_top_domains(&ftl,false, TopParams::default())
 }
 
 /// Return the top domains with specified parameters
 #[get("/stats/top_domains?<params>")]
-pub fn top_domains_params(params: TopParams) -> util::Reply {
-    get_top_domains(false, params)
+pub fn top_domains_params(ftl: State<FtlConnectionType>, params: TopParams) -> util::Reply {
+    get_top_domains(&ftl, false, params)
 }
 
 /// Return the top blocked domains with default parameters
 #[get("/stats/top_blocked")]
-pub fn top_blocked() -> util::Reply {
-    get_top_domains(true, TopParams::default())
+pub fn top_blocked(ftl: State<FtlConnectionType>) -> util::Reply {
+    get_top_domains(&ftl, true, TopParams::default())
 }
 
 /// Return the top blocked domains with specified parameters
 #[get("/stats/top_blocked?<params>")]
-pub fn top_blocked_params(params: TopParams) -> util::Reply {
-    get_top_domains(true, params)
+pub fn top_blocked_params(ftl: State<FtlConnectionType>, params: TopParams) -> util::Reply {
+    get_top_domains(&ftl, true, params)
 }
 
 /// Read in the top clients, similar to top_domains and top_blocked but different
-fn get_top_clients(params: TopClientParams) -> util::Reply {
+fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> util::Reply {
     let default_limit: usize = 10;
 
     // Create the command to send to FTL
@@ -205,7 +206,7 @@ fn get_top_clients(params: TopClientParams) -> util::Reply {
     );
 
     // Connect to FTL
-    let mut con = ftl::connect(&command)?;
+    let mut con = ftl.connect(&command)?;
 
     // Get the total number of queries
     let total_queries = con.read_i32()?;
@@ -255,20 +256,20 @@ fn get_top_clients(params: TopClientParams) -> util::Reply {
 
 /// Get the top clients with default parameters
 #[get("/stats/top_clients")]
-pub fn top_clients() -> util::Reply {
-    get_top_clients(TopClientParams::default())
+pub fn top_clients(ftl: State<FtlConnectionType>) -> util::Reply {
+    get_top_clients(&ftl, TopClientParams::default())
 }
 
 /// Get the top clients with specified parameters
 #[get("/stats/top_clients?<params>")]
-pub fn top_clients_params(params: TopClientParams) -> util::Reply {
-    get_top_clients(params)
+pub fn top_clients_params(ftl: State<FtlConnectionType>, params: TopClientParams) -> util::Reply {
+    get_top_clients(&ftl, params)
 }
 
 /// Get the forward destinations
 #[get("/stats/forward_destinations")]
-pub fn forward_destinations() -> util::Reply {
-    let mut con = ftl::connect("forward-dest")?;
+pub fn forward_destinations(ftl: State<FtlConnectionType>) -> util::Reply {
+    let mut con = ftl.connect("forward-dest")?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -310,8 +311,8 @@ pub fn forward_destinations() -> util::Reply {
 
 /// Get the query types
 #[get("/stats/query_types")]
-pub fn query_types() -> util::Reply {
-    let mut con = ftl::connect("querytypes")?;
+pub fn query_types(ftl: State<FtlConnectionType>) -> util::Reply {
+    let mut con = ftl.connect("querytypes")?;
 
     let ipv4 = con.read_f32()?;
     let ipv6 = con.read_f32()?;
@@ -324,8 +325,8 @@ pub fn query_types() -> util::Reply {
 }
 
 /// Get the query history according to the specified command
-fn get_history(command: &str) -> util::Reply {
-    let mut con = ftl::connect(command)?;
+fn get_history(ftl: &FtlConnectionType, command: &str) -> util::Reply {
+    let mut con = ftl.connect(command)?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -364,19 +365,19 @@ fn get_history(command: &str) -> util::Reply {
 
 /// Get the entire query history (as stored in FTL)
 #[get("/stats/history")]
-pub fn history() -> util::Reply {
-    get_history("getallqueries")
+pub fn history(ftl: State<FtlConnectionType>) -> util::Reply {
+    get_history(&ftl, "getallqueries")
 }
 
 /// Get the query history within the specified timespan
 #[get("/stats/history?<timespan>")]
-pub fn history_timespan(timespan: Timespan) -> util::Reply {
-    get_history(&format!("getallqueries-time {} {}", timespan.from, timespan.to))
+pub fn history_timespan(ftl: State<FtlConnectionType>, timespan: Timespan) -> util::Reply {
+    get_history(&ftl, &format!("getallqueries-time {} {}", timespan.from, timespan.to))
 }
 
 /// Get `num`-many most recently blocked domains
-pub fn get_recent_blocked(num: usize) -> util::Reply {
-    let mut con = ftl::connect(&format!("recentBlocked ({})", num))?;
+pub fn get_recent_blocked(ftl: &FtlConnectionType, num: usize) -> util::Reply {
+    let mut con = ftl.connect(&format!("recentBlocked ({})", num))?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -416,21 +417,21 @@ pub fn get_recent_blocked(num: usize) -> util::Reply {
 
 /// Get the most recent blocked domain
 #[get("/stats/recent_blocked")]
-pub fn recent_blocked() -> util::Reply {
-    get_recent_blocked(1)
+pub fn recent_blocked(ftl: State<FtlConnectionType>) -> util::Reply {
+    get_recent_blocked(&ftl, 1)
 }
 
 /// Get the `num` most recently blocked domains
 #[get("/stats/recent_blocked?<params>")]
-pub fn recent_blocked_multi(params: RecentBlockedParams) -> util::Reply {
-    get_recent_blocked(params.num)
+pub fn recent_blocked_multi(ftl: State<FtlConnectionType>, params: RecentBlockedParams) -> util::Reply {
+    get_recent_blocked(&ftl, params.num)
 }
 
 /// Get the names of clients
 // TODO: return only the names and IP addresses
 #[get("/stats/clients")]
-pub fn clients() -> util::Reply {
-    let mut con = ftl::connect("client-names")?;
+pub fn clients(ftl: State<FtlConnectionType>) -> util::Reply {
+    let mut con = ftl.connect("client-names")?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -465,8 +466,8 @@ pub fn clients() -> util::Reply {
 
 /// Get all unknown queries
 #[get("/stats/unknown_queries")]
-pub fn unknown_queries() -> util::Reply {
-    let mut con = ftl::connect("unknown")?;
+pub fn unknown_queries(ftl: State<FtlConnectionType>) -> util::Reply {
+    let mut con = ftl.connect("unknown")?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -506,8 +507,8 @@ pub fn unknown_queries() -> util::Reply {
 
 /// Get the query history over time (separated into blocked and not blocked)
 #[get("/stats/overTime/history")]
-pub fn over_time_history() -> util::Reply {
-    let mut con = ftl::connect("overTime")?;
+pub fn over_time_history(ftl: State<FtlConnectionType>) -> util::Reply {
+    let mut con = ftl.connect("overTime")?;
 
     let domains_over_time = con.read_int_map()?;
     let blocked_over_time = con.read_int_map()?;
@@ -520,8 +521,8 @@ pub fn over_time_history() -> util::Reply {
 
 /// Get the forward destination usage over time
 #[get("/stats/overTime/forward_destinations")]
-pub fn over_time_forward_destinations() -> util::Reply {
-    let mut con = ftl::connect("ForwardedoverTime")?;
+pub fn over_time_forward_destinations(ftl: State<FtlConnectionType>) -> util::Reply {
+    let mut con = ftl.connect("ForwardedoverTime")?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -586,8 +587,8 @@ pub fn over_time_forward_destinations() -> util::Reply {
 
 /// Get the query types usage over time
 #[get("/stats/overTime/query_types")]
-pub fn over_time_query_types() -> util::Reply {
-    let mut con = ftl::connect("QueryTypesoverTime")?;
+pub fn over_time_query_types(ftl: State<FtlConnectionType>) -> util::Reply {
+    let mut con = ftl.connect("QueryTypesoverTime")?;
 
     let mut over_time: HashMap<i32, (f32, f32)> = HashMap::new();
 
@@ -620,8 +621,8 @@ pub fn over_time_query_types() -> util::Reply {
 
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
-pub fn over_time_clients() -> util::Reply {
-    let mut con = ftl::connect("ClientsoverTime")?;
+pub fn over_time_clients(ftl: State<FtlConnectionType>) -> util::Reply {
+    let mut con = ftl.connect("ClientsoverTime")?;
 
     let mut over_time: HashMap<i32, Vec<i32>> = HashMap::new();
 

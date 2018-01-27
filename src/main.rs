@@ -27,6 +27,7 @@ mod web;
 fn main() {
     // Start up the server
     rocket::ignite()
+        .manage(ftl::FtlConnectionType::Socket)
         // Mount the web interface
         .mount("/", routes![
             web::web_interface_index,
