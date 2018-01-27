@@ -19,6 +19,8 @@ extern crate rmp;
 extern crate regex;
 
 use std::collections::HashMap;
+use rocket::local::Client;
+use rocket::config::{ConfigBuilder, Environment};
 
 mod util;
 mod ftl;
@@ -32,17 +34,27 @@ fn not_found() -> util::Reply {
     util::reply_error(util::Error::NotFound)
 }
 
+/// Run the API normally (connect to FTL over the socket)
 pub fn start() {
-    start_general(ftl::FtlConnectionType::Socket)
+    setup(
+        rocket::ignite(),
+        ftl::FtlConnectionType::Socket
+    ).launch();
 }
 
-pub fn start_testing(test_data: HashMap<String, &'static [u8]>) {
-    start_general(ftl::FtlConnectionType::Test(test_data))
+/// Setup the API with the testing data and return a Client to test with
+pub fn test(test_data: HashMap<String, &'static [u8]>) -> Client {
+    Client::new(setup(
+        rocket::custom(ConfigBuilder::new(Environment::Development).finalize().unwrap(), false),
+        ftl::FtlConnectionType::Test(test_data)
+    )).unwrap()
 }
 
-fn start_general(connection_type: ftl::FtlConnectionType<'static>) {
+/// General Rocket setup
+fn setup(server: rocket::Rocket, connection_type: ftl::FtlConnectionType<'static>) -> rocket::Rocket {
     // Start up the server
-    rocket::ignite()
+    server
+        // Manage the connection type configuration
         .manage(connection_type)
         // Mount the web interface
         .mount("/", routes![
@@ -83,5 +95,4 @@ fn start_general(connection_type: ftl::FtlConnectionType<'static>) {
         ])
         // Add custom error handlers
         .catch(errors![not_found])
-        .launch();
 }
