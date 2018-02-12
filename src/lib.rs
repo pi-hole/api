@@ -43,7 +43,7 @@ pub fn start() {
 }
 
 /// Setup the API with the testing data and return a Client to test with
-pub fn test(test_data: HashMap<String, &'static [u8]>) -> Client {
+pub fn test(test_data: HashMap<String, Vec<u8>>) -> Client {
     Client::new(setup(
         rocket::custom(ConfigBuilder::new(Environment::Development).finalize().unwrap(), false),
         ftl::FtlConnectionType::Test(test_data)
@@ -51,7 +51,7 @@ pub fn test(test_data: HashMap<String, &'static [u8]>) -> Client {
 }
 
 /// General Rocket setup
-fn setup(server: rocket::Rocket, connection_type: ftl::FtlConnectionType<'static>) -> rocket::Rocket {
+fn setup<'a>(server: rocket::Rocket, connection_type: ftl::FtlConnectionType) -> rocket::Rocket {
     // Start up the server
     server
         // Manage the connection type configuration

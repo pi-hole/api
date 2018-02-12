@@ -21,20 +21,20 @@ use util;
 const SOCKET_LOCATION: &'static str = "/var/run/pihole/FTL.sock";
 
 /// A wrapper around the FTL socket to easily read in data. It takes a Box<Read> so that it can be
-/// tested with fake data from a &[u8]
-pub struct FtlConnection<'a>(Box<Read + 'a>);
+/// tested with fake data from a Vec<u8>
+pub struct FtlConnection<'test>(Box<Read + 'test>);
 
 /// A marker for the type of FTL connection to make.
 ///
 /// - Socket refers to the normal Unix socket connection.
 /// - Test is for testing, so that a test can pass in arbitrary MessagePack data to be processed.
 ///   The map in Test maps FTL commands to data.
-pub enum FtlConnectionType<'a> {
+pub enum FtlConnectionType {
     Socket,
-    Test(HashMap<String, &'a [u8]>)
+    Test(HashMap<String, Vec<u8>>)
 }
 
-impl<'a> FtlConnectionType<'a> {
+impl FtlConnectionType {
     /// Connect to FTL and run the specified command
     pub fn connect(&self, command: &str) -> Result<FtlConnection, util::Error> {
         // Determine the type of connection to create
@@ -66,7 +66,7 @@ impl<'a> FtlConnectionType<'a> {
     }
 }
 
-impl<'a> FtlConnection<'a> {
+impl<'test> FtlConnection<'test> {
     /// We expect an end of message (EOM) response when FTL has finished sending data
     pub fn expect_eom(&mut self) -> Result<(), String> {
         let mut buffer: [u8; 1] = [0];

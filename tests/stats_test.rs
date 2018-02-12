@@ -1,24 +1,50 @@
 extern crate pihole_api;
+extern crate rmp;
 
 use std::collections::HashMap;
+use rmp::encode;
+
+/// Test an API endpoint by inputting test data and checking the response
+fn test_endpoint(endpoint: &str, ftl_command: &str, ftl_data: Vec<u8>, expected: &str) {
+    // Add the test data
+    let mut data = HashMap::new();
+    data.insert(ftl_command.to_owned(), ftl_data);
+
+    // Start the test client
+    let client = pihole_api::test(data);
+
+    // Get the response
+    let mut response = client.get(endpoint).dispatch();
+    let body = response.body_string();
+
+    // Check against expected output
+    assert!(body.is_some());
+    assert_eq!(expected, body.unwrap());
+}
+
+fn write_eom(data: &mut Vec<u8>) {
+    data.push(0xc1);
+}
 
 #[test]
 fn test_summary() {
-    let mut data = HashMap::new();
-    let input: &[u8] = &[
-        0xd2, 0xff, 0xff, 0xff, 0xff, 0xd2, 0x00, 0x00, 0x00, 0x07, 0xd2, 0x00, 0x00, 0x00, 0x02,
-        0xca, 0x41, 0xe4, 0x92, 0x49, 0xd2, 0x00, 0x00, 0x00, 0x06, 0xd2, 0x00, 0x00, 0x00, 0x03,
-        0xd2, 0x00, 0x00, 0x00, 0x02, 0xd2, 0x00, 0x00, 0x00, 0x03, 0xd2, 0x00, 0x00, 0x00, 0x03,
-        0xcc, 0x02, 0xc1
-    ];
-    data.insert("stats".to_owned(), input);
+    let mut data = Vec::new();
+    encode::write_i32(&mut data, -1).unwrap();
+    encode::write_i32(&mut data, 7).unwrap();
+    encode::write_i32(&mut data, 2).unwrap();
+    encode::write_f32(&mut data, 28.571428298950197).unwrap();
+    encode::write_i32(&mut data, 6).unwrap();
+    encode::write_i32(&mut data, 3).unwrap();
+    encode::write_i32(&mut data, 2).unwrap();
+    encode::write_i32(&mut data, 3).unwrap();
+    encode::write_i32(&mut data, 3).unwrap();
+    encode::write_u8(&mut data, 2).unwrap();
+    write_eom(&mut data);
 
-    let client = pihole_api::test(data);
-    let mut response = client.get("/admin/api/stats/summary").dispatch();
-    let body = response.body_string();
-
-    assert!(body.is_some());
-    assert_eq!(
+    test_endpoint(
+        "/admin/api/stats/summary",
+        "stats",
+        data,
         "{\
             \"data\":{\
                 \"blocked_queries\":2,\
@@ -33,7 +59,6 @@ fn test_summary() {
                 \"unique_domains\":6\
             },\
             \"errors\":[]\
-        }",
-        body.unwrap()
+        }"
     );
 }
