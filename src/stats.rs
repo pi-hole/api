@@ -113,11 +113,11 @@ fn get_top_domains(ftl: &FtlConnectionType, blocked: bool, params: TopParams) ->
 
     // Create the command to send to FTL
     let command = format!(
-        "{} ({}) {} {}",
+        "{} ({}){}{}",
         if blocked { "top-ads" } else { "top-domains" },
         params.limit.unwrap_or(default_limit),
-        if params.audit.unwrap_or(false) { "for audit" } else { "" },
-        if params.ascending.unwrap_or(false) { "asc" } else { "" }
+        if params.audit.unwrap_or(false) { " for audit" } else { "" },
+        if params.ascending.unwrap_or(false) { " asc" } else { "" }
     );
 
     // Connect to FTL
@@ -199,10 +199,10 @@ fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> util::Re
 
     // Create the command to send to FTL
     let command = format!(
-        "top-clients ({}) {} {}",
+        "top-clients ({}){}{}",
         params.limit.unwrap_or(default_limit),
-        if params.inactive.unwrap_or(false) { "withzero" } else { "" },
-        if params.ascending.unwrap_or(false) { "asc" } else { "" }
+        if params.inactive.unwrap_or(false) { " withzero" } else { "" },
+        if params.ascending.unwrap_or(false) { " asc" } else { "" }
     );
 
     // Connect to FTL

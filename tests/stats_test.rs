@@ -75,7 +75,7 @@ fn test_top_domains() {
 
     test_endpoint(
         "/admin/api/stats/top_domains",
-        "top-domains (10)  ",
+        "top-domains (10)",
         data,
         "{\
             \"data\":{\
@@ -100,7 +100,7 @@ fn test_top_domains_limit() {
 
     test_endpoint(
         "/admin/api/stats/top_domains?limit=1",
-        "top-domains (1)  ",
+        "top-domains (1)",
         data,
         "{\
             \"data\":{\
