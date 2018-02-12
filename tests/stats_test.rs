@@ -89,3 +89,27 @@ fn test_top_domains() {
         }"
     );
 }
+
+#[test]
+fn test_top_domains_limit() {
+    let mut data = Vec::new();
+    encode::write_i32(&mut data, 10).unwrap();
+    encode::write_str(&mut data, "example.com").unwrap();
+    encode::write_i32(&mut data, 7).unwrap();
+    write_eom(&mut data);
+
+    test_endpoint(
+        "/admin/api/stats/top_domains?limit=1",
+        "top-domains (1)  ",
+        data,
+        "{\
+            \"data\":{\
+                \"top_domains\":{\
+                    \"example.com\":7\
+                },\
+                \"total_queries\":10\
+            },\
+            \"errors\":[]\
+        }"
+    );
+}
