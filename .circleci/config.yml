@@ -33,6 +33,10 @@ version: 2
           time cargo build --release --target $TARGET -v
           cp target/$TARGET/release/pihole_api ${BIN_NAME}
     - run:
+        name: "Test"
+        command: |
+          [[ "$TARGET" == "x86_64-unknown-linux-gnu" ]] && time cargo test --release
+    - run:
         name: "Upload"
         command: |
           sha1sum ${BIN_NAME} > ${BIN_NAME}.sha1
