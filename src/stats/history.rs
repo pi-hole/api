@@ -3,7 +3,7 @@
 *  Network-wide ad blocking via your own hardware.
 *
 *  API
-*  Query History API Endpoints
+*  Query History Endpoints
 *
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */

@@ -3,7 +3,7 @@
 *  Network-wide ad blocking via your own hardware.
 *
 *  API
-*  Clients Over Time API Endpoint
+*  Clients Over Time Endpoint
 *
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
