@@ -1,6 +1,15 @@
-extern crate pihole_api;
+/* Pi-hole: A black hole for Internet advertisements
+*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+*  Network-wide ad blocking via your own hardware.
+*
+*  API
+*  Common Test Functions
+*
+*  This file is copyright under the latest version of the EUPL.
+*  Please see LICENSE file for your rights under this license. */
 
 use std::collections::HashMap;
+use super::test;
 
 /// Test an API endpoint by inputting test data and checking the response
 pub fn test_endpoint(endpoint: &str, ftl_command: &str, ftl_data: Vec<u8>, expected: &str) {
@@ -9,7 +18,7 @@ pub fn test_endpoint(endpoint: &str, ftl_command: &str, ftl_data: Vec<u8>, expec
     data.insert(ftl_command.to_owned(), ftl_data);
 
     // Start the test client
-    let client = pihole_api::test(data);
+    let client = test(data);
 
     // Get the response
     let mut response = client.get(endpoint).dispatch();
@@ -20,6 +29,7 @@ pub fn test_endpoint(endpoint: &str, ftl_command: &str, ftl_data: Vec<u8>, expec
     assert_eq!(expected, body.unwrap());
 }
 
+/// Add the end of message byte to the data
 pub fn write_eom(data: &mut Vec<u8>) {
     data.push(0xc1);
 }

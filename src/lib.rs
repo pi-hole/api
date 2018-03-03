@@ -30,6 +30,9 @@ mod stats;
 mod dns;
 mod web;
 
+#[cfg(test)]
+mod testing;
+
 /// This is run when no route could be found and returns a custom 404 message.
 #[error(404)]
 fn not_found() -> util::Reply {

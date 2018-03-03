@@ -127,3 +127,60 @@ fn get_top_domains(ftl: &FtlConnectionType, blocked: bool, params: TopParams) ->
         queries_type: queries
     }))
 }
+
+#[cfg(test)]
+mod test {
+    use rmp::encode;
+    use testing::{test_endpoint, write_eom};
+
+    #[test]
+    fn test_top_domains() {
+        let mut data = Vec::new();
+        encode::write_i32(&mut data, 10).unwrap();
+        encode::write_str(&mut data, "example.com").unwrap();
+        encode::write_i32(&mut data, 7).unwrap();
+        encode::write_str(&mut data, "example.net").unwrap();
+        encode::write_i32(&mut data, 3).unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/top_domains",
+            "top-domains (10)",
+            data,
+            "{\
+                \"data\":{\
+                    \"top_domains\":{\
+                        \"example.com\":7,\
+                        \"example.net\":3\
+                    },\
+                    \"total_queries\":10\
+                },\
+                \"errors\":[]\
+            }",
+        );
+    }
+
+    #[test]
+    fn test_top_domains_limit() {
+        let mut data = Vec::new();
+        encode::write_i32(&mut data, 10).unwrap();
+        encode::write_str(&mut data, "example.com").unwrap();
+        encode::write_i32(&mut data, 7).unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/top_domains?limit=1",
+            "top-domains (1)",
+            data,
+            "{\
+            \"data\":{\
+                \"top_domains\":{\
+                    \"example.com\":7\
+                },\
+                \"total_queries\":10\
+            },\
+            \"errors\":[]\
+        }",
+        );
+    }
+}
