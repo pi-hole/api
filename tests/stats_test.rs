@@ -25,20 +25,20 @@ fn test_summary() {
         "stats",
         data,
         "{\
-            \"data\":{\
-                \"blocked_queries\":2,\
-                \"cached_queries\":2,\
-                \"domains_blocked\":-1,\
-                \"forwarded_queries\":3,\
-                \"percent_blocked\":28.571428298950197,\
-                \"status\":2,\
-                \"total_clients\":3,\
-                \"total_queries\":7,\
-                \"unique_clients\":3,\
-                \"unique_domains\":6\
-            },\
-            \"errors\":[]\
-        }"
+         \"data\":{\
+         \"blocked_queries\":2,\
+         \"cached_queries\":2,\
+         \"domains_blocked\":-1,\
+         \"forwarded_queries\":3,\
+         \"percent_blocked\":28.571428298950197,\
+         \"status\":2,\
+         \"total_clients\":3,\
+         \"total_queries\":7,\
+         \"unique_clients\":3,\
+         \"unique_domains\":6\
+         },\
+         \"errors\":[]\
+         }",
     );
 }
 
@@ -57,15 +57,15 @@ fn test_top_domains() {
         "top-domains (10)",
         data,
         "{\
-            \"data\":{\
-                \"top_domains\":{\
-                    \"example.com\":7,\
-                    \"example.net\":3\
-                },\
-                \"total_queries\":10\
-            },\
-            \"errors\":[]\
-        }"
+         \"data\":{\
+         \"top_domains\":{\
+         \"example.com\":7,\
+         \"example.net\":3\
+         },\
+         \"total_queries\":10\
+         },\
+         \"errors\":[]\
+         }",
     );
 }
 
@@ -82,13 +82,13 @@ fn test_top_domains_limit() {
         "top-domains (1)",
         data,
         "{\
-            \"data\":{\
-                \"top_domains\":{\
-                    \"example.com\":7\
-                },\
-                \"total_queries\":10\
-            },\
-            \"errors\":[]\
-        }"
+         \"data\":{\
+         \"top_domains\":{\
+         \"example.com\":7\
+         },\
+         \"total_queries\":10\
+         },\
+         \"errors\":[]\
+         }",
     );
 }

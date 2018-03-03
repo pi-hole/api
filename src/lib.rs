@@ -11,12 +11,14 @@
 #![feature(plugin, custom_derive)]
 #![plugin(rocket_codegen)]
 
-extern crate rocket;
-#[macro_use] extern crate rocket_contrib;
-extern crate serde;
-#[macro_use] extern crate serde_derive;
-extern crate rmp;
 extern crate regex;
+extern crate rmp;
+extern crate rocket;
+#[macro_use]
+extern crate rocket_contrib;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 use std::collections::HashMap;
 use rocket::local::Client;
@@ -36,17 +38,19 @@ fn not_found() -> util::Reply {
 
 /// Run the API normally (connect to FTL over the socket)
 pub fn start() {
-    setup(
-        rocket::ignite(),
-        ftl::FtlConnectionType::Socket
-    ).launch();
+    setup(rocket::ignite(), ftl::FtlConnectionType::Socket).launch();
 }
 
 /// Setup the API with the testing data and return a Client to test with
 pub fn test(test_data: HashMap<String, Vec<u8>>) -> Client {
     Client::new(setup(
-        rocket::custom(ConfigBuilder::new(Environment::Development).finalize().unwrap(), false),
-        ftl::FtlConnectionType::Test(test_data)
+        rocket::custom(
+            ConfigBuilder::new(Environment::Development)
+                .finalize()
+                .unwrap(),
+            false,
+        ),
+        ftl::FtlConnectionType::Test(test_data),
     )).unwrap()
 }
 
@@ -63,7 +67,7 @@ fn setup<'a>(server: rocket::Rocket, connection_type: ftl::FtlConnectionType) ->
         ])
         // Mount the API
         .mount("/admin/api", routes![
-            stats::summary,
+            stats::get_summary,
             stats::top_domains,
             stats::top_domains_params,
             stats::top_blocked,
@@ -75,7 +79,7 @@ fn setup<'a>(server: rocket::Rocket, connection_type: ftl::FtlConnectionType) ->
             stats::history,
             stats::history_timespan,
             stats::recent_blocked,
-            stats::recent_blocked_multi,
+            stats::recent_blocked_params,
             stats::clients,
             stats::unknown_queries,
             stats::over_time_history,
