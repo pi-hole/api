@@ -8,8 +8,8 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
+use setup;
 use std::collections::HashMap;
-use super::test;
 
 /// Test an API endpoint by inputting test data and checking the response
 pub fn test_endpoint(endpoint: &str, ftl_command: &str, ftl_data: Vec<u8>, expected: &str) {
@@ -18,7 +18,7 @@ pub fn test_endpoint(endpoint: &str, ftl_command: &str, ftl_data: Vec<u8>, expec
     data.insert(ftl_command.to_owned(), ftl_data);
 
     // Start the test client
-    let client = test(data);
+    let client = setup::test(data);
 
     // Get the response
     let mut response = client.get(endpoint).dispatch();
