@@ -46,7 +46,6 @@ impl Default for TopClientParams {
     }
 }
 
-/// Read in the top clients, similar to top_domains and top_blocked but different
 fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> util::Reply {
     let default_limit: usize = 10;
 
@@ -92,8 +91,7 @@ fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> util::Re
         let count = con.read_i32()?;
 
         // The key will be `hostname|IP` if the hostname exists, otherwise just the IP address
-        let key = if name.is_empty() {
-            ip.to_owned()
+        let key = if name.is_empty() { ip.to_owned()
         } else {
             format!("{}|{}", name, ip)
         };
@@ -105,4 +103,74 @@ fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> util::Re
         "top_clients": top_clients,
         "total_queries": total_queries
     }))
+}
+
+#[cfg(test)]
+mod test {
+    use rmp::encode;
+    use testing::{test_endpoint, write_eom};
+
+    #[test]
+    fn test_top_clients() {
+        let mut data = Vec::new();
+
+        encode::write_i32(&mut data, 100).unwrap();
+        encode::write_str(&mut data, "client1").unwrap();
+        encode::write_str(&mut data, "10.1.1.1").unwrap();
+        encode::write_i32(&mut data, 30).unwrap();
+        encode::write_str(&mut data, "").unwrap();
+        encode::write_str(&mut data, "10.1.1.2").unwrap();
+        encode::write_i32(&mut data, 20).unwrap();
+        encode::write_str(&mut data, "client3").unwrap();
+        encode::write_str(&mut data, "10.1.1.3").unwrap();
+        encode::write_i32(&mut data, 10).unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/top_clients",
+            "top-clients (10)",
+            data,
+            "{\
+                \"data\":{\
+                    \"top_clients\":{\
+                        \"10.1.1.2\":20,\
+                        \"client1|10.1.1.1\":30,\
+                        \"client3|10.1.1.3\":10\
+                    },\
+                    \"total_queries\":100\
+                },\
+                \"errors\":[]\
+            }"
+        );
+    }
+
+    #[test]
+    fn test_top_clients_limit() {
+        let mut data = Vec::new();
+
+        encode::write_i32(&mut data, 100).unwrap();
+        encode::write_str(&mut data, "client1").unwrap();
+        encode::write_str(&mut data, "10.1.1.1").unwrap();
+        encode::write_i32(&mut data, 30).unwrap();
+        encode::write_str(&mut data, "").unwrap();
+        encode::write_str(&mut data, "10.1.1.2").unwrap();
+        encode::write_i32(&mut data, 20).unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/top_clients?limit=2",
+            "top-clients (2)",
+            data,
+            "{\
+                \"data\":{\
+                    \"top_clients\":{\
+                        \"10.1.1.2\":20,\
+                        \"client1|10.1.1.1\":30\
+                    },\
+                    \"total_queries\":100\
+                },\
+                \"errors\":[]\
+            }"
+        );
+    }
 }
