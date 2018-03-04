@@ -48,3 +48,40 @@ pub fn over_time_query_types(ftl: State<FtlConnectionType>) -> util::Reply {
 
     util::reply_data(over_time)
 }
+
+#[cfg(test)]
+mod test {
+    use rmp::encode;
+    use testing::{test_endpoint, write_eom};
+
+    #[test]
+    fn test_over_time_query_types() {
+        let mut data = Vec::new();
+        encode::write_i32(&mut data, 1520126228).unwrap();
+        encode::write_f32(&mut data, 0.7).unwrap();
+        encode::write_f32(&mut data, 0.3).unwrap();
+        encode::write_i32(&mut data, 1520126406).unwrap();
+        encode::write_f32(&mut data, 0.6).unwrap();
+        encode::write_f32(&mut data, 0.4).unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/overTime/query_types",
+            "QueryTypesoverTime",
+            data,
+            "{\
+                \"data\":{\
+                    \"1520126228\":[\
+                        0.699999988079071,\
+                        0.30000001192092898\
+                    ],\
+                    \"1520126406\":[\
+                        0.6000000238418579,\
+                        0.4000000059604645\
+                    ]\
+                },\
+                \"errors\":[]\
+            }"
+        );
+    }
+}
