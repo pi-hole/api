@@ -25,3 +25,44 @@ pub fn over_time_history(ftl: State<FtlConnectionType>) -> util::Reply {
         "blocked_over_time": blocked_over_time
     }))
 }
+
+#[cfg(test)]
+mod test {
+    use rmp::encode;
+    use testing::{test_endpoint, write_eom};
+
+    #[test]
+    fn test_over_time_history() {
+        let mut data = Vec::new();
+        encode::write_map_len(&mut data, 2).unwrap();
+        encode::write_i32(&mut data, 1520126228).unwrap();
+        encode::write_i32(&mut data, 10).unwrap();
+        encode::write_i32(&mut data, 1520126406).unwrap();
+        encode::write_i32(&mut data, 20).unwrap();
+        encode::write_map_len(&mut data, 2).unwrap();
+        encode::write_i32(&mut data, 1520126228).unwrap();
+        encode::write_i32(&mut data, 5).unwrap();
+        encode::write_i32(&mut data, 1520126406).unwrap();
+        encode::write_i32(&mut data, 5).unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/overTime/history",
+            "overTime",
+            data,
+            "{\
+                \"data\":{\
+                    \"blocked_over_time\":{\
+                        \"1520126228\":5,\
+                        \"1520126406\":5\
+                    },\
+                    \"domains_over_time\":{\
+                        \"1520126228\":10,\
+                        \"1520126406\":20\
+                    }\
+                },\
+                \"errors\":[]\
+            }"
+        );
+    }
+}
