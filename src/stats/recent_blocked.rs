@@ -71,3 +71,53 @@ pub fn get_recent_blocked(ftl: &FtlConnectionType, num: usize) -> util::Reply {
 
     util::reply_data(domains)
 }
+
+#[cfg(test)]
+mod test {
+    use rmp::encode;
+    use testing::{test_endpoint, write_eom};
+
+    #[test]
+    fn test_recent_blocked() {
+        let mut data = Vec::new();
+        encode::write_str(&mut data, "example.com").unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/recent_blocked",
+            "recentBlocked (1)",
+            data,
+            "{\
+                \"data\":[\
+                    \"example.com\"\
+                ],\
+                \"errors\":[]\
+            }"
+        );
+    }
+
+    #[test]
+    fn test_recent_blocked_params() {
+        let mut data = Vec::new();
+        encode::write_str(&mut data, "example.com").unwrap();
+        encode::write_str(&mut data, "doubleclick.com").unwrap();
+        encode::write_str(&mut data, "google.com").unwrap();
+        encode::write_str(&mut data, "ads.net").unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/recent_blocked?num=4",
+            "recentBlocked (4)",
+            data,
+            "{\
+                \"data\":[\
+                    \"example.com\",\
+                    \"doubleclick.com\",\
+                    \"google.com\",\
+                    \"ads.net\"\
+                ],\
+                \"errors\":[]\
+            }"
+        );
+    }
+}
