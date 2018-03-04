@@ -50,3 +50,48 @@ pub fn clients(ftl: State<FtlConnectionType>) -> util::Reply {
 
     util::reply_data(client_data)
 }
+
+#[cfg(test)]
+mod test {
+    use rmp::encode;
+    use testing::{test_endpoint, write_eom};
+
+    #[test]
+    fn test_clients() {
+        let mut data = Vec::new();
+        encode::write_str(&mut data, "client1").unwrap();
+        encode::write_str(&mut data, "10.1.1.1").unwrap();
+        encode::write_i32(&mut data, 30).unwrap();
+        encode::write_str(&mut data, "").unwrap();
+        encode::write_str(&mut data, "10.1.1.2").unwrap();
+        encode::write_i32(&mut data, 20).unwrap();
+        encode::write_str(&mut data, "client3").unwrap();
+        encode::write_str(&mut data, "10.1.1.3").unwrap();
+        encode::write_i32(&mut data, 10).unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/clients",
+            "client-names",
+            data,
+            "{\
+                \"data\":[\
+                    [\
+                        \"client1\",\
+                        \"10.1.1.1\",\
+                        30\
+                    ],[\
+                        \"\",\
+                        \"10.1.1.2\",\
+                        20\
+                    ],[\
+                        \"client3\",\
+                        \"10.1.1.3\",\
+                        10\
+                    ]\
+                ],\
+                \"errors\":[]\
+            }"
+        );
+    }
+}

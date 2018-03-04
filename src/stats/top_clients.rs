@@ -113,7 +113,6 @@ mod test {
     #[test]
     fn test_top_clients() {
         let mut data = Vec::new();
-
         encode::write_i32(&mut data, 100).unwrap();
         encode::write_str(&mut data, "client1").unwrap();
         encode::write_str(&mut data, "10.1.1.1").unwrap();
