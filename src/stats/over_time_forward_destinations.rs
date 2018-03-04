@@ -80,3 +80,58 @@ pub fn over_time_forward_destinations(ftl: State<FtlConnectionType>) -> util::Re
         "over_time": over_time
     }))
 }
+
+#[cfg(test)]
+mod test {
+    use rmp::encode;
+    use testing::{test_endpoint, write_eom};
+
+    #[test]
+    fn test_over_time_forward_destinations() {
+        let mut data = Vec::new();
+        encode::write_i32(&mut data, 3).unwrap();
+        encode::write_str(&mut data, "google-dns-alt").unwrap();
+        encode::write_str(&mut data, "8.8.4.4").unwrap();
+        encode::write_str(&mut data, "google-dns").unwrap();
+        encode::write_str(&mut data, "8.8.8.8").unwrap();
+        encode::write_str(&mut data, "local").unwrap();
+        encode::write_str(&mut data, "local").unwrap();
+        encode::write_i32(&mut data, 1520126228).unwrap();
+        encode::write_f32(&mut data, 0.3).unwrap();
+        encode::write_f32(&mut data, 0.3).unwrap();
+        encode::write_f32(&mut data, 0.4).unwrap();
+        encode::write_i32(&mut data, 1520126406).unwrap();
+        encode::write_f32(&mut data, 0.5).unwrap();
+        encode::write_f32(&mut data, 0.2).unwrap();
+        encode::write_f32(&mut data, 0.3).unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/overTime/forward_destinations",
+            "ForwardedoverTime",
+            data,
+            "{\
+                \"data\":{\
+                    \"forward_destinations\":[\
+                        \"google-dns-alt|8.8.4.4\",\
+                        \"google-dns|8.8.8.8\",\
+                        \"local|local\"\
+                    ],\
+                    \"over_time\":{\
+                        \"1520126228\":[\
+                            0.30000001192092898,\
+                            0.30000001192092898,\
+                            0.4000000059604645\
+                        ],\
+                        \"1520126406\":[\
+                            0.5,\
+                            0.20000000298023225,\
+                            0.30000001192092898\
+                        ]\
+                    }\
+                },\
+                \"errors\":[]\
+            }"
+        );
+    }
+}
