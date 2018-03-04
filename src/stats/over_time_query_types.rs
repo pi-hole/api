@@ -52,7 +52,7 @@ pub fn over_time_query_types(ftl: State<FtlConnectionType>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint, write_eom};
+    use testing::{test_endpoint_ftl, write_eom};
 
     #[test]
     fn test_over_time_query_types() {
@@ -65,7 +65,7 @@ mod test {
         encode::write_f32(&mut data, 0.4).unwrap();
         write_eom(&mut data);
 
-        test_endpoint(
+        test_endpoint_ftl(
             "/admin/api/stats/overTime/query_types",
             "QueryTypesoverTime",
             data,

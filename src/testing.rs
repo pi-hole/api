@@ -8,12 +8,13 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
+use config::PiholeFile;
 use setup;
 use std::collections::HashMap;
 use serde_json;
 
-/// Test an API endpoint by inputting test data and checking the response
-pub fn test_endpoint(
+/// Test an endpoint with mocked FTL data
+pub fn test_endpoint_ftl(
     endpoint: &str,
     ftl_command: &str,
     ftl_data: Vec<u8>,
@@ -23,8 +24,32 @@ pub fn test_endpoint(
     let mut data = HashMap::new();
     data.insert(ftl_command.to_owned(), ftl_data);
 
+    test_endpoint(endpoint, data, HashMap::default(), expected)
+}
+
+/// Test an endpoint with a mocked file
+pub fn test_endpoint_config(
+    endpoint: &str,
+    file: PiholeFile,
+    file_data: Vec<u8>,
+    expected: serde_json::Value
+) {
+    // Add the test data
+    let mut data = HashMap::new();
+    data.insert(file, file_data);
+
+    test_endpoint(endpoint, HashMap::default(), data, expected)
+}
+
+/// Test an endpoint by inputting test data and checking the response
+pub fn test_endpoint(
+    endpoint: &str,
+    ftl_data: HashMap<String, Vec<u8>>,
+    config_data: HashMap<PiholeFile, Vec<u8>>,
+    expected: serde_json::Value
+) {
     // Start the test client
-    let client = setup::test(data);
+    let client = setup::test(ftl_data, config_data);
 
     // Get the response
     let mut response = client.get(endpoint).dispatch();

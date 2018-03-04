@@ -8,7 +8,7 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use config::Config;
+use config::{Config, PiholeFile};
 use dns;
 use ftl;
 use rocket;
@@ -35,7 +35,10 @@ pub fn start() {
 }
 
 /// Setup the API with the testing data and return a Client to test with
-pub fn test(test_data: HashMap<String, Vec<u8>>) -> Client {
+pub fn test(
+    ftl_test_data: HashMap<String, Vec<u8>>,
+    config_test_data: HashMap<PiholeFile, Vec<u8>>
+) -> Client {
     Client::new(setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Development)
@@ -43,8 +46,8 @@ pub fn test(test_data: HashMap<String, Vec<u8>>) -> Client {
                 .unwrap(),
             false,
         ),
-        ftl::FtlConnectionType::Test(test_data),
-        Config::Test
+        ftl::FtlConnectionType::Test(ftl_test_data),
+        Config::Test(config_test_data)
     )).unwrap()
 }
 

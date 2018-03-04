@@ -42,3 +42,24 @@ pub fn status(config: State<Config>) -> util::Reply {
         "status": status
     }))
 }
+
+#[cfg(test)]
+mod test {
+    use config::PiholeFile;
+    use testing::test_endpoint_config;
+
+    #[test]
+    fn test_status_enabled() {
+        test_endpoint_config(
+            "/admin/api/dns/status",
+            PiholeFile::DnsmasqMainConfig,
+            "addn-hosts=/etc/pihole/gravity.list".into(),
+            json!({
+                "data": {
+                    "status": "enabled"
+                },
+                "errors": []
+            })
+        );
+    }
+}

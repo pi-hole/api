@@ -131,7 +131,7 @@ fn get_top_domains(ftl: &FtlConnectionType, blocked: bool, params: TopParams) ->
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint, write_eom};
+    use testing::{test_endpoint_ftl, write_eom};
 
     #[test]
     fn test_top_domains() {
@@ -143,7 +143,7 @@ mod test {
         encode::write_i32(&mut data, 3).unwrap();
         write_eom(&mut data);
 
-        test_endpoint(
+        test_endpoint_ftl(
             "/admin/api/stats/top_domains",
             "top-domains (10)",
             data,
@@ -168,7 +168,7 @@ mod test {
         encode::write_i32(&mut data, 7).unwrap();
         write_eom(&mut data);
 
-        test_endpoint(
+        test_endpoint_ftl(
             "/admin/api/stats/top_domains?limit=1",
             "top-domains (1)",
             data,

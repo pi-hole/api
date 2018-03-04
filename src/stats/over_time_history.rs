@@ -29,7 +29,7 @@ pub fn over_time_history(ftl: State<FtlConnectionType>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint, write_eom};
+    use testing::{test_endpoint_ftl, write_eom};
 
     #[test]
     fn test_over_time_history() {
@@ -46,7 +46,7 @@ mod test {
         encode::write_i32(&mut data, 5).unwrap();
         write_eom(&mut data);
 
-        test_endpoint(
+        test_endpoint_ftl(
             "/admin/api/stats/overTime/history",
             "overTime",
             data,

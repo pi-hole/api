@@ -84,7 +84,7 @@ pub fn over_time_forward_destinations(ftl: State<FtlConnectionType>) -> util::Re
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint, write_eom};
+    use testing::{test_endpoint_ftl, write_eom};
 
     #[test]
     fn test_over_time_forward_destinations() {
@@ -106,7 +106,7 @@ mod test {
         encode::write_f32(&mut data, 0.3).unwrap();
         write_eom(&mut data);
 
-        test_endpoint(
+        test_endpoint_ftl(
             "/admin/api/stats/overTime/forward_destinations",
             "ForwardedoverTime",
             data,
