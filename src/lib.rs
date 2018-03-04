@@ -29,6 +29,7 @@ mod stats;
 mod dns;
 mod web;
 mod setup;
+mod config;
 
 #[cfg(test)]
 mod testing;
