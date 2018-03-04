@@ -75,3 +75,54 @@ fn get_history(ftl: &FtlConnectionType, command: &str) -> util::Reply {
 
     util::reply_data(history)
 }
+
+#[cfg(test)]
+mod test {
+    use rmp::encode;
+    use testing::{test_endpoint, write_eom};
+
+    #[test]
+    fn test_history() {
+        let mut data = Vec::new();
+        encode::write_i32(&mut data, 1520126228).unwrap();
+        encode::write_str(&mut data, "IPv4").unwrap();
+        encode::write_str(&mut data, "example.com").unwrap();
+        encode::write_str(&mut data, "client1").unwrap();
+        encode::write_u8(&mut data, 2).unwrap();
+        encode::write_u8(&mut data, 1).unwrap();
+        encode::write_i32(&mut data, 1520126406).unwrap();
+        encode::write_str(&mut data, "IPv6").unwrap();
+        encode::write_str(&mut data, "doubleclick.com").unwrap();
+        encode::write_str(&mut data, "client2").unwrap();
+        encode::write_u8(&mut data, 1).unwrap();
+        encode::write_u8(&mut data, 1).unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/history",
+            "getallqueries",
+            data,
+            "{\
+                \"data\":[\
+                    [\
+                        1520126228,\
+                        \"IPv4\",\
+                        \"example.com\",\
+                        \"client1\",\
+                        2,\
+                        1\
+                    ],\
+                    [\
+                        1520126406,\
+                        \"IPv6\",\
+                        \"doubleclick.com\",\
+                        \"client2\",\
+                        1,\
+                        1\
+                    ]\
+                ],\
+                \"errors\":[]\
+            }"
+        );
+    }
+}
