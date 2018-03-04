@@ -60,3 +60,36 @@ pub fn over_time_clients(ftl: State<FtlConnectionType>) -> util::Reply {
 
     util::reply_data(over_time)
 }
+
+#[cfg(test)]
+mod test {
+    use rmp::encode;
+    use testing::{test_endpoint, write_eom};
+
+    #[test]
+    fn test_over_time_clients() {
+        let mut data = Vec::new();
+        encode::write_i32(&mut data, 1520126228).unwrap();
+        encode::write_i32(&mut data, 7).unwrap();
+        encode::write_i32(&mut data, 3).unwrap();
+        encode::write_i32(&mut data, -1).unwrap();
+        encode::write_i32(&mut data, 1520126406).unwrap();
+        encode::write_i32(&mut data, 6).unwrap();
+        encode::write_i32(&mut data, 4).unwrap();
+        encode::write_i32(&mut data, -1).unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/overTime/clients",
+            "ClientsoverTime",
+            data,
+            "{\
+                \"data\":{\
+                    \"1520126228\":[7,3],\
+                    \"1520126406\":[6,4]\
+                },\
+                \"errors\":[]\
+            }"
+        );
+    }
+}
