@@ -57,3 +57,38 @@ pub fn forward_destinations(ftl: State<FtlConnectionType>) -> util::Reply {
 
     util::reply_data(forward_destinations)
 }
+
+#[cfg(test)]
+mod test {
+    use rmp::encode;
+    use testing::{test_endpoint, write_eom};
+
+    #[test]
+    fn test_forward_destinations() {
+        let mut data = Vec::new();
+        encode::write_str(&mut data, "google-dns-alt").unwrap();
+        encode::write_str(&mut data, "8.8.4.4").unwrap();
+        encode::write_f32(&mut data, 0.4).unwrap();
+        encode::write_str(&mut data, "google-dns").unwrap();
+        encode::write_str(&mut data, "8.8.8.8").unwrap();
+        encode::write_f32(&mut data, 0.3).unwrap();
+        encode::write_str(&mut data, "local").unwrap();
+        encode::write_str(&mut data, "local").unwrap();
+        encode::write_f32(&mut data, 0.3).unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/forward_destinations",
+            "forward-dest",
+            data,
+            "{\
+                \"data\":{\
+                    \"google-dns-alt|8.8.4.4\":0.4000000059604645,\
+                    \"google-dns|8.8.8.8\":0.30000001192092898,\
+                    \"local|local\":0.30000001192092898\
+                },\
+                \"errors\":[]\
+            }",
+        );
+    }
+}
