@@ -147,16 +147,16 @@ mod test {
             "/admin/api/stats/top_domains",
             "top-domains (10)",
             data,
-            "{\
-                \"data\":{\
-                    \"top_domains\":{\
-                        \"example.com\":7,\
-                        \"example.net\":3\
-                    },\
-                    \"total_queries\":10\
-                },\
-                \"errors\":[]\
-            }",
+            json!({
+                "data": {
+                    "top_domains": {
+                        "example.com": 7,
+                        "example.net": 3
+                    },
+                    "total_queries": 10
+                },
+                "errors": []
+            })
         );
     }
 
@@ -172,15 +172,15 @@ mod test {
             "/admin/api/stats/top_domains?limit=1",
             "top-domains (1)",
             data,
-            "{\
-            \"data\":{\
-                \"top_domains\":{\
-                    \"example.com\":7\
-                },\
-                \"total_queries\":10\
-            },\
-            \"errors\":[]\
-        }",
+            json!({
+                "data": {
+                    "top_domains": {
+                        "example.com": 7
+                    },
+                    "total_queries": 10
+                },
+                "errors": []
+            })
         );
     }
 }

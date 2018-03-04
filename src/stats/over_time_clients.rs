@@ -83,13 +83,13 @@ mod test {
             "/admin/api/stats/overTime/clients",
             "ClientsoverTime",
             data,
-            "{\
-                \"data\":{\
-                    \"1520126228\":[7,3],\
-                    \"1520126406\":[6,4]\
-                },\
-                \"errors\":[]\
-            }"
+            json!({
+                "data": {
+                    "1520126228": [7, 3],
+                    "1520126406": [6, 4]
+                },
+                "errors": []
+            })
         );
     }
 }

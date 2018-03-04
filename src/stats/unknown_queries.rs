@@ -95,29 +95,29 @@ mod test {
             "/admin/api/stats/unknown_queries",
             "unknown",
             data,
-            "{\
-                \"data\":[\
-                    [\
-                        1520126228,\
-                        0,\
-                        \"IPv4\",\
-                        \"example.com\",\
-                        \"client1\",\
-                        2,\
-                        false\
-                    ],\
-                    [\
-                        1520126406,\
-                        1,\
-                        \"IPv6\",\
-                        \"doubleclick.com\",\
-                        \"client2\",\
-                        1,\
-                        true\
-                    ]\
-                ],\
-                \"errors\":[]\
-            }"
+            json!({
+                "data": [
+                    [
+                        1520126228,
+                        0,
+                        "IPv4",
+                        "example.com",
+                        "client1",
+                        2,
+                        false
+                    ],
+                    [
+                        1520126406,
+                        1,
+                        "IPv6",
+                        "doubleclick.com",
+                        "client2",
+                        1,
+                        true
+                    ]
+                ],
+                "errors": []
+            })
         );
     }
 }

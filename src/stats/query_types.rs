@@ -43,13 +43,13 @@ mod test {
             "/admin/api/stats/query_types",
             "querytypes",
             data,
-            "{\
-                \"data\":{\
-                    \"A\":0.699999988079071,\
-                    \"AAAA\":0.30000001192092898\
-                },\
-                \"errors\":[]\
-            }"
+            json!({
+                "data": {
+                    "A": 0.699999988079071,
+                    "AAAA": 0.30000001192092898
+                },
+                "errors": []
+            })
         );
     }
 }

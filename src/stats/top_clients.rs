@@ -129,17 +129,17 @@ mod test {
             "/admin/api/stats/top_clients",
             "top-clients (10)",
             data,
-            "{\
-                \"data\":{\
-                    \"top_clients\":{\
-                        \"10.1.1.2\":20,\
-                        \"client1|10.1.1.1\":30,\
-                        \"client3|10.1.1.3\":10\
-                    },\
-                    \"total_queries\":100\
-                },\
-                \"errors\":[]\
-            }"
+            json!({
+                "data": {
+                    "top_clients": {
+                        "10.1.1.2": 20,
+                        "client1|10.1.1.1": 30,
+                        "client3|10.1.1.3": 10
+                    },
+                    "total_queries": 100
+                },
+                "errors": []
+            })
         );
     }
 
@@ -159,16 +159,16 @@ mod test {
             "/admin/api/stats/top_clients?limit=2",
             "top-clients (2)",
             data,
-            "{\
-                \"data\":{\
-                    \"top_clients\":{\
-                        \"10.1.1.2\":20,\
-                        \"client1|10.1.1.1\":30\
-                    },\
-                    \"total_queries\":100\
-                },\
-                \"errors\":[]\
-            }"
+            json!({
+                "data": {
+                    "top_clients": {
+                        "10.1.1.2": 20,
+                        "client1|10.1.1.1": 30
+                    },
+                    "total_queries": 100
+                },
+                "errors": []
+            })
         );
     }
 }

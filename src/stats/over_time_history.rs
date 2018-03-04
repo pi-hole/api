@@ -50,19 +50,19 @@ mod test {
             "/admin/api/stats/overTime/history",
             "overTime",
             data,
-            "{\
-                \"data\":{\
-                    \"blocked_over_time\":{\
-                        \"1520126228\":5,\
-                        \"1520126406\":5\
-                    },\
-                    \"domains_over_time\":{\
-                        \"1520126228\":10,\
-                        \"1520126406\":20\
-                    }\
-                },\
-                \"errors\":[]\
-            }"
+            json!({
+                "data": {
+                    "blocked_over_time": {
+                        "1520126228": 5,
+                        "1520126406": 5
+                    },
+                    "domains_over_time": {
+                        "1520126228": 10,
+                        "1520126406": 20
+                    }
+                },
+                "errors": []
+            })
         );
     }
 }

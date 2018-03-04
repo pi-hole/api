@@ -81,14 +81,14 @@ mod test {
             "/admin/api/stats/forward_destinations",
             "forward-dest",
             data,
-            "{\
-                \"data\":{\
-                    \"google-dns-alt|8.8.4.4\":0.4000000059604645,\
-                    \"google-dns|8.8.8.8\":0.30000001192092898,\
-                    \"local|local\":0.30000001192092898\
-                },\
-                \"errors\":[]\
-            }",
+            json!({
+                "data": {
+                    "google-dns-alt|8.8.4.4": 0.4000000059604645,
+                    "google-dns|8.8.8.8": 0.30000001192092898,
+                    "local|local": 0.30000001192092898
+                },
+                "errors": []
+            }),
         );
     }
 }

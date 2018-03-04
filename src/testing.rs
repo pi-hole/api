@@ -10,9 +10,15 @@
 
 use setup;
 use std::collections::HashMap;
+use serde_json;
 
 /// Test an API endpoint by inputting test data and checking the response
-pub fn test_endpoint(endpoint: &str, ftl_command: &str, ftl_data: Vec<u8>, expected: &str) {
+pub fn test_endpoint(
+    endpoint: &str,
+    ftl_command: &str,
+    ftl_data: Vec<u8>,
+    expected: serde_json::Value
+) {
     // Add the test data
     let mut data = HashMap::new();
     data.insert(ftl_command.to_owned(), ftl_data);
@@ -24,9 +30,14 @@ pub fn test_endpoint(endpoint: &str, ftl_command: &str, ftl_data: Vec<u8>, expec
     let mut response = client.get(endpoint).dispatch();
     let body = response.body_string();
 
-    // Check against expected output
+    // Check that something was returned
     assert!(body.is_some());
-    assert_eq!(expected, body.unwrap());
+
+    // Check that it is correct JSON
+    let parsed: serde_json::Value = serde_json::from_str(&body.unwrap()).unwrap();
+
+    // Check that is is the same as the expected JSON
+    assert_eq!(expected, parsed);
 }
 
 /// Add the end of message byte to the data

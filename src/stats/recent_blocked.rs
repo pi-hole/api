@@ -87,12 +87,12 @@ mod test {
             "/admin/api/stats/recent_blocked",
             "recentBlocked (1)",
             data,
-            "{\
-                \"data\":[\
-                    \"example.com\"\
-                ],\
-                \"errors\":[]\
-            }"
+            json!({
+                "data": [
+                    "example.com"
+                ],
+                "errors": []
+            })
         );
     }
 
@@ -109,15 +109,15 @@ mod test {
             "/admin/api/stats/recent_blocked?num=4",
             "recentBlocked (4)",
             data,
-            "{\
-                \"data\":[\
-                    \"example.com\",\
-                    \"doubleclick.com\",\
-                    \"google.com\",\
-                    \"ads.net\"\
-                ],\
-                \"errors\":[]\
-            }"
+            json!({
+                "data": [
+                    "example.com",
+                    "doubleclick.com",
+                    "google.com",
+                    "ads.net"
+                ],
+                "errors": []
+            })
         );
     }
 }

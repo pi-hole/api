@@ -102,27 +102,27 @@ mod test {
             "/admin/api/stats/history",
             "getallqueries",
             data,
-            "{\
-                \"data\":[\
-                    [\
-                        1520126228,\
-                        \"IPv4\",\
-                        \"example.com\",\
-                        \"client1\",\
-                        2,\
-                        1\
-                    ],\
-                    [\
-                        1520126406,\
-                        \"IPv6\",\
-                        \"doubleclick.com\",\
-                        \"client2\",\
-                        1,\
-                        1\
-                    ]\
-                ],\
-                \"errors\":[]\
-            }"
+            json!({
+                "data": [
+                    [
+                        1520126228,
+                        "IPv4",
+                        "example.com",
+                        "client1",
+                        2,
+                        1
+                    ],
+                    [
+                        1520126406,
+                        "IPv6",
+                        "doubleclick.com",
+                        "client2",
+                        1,
+                        1
+                    ]
+                ],
+                "errors": []
+            })
         );
     }
 }
