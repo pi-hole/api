@@ -26,3 +26,30 @@ pub fn query_types(ftl: State<FtlConnectionType>) -> util::Reply {
         "AAAA": ipv6
     }))
 }
+
+#[cfg(test)]
+mod test {
+    use rmp::encode;
+    use testing::{test_endpoint, write_eom};
+
+    #[test]
+    fn test_query_types() {
+        let mut data = Vec::new();
+        encode::write_f32(&mut data, 0.7).unwrap();
+        encode::write_f32(&mut data, 0.3).unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/query_types",
+            "querytypes",
+            data,
+            "{\
+                \"data\":{\
+                    \"A\":0.699999988079071,\
+                    \"AAAA\":0.30000001192092898\
+                },\
+                \"errors\":[]\
+            }"
+        );
+    }
+}
