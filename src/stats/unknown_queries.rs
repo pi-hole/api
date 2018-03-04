@@ -66,3 +66,58 @@ pub fn unknown_queries(ftl: State<FtlConnectionType>) -> util::Reply {
 
     util::reply_data(queries)
 }
+
+#[cfg(test)]
+mod test {
+    use rmp::encode;
+    use testing::{test_endpoint, write_eom};
+
+    #[test]
+    fn test_unknown_queries() {
+        let mut data = Vec::new();
+        encode::write_i32(&mut data, 1520126228).unwrap();
+        encode::write_i32(&mut data, 0).unwrap();
+        encode::write_str(&mut data, "IPv4").unwrap();
+        encode::write_str(&mut data, "example.com").unwrap();
+        encode::write_str(&mut data, "client1").unwrap();
+        encode::write_u8(&mut data, 2).unwrap();
+        encode::write_bool(&mut data, false).unwrap();
+        encode::write_i32(&mut data, 1520126406).unwrap();
+        encode::write_i32(&mut data, 1).unwrap();
+        encode::write_str(&mut data, "IPv6").unwrap();
+        encode::write_str(&mut data, "doubleclick.com").unwrap();
+        encode::write_str(&mut data, "client2").unwrap();
+        encode::write_u8(&mut data, 1).unwrap();
+        encode::write_bool(&mut data, true).unwrap();
+        write_eom(&mut data);
+
+        test_endpoint(
+            "/admin/api/stats/unknown_queries",
+            "unknown",
+            data,
+            "{\
+                \"data\":[\
+                    [\
+                        1520126228,\
+                        0,\
+                        \"IPv4\",\
+                        \"example.com\",\
+                        \"client1\",\
+                        2,\
+                        false\
+                    ],\
+                    [\
+                        1520126406,\
+                        1,\
+                        \"IPv6\",\
+                        \"doubleclick.com\",\
+                        \"client2\",\
+                        1,\
+                        true\
+                    ]\
+                ],\
+                \"errors\":[]\
+            }"
+        );
+    }
+}
