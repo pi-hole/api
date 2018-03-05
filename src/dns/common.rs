@@ -8,10 +8,10 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
+use config::{Config, PiholeFile};
 use dns::list::List;
 use regex::Regex;
-use std::fs::File;
-use std::io::{self, BufReader};
+use std::io;
 use std::io::prelude::*;
 use std::process::{Command, Stdio};
 use util;
@@ -28,10 +28,9 @@ pub fn is_valid_domain(domain: &str) -> bool {
 }
 
 /// Read in a value from setupVars.conf
-pub fn read_setup_vars(entry: &str) -> io::Result<Option<String>> {
+pub fn read_setup_vars(entry: &str, config: &Config) -> io::Result<Option<String>> {
     // Open setupVars.conf
-    let file = File::open("/etc/pihole/setupVars.conf")?;
-    let reader = BufReader::new(file);
+    let reader = config.read_file(PiholeFile::SetupVars)?;
 
     // Check every line for the key (filter out lines which could not be read)
     for line in reader.lines().filter_map(|item| item.ok()) {

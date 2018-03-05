@@ -57,8 +57,8 @@ pub fn get_list(list: List, config: &Config) -> util::Reply {
     if is_wildcard {
         // Check if both IPv4 and IPv6 are used.
         // If so, skip every other line if we're getting wildcard domains.
-        let ipv4 = read_setup_vars("IPV4_ADDRESS")?;
-        let ipv6 = read_setup_vars("IPV6_ADDRESS")?;
+        let ipv4 = read_setup_vars("IPV4_ADDRESS", config)?;
+        let ipv6 = read_setup_vars("IPV6_ADDRESS", config)?;
 
         skip_lines = ipv4.is_some() && ipv6.is_some();
     }

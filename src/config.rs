@@ -11,7 +11,8 @@ pub enum PiholeFile {
     DnsmasqMainConfig,
     Whitelist,
     Blacklist,
-    Wildlist
+    Wildlist,
+    SetupVars
 }
 
 impl PiholeFile {
@@ -20,7 +21,8 @@ impl PiholeFile {
             PiholeFile::DnsmasqMainConfig => "/etc/dnsmasq.d/01-pihole.conf",
             PiholeFile::Whitelist => "/etc/pihole/whitelist.txt",
             PiholeFile::Blacklist => "/etc/pihole/blacklist.txt",
-            PiholeFile::Wildlist => "/etc/dnsmasq.d/03-pihole-wildcard.conf"
+            PiholeFile::Wildlist => "/etc/dnsmasq.d/03-pihole-wildcard.conf",
+            PiholeFile::SetupVars => "/etc/pihole/setupVars.conf"
         }
     }
 }
