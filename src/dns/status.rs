@@ -9,7 +9,7 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use config::{Config, PiholeFile};
-use std::io::{self, Read};
+use std::io::{self, BufRead};
 use rocket::State;
 use util;
 
@@ -31,7 +31,7 @@ pub fn status(config: State<Config>) -> util::Reply {
 }
 
 /// Check a file for the `addn-hosts=/.../gravity.list` line and return the blocking status
-fn check_for_gravity<'a>(mut file: Box<Read + 'a>) -> io::Result<&'a str> {
+fn check_for_gravity<'a>(mut file: Box<BufRead + 'a>) -> io::Result<&'a str> {
     // Read the file to a buffer
     let mut buffer = String::new();
     file.read_to_string(&mut buffer)?;
