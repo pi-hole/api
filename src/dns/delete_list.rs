@@ -18,7 +18,7 @@ use util;
 #[delete("/dns/whitelist/<domain>")]
 pub fn delete_whitelist(config: State<Config>, domain: String) -> util::Reply {
     remove_list(List::Whitelist, &domain, &config)?;
-    reload_gravity(List::Whitelist)?;
+    reload_gravity(List::Whitelist, &config)?;
 
     // At this point, since we haven't hit an error yet, reload gravity and return success
     util::reply_success()
@@ -28,7 +28,7 @@ pub fn delete_whitelist(config: State<Config>, domain: String) -> util::Reply {
 #[delete("/dns/blacklist/<domain>")]
 pub fn delete_blacklist(config: State<Config>, domain: String) -> util::Reply {
     remove_list(List::Blacklist, &domain, &config)?;
-    reload_gravity(List::Blacklist)?;
+    reload_gravity(List::Blacklist, &config)?;
 
     // At this point, since we haven't hit an error yet, reload gravity and return success
     util::reply_success()
@@ -38,7 +38,7 @@ pub fn delete_blacklist(config: State<Config>, domain: String) -> util::Reply {
 #[delete("/dns/wildlist/<domain>")]
 pub fn delete_wildlist(config: State<Config>, domain: String) -> util::Reply {
     remove_list(List::Wildlist, &domain, &config)?;
-    reload_gravity(List::Wildlist)?;
+    reload_gravity(List::Wildlist, &config)?;
 
     // At this point, since we haven't hit an error yet, reload gravity and return success
     util::reply_success()

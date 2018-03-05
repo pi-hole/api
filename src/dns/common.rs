@@ -57,7 +57,12 @@ pub fn read_setup_vars(entry: &str, config: &Config) -> io::Result<Option<String
 }
 
 /// Reload Gravity to activate changes in lists
-pub fn reload_gravity(list: List) -> Result<(), util::Error> {
+pub fn reload_gravity(list: List, config: &Config) -> Result<(), util::Error> {
+    // Don't actually reload Gravity during testing
+    if let Config::Test(_) = *config {
+        return Ok(());
+    }
+
     let status = Command::new("sudo")
         .arg("pihole")
         .arg("-g")

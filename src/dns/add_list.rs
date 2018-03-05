@@ -32,7 +32,7 @@ pub fn add_whitelist(config: State<Config>, domain_input: Json<DomainInput>) -> 
     try_remove_list(List::Wildlist, domain, &config)?;
 
     // At this point, since we haven't hit an error yet, reload gravity and return success
-    reload_gravity(List::Whitelist)?;
+    reload_gravity(List::Whitelist, &config)?;
     util::reply_success()
 }
 
@@ -47,7 +47,7 @@ pub fn add_blacklist(config: State<Config>, domain_input: Json<DomainInput>) -> 
     try_remove_list(List::Wildlist, domain, &config)?;
 
     // At this point, since we haven't hit an error yet, reload gravity and return success
-    reload_gravity(List::Blacklist)?;
+    reload_gravity(List::Blacklist, &config)?;
     util::reply_success()
 }
 
@@ -60,6 +60,6 @@ pub fn add_wildlist(config: State<Config>, domain_input: Json<DomainInput>) -> u
     add_list(List::Wildlist, domain, &config)?;
 
     // At this point, since we haven't hit an error yet, reload gravity and return success
-    reload_gravity(List::Wildlist)?;
+    reload_gravity(List::Wildlist, &config)?;
     util::reply_success()
 }
