@@ -12,6 +12,7 @@ use config::PiholeFile;
 use setup;
 use std::collections::HashMap;
 use serde_json;
+use rocket::http::Method;
 
 /// Test an endpoint with mocked FTL data
 pub fn test_endpoint_ftl(
@@ -24,7 +25,7 @@ pub fn test_endpoint_ftl(
     let mut data = HashMap::new();
     data.insert(ftl_command.to_owned(), ftl_data);
 
-    test_endpoint(endpoint, data, HashMap::default(), expected)
+    test_endpoint(Method::Get, endpoint, data, HashMap::default(), expected)
 }
 
 /// Test an endpoint with a mocked file
@@ -38,11 +39,12 @@ pub fn test_endpoint_config(
     let mut data = HashMap::new();
     data.insert(file, file_data);
 
-    test_endpoint(endpoint, HashMap::default(), data, expected)
+    test_endpoint(Method::Get, endpoint, HashMap::default(), data, expected)
 }
 
 /// Test an endpoint by inputting test data and checking the response
 pub fn test_endpoint(
+    method: Method,
     endpoint: &str,
     ftl_data: HashMap<String, Vec<u8>>,
     config_data: HashMap<PiholeFile, Vec<u8>>,
@@ -52,7 +54,7 @@ pub fn test_endpoint(
     let client = setup::test(ftl_data, config_data);
 
     // Get the response
-    let mut response = client.get(endpoint).dispatch();
+    let mut response = client.req(method, endpoint).dispatch();
     let body = response.body_string();
 
     // Check that something was returned
