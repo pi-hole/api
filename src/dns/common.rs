@@ -11,7 +11,7 @@
 use config::{Config, PiholeFile};
 use dns::list::List;
 use regex::Regex;
-use std::io;
+use std::io::{self, BufReader};
 use std::io::prelude::*;
 use std::process::{Command, Stdio};
 use util;
@@ -30,7 +30,7 @@ pub fn is_valid_domain(domain: &str) -> bool {
 /// Read in a value from setupVars.conf
 pub fn read_setup_vars(entry: &str, config: &Config) -> io::Result<Option<String>> {
     // Open setupVars.conf
-    let reader = config.read_file(PiholeFile::SetupVars)?;
+    let reader = BufReader::new(config.read_file(PiholeFile::SetupVars)?);
 
     // Check every line for the key (filter out lines which could not be read)
     for line in reader.lines().filter_map(|item| item.ok()) {
@@ -59,7 +59,7 @@ pub fn read_setup_vars(entry: &str, config: &Config) -> io::Result<Option<String
 /// Reload Gravity to activate changes in lists
 pub fn reload_gravity(list: List, config: &Config) -> Result<(), util::Error> {
     // Don't actually reload Gravity during testing
-    if let Config::Test(_) = *config {
+    if config.is_test() {
         return Ok(());
     }
 

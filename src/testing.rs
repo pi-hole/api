@@ -9,10 +9,11 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use config::PiholeFile;
+use rocket::http::Method;
+use serde_json;
 use setup;
 use std::collections::HashMap;
-use serde_json;
-use rocket::http::Method;
+use std::fs::File;
 
 /// Test an endpoint with mocked FTL data
 pub fn test_endpoint_ftl(
@@ -25,21 +26,21 @@ pub fn test_endpoint_ftl(
     let mut data = HashMap::new();
     data.insert(ftl_command.to_owned(), ftl_data);
 
-    test_endpoint(Method::Get, endpoint, data, HashMap::default(), expected)
+    test_endpoint(Method::Get, endpoint, data, HashMap::new(), expected)
 }
 
 /// Test an endpoint with a mocked file
 pub fn test_endpoint_config(
     endpoint: &str,
-    file: PiholeFile,
-    file_data: Vec<u8>,
+    pihole_file: PiholeFile,
+    file: File,
     expected: serde_json::Value
 ) {
     // Add the test data
     let mut data = HashMap::new();
-    data.insert(file, file_data);
+    data.insert(pihole_file, file);
 
-    test_endpoint(Method::Get, endpoint, HashMap::default(), data, expected)
+    test_endpoint(Method::Get, endpoint, HashMap::new(), data, expected)
 }
 
 /// Test an endpoint by inputting test data and checking the response
@@ -47,7 +48,7 @@ pub fn test_endpoint(
     method: Method,
     endpoint: &str,
     ftl_data: HashMap<String, Vec<u8>>,
-    config_data: HashMap<PiholeFile, Vec<u8>>,
+    config_data: HashMap<PiholeFile, File>,
     expected: serde_json::Value
 ) {
     // Start the test client

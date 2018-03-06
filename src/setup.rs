@@ -16,6 +16,7 @@ use rocket::config::{ConfigBuilder, Environment};
 use rocket::local::Client;
 use stats;
 use std::collections::HashMap;
+use std::fs::File;
 use util;
 use web;
 
@@ -37,7 +38,7 @@ pub fn start() {
 /// Setup the API with the testing data and return a Client to test with
 pub fn test(
     ftl_test_data: HashMap<String, Vec<u8>>,
-    config_test_data: HashMap<PiholeFile, Vec<u8>>
+    config_test_data: HashMap<PiholeFile, File>
 ) -> Client {
     Client::new(setup(
         rocket::custom(

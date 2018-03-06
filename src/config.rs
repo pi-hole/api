@@ -1,9 +1,7 @@
-use std::fs::File;
-use std::io::{self, BufReader, Cursor};
-use std::io::prelude::*;
 use std::collections::HashMap;
+use std::fs::{File, OpenOptions};
+use std::io;
 use std::path::Path;
-use std::fs::OpenOptions;
 
 /// Some of the files exposed by the `Config`
 #[derive(Eq, PartialEq, Hash, Copy, Clone)]
@@ -29,7 +27,7 @@ impl PiholeFile {
 
 /// Configuration for the Pi-hole API. Also abstracts away some systems to make testing easier
 pub enum Config {
-    Production, Test(HashMap<PiholeFile, Vec<u8>>)
+    Production, Test(HashMap<PiholeFile, File>)
 }
 
 impl Config {
@@ -40,20 +38,16 @@ impl Config {
     }
 
     /// Open a file for reading
-    pub fn read_file<'a>(&'a self, file: PiholeFile) -> io::Result<Box<BufRead + 'a>> {
+    pub fn read_file(&self, file: PiholeFile) -> io::Result<File> {
         match *self {
             Config::Production => {
-                let mut file = File::open(self.file_location(file))?;
-
-                Ok(Box::new(BufReader::new(file)))
+                File::open(self.file_location(file))
             },
             Config::Test(ref map) => {
-                let test_data = match map.get(&file) {
+                match map.get(&file) {
                     Some(data) => data,
                     None => return Err(io::Error::new(io::ErrorKind::NotFound, "Missing test data"))
-                };
-
-                Ok(Box::new(Cursor::new(test_data)))
+                }.try_clone()
             }
         }
     }
@@ -62,19 +56,16 @@ impl Config {
         &self,
         file: PiholeFile,
         open_options: OpenOptions
-    ) -> io::Result<Box<Write>> {
+    ) -> io::Result<File> {
         match *self {
             Config::Production => {
-                let file = open_options.open(self.file_location(file))?;
-                Ok(Box::new(file))
+                open_options.open(self.file_location(file))
             },
             Config::Test(ref map) => {
-                let test_data = match map.get(&file) {
+                match map.get(&file) {
                     Some(data) => data,
                     None => return Err(io::Error::new(io::ErrorKind::NotFound, "Missing test data"))
-                }.clone();
-
-                Ok(Box::new(Cursor::new(test_data)))
+                }.try_clone()
             }
         }
     }
@@ -88,6 +79,14 @@ impl Config {
             Config::Test(ref map) => {
                 map.contains_key(&file)
             }
+        }
+    }
+
+    /// Check if we're in a testing environment
+    pub fn is_test(&self) -> bool {
+        match *self {
+            Config::Production => false,
+            Config::Test(_) => true
         }
     }
 }

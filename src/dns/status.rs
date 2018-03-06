@@ -9,7 +9,8 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use config::{Config, PiholeFile};
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, BufReader};
+use std::fs::File;
 use rocket::State;
 use util;
 
@@ -31,13 +32,12 @@ pub fn status(config: State<Config>) -> util::Reply {
 }
 
 /// Check a file for the `addn-hosts=/.../gravity.list` line and return the blocking status
-fn check_for_gravity<'a>(mut file: Box<BufRead + 'a>) -> io::Result<&'a str> {
+fn check_for_gravity<'a>(file: File) -> io::Result<&'a str> {
     // Read the file to a buffer
-    let mut buffer = String::new();
-    file.read_to_string(&mut buffer)?;
+    let reader = BufReader::new(file);
 
     // Check for the gravity.list line
-    for line in buffer.lines() {
+    for line in reader.lines().filter_map(|item| item.ok()) {
         if line == "#addn-hosts=/etc/pihole/gravity.list" {
             return Ok("disabled");
         } else if line == "addn-hosts=/etc/pihole/gravity.list" {
@@ -50,15 +50,25 @@ fn check_for_gravity<'a>(mut file: Box<BufRead + 'a>) -> io::Result<&'a str> {
 
 #[cfg(test)]
 mod test {
+    extern crate tempfile;
+
     use config::PiholeFile;
     use testing::test_endpoint_config;
+    use std::io::prelude::*;
+    use std::io::SeekFrom;
 
     #[test]
     fn test_status_enabled() {
+        let mut config = tempfile::tempfile().unwrap();
+
+        writeln!(config, "addn-hosts=/etc/pihole/gravity.list").unwrap();
+
+        config.seek(SeekFrom::Start(0)).unwrap();
+
         test_endpoint_config(
             "/admin/api/dns/status",
             PiholeFile::DnsmasqMainConfig,
-            "addn-hosts=/etc/pihole/gravity.list".into(),
+            config,
             json!({
                 "data": {
                     "status": "enabled"
@@ -70,10 +80,16 @@ mod test {
 
     #[test]
     fn test_status_disabled() {
+        let mut config = tempfile::tempfile().unwrap();
+
+        writeln!(config, "#addn-hosts=/etc/pihole/gravity.list").unwrap();
+
+        config.seek(SeekFrom::Start(0)).unwrap();
+
         test_endpoint_config(
             "/admin/api/dns/status",
             PiholeFile::DnsmasqMainConfig,
-            "#addn-hosts=/etc/pihole/gravity.list".into(),
+            config,
             json!({
                 "data": {
                     "status": "disabled"
@@ -85,10 +101,16 @@ mod test {
 
     #[test]
     fn test_status_unknown() {
+        let mut config = tempfile::tempfile().unwrap();
+
+        writeln!(config, "random data...").unwrap();
+
+        config.seek(SeekFrom::Start(0)).unwrap();
+
         test_endpoint_config(
             "/admin/api/dns/status",
             PiholeFile::DnsmasqMainConfig,
-            "random data...".into(),
+            config,
             json!({
                 "data": {
                     "status": "unknown"

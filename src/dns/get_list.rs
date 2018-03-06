@@ -33,19 +33,29 @@ pub fn get_wildlist(config: State<Config>) -> util::Reply {
 
 #[cfg(test)]
 mod test {
+    extern crate tempfile;
+
     use testing::test_endpoint;
     use config::PiholeFile;
     use std::collections::HashMap;
     use rocket::http::Method;
+    use std::io::prelude::*;
+    use std::io::SeekFrom;
 
     #[test]
     fn test_get_whitelist() {
-        let whitelist = ["example.com", "example.net"].join("\n");
-        let setup_vars = "IPV4_ADDRESS=10.1.1.1";
+        let mut whitelist = tempfile::tempfile().unwrap();
+        let mut setup_vars = tempfile::tempfile().unwrap();
+
+        writeln!(whitelist, "{}", ["example.com", "example.net"].join("\n")).unwrap();
+        writeln!(setup_vars, "IPV4_ADDRESS=10.1.1.1").unwrap();
+
+        whitelist.seek(SeekFrom::Start(0)).unwrap();
+        setup_vars.seek(SeekFrom::Start(0)).unwrap();
 
         let mut data = HashMap::new();
-        data.insert(PiholeFile::Whitelist, whitelist.into_bytes());
-        data.insert(PiholeFile::SetupVars, setup_vars.into());
+        data.insert(PiholeFile::Whitelist, whitelist.try_clone().unwrap());
+        data.insert(PiholeFile::SetupVars, setup_vars.try_clone().unwrap());
 
         test_endpoint(
             Method::Get,
@@ -60,17 +70,24 @@ mod test {
                 "errors": []
             })
         );
-    }
 
+        // todo: verify whitelist and setupvars aren't changed
+    }
 
     #[test]
     fn test_get_blacklist() {
-        let blacklist = ["example.com", "example.net"].join("\n");
-        let setup_vars = "IPV4_ADDRESS=10.1.1.1";
+        let mut blacklist = tempfile::tempfile().unwrap();
+        let mut setup_vars = tempfile::tempfile().unwrap();
+
+        writeln!(blacklist, "{}", ["example.com", "example.net"].join("\n")).unwrap();
+        writeln!(setup_vars, "IPV4_ADDRESS=10.1.1.1").unwrap();
+
+        blacklist.seek(SeekFrom::Start(0)).unwrap();
+        setup_vars.seek(SeekFrom::Start(0)).unwrap();
 
         let mut data = HashMap::new();
-        data.insert(PiholeFile::Blacklist, blacklist.into_bytes());
-        data.insert(PiholeFile::SetupVars, setup_vars.into());
+        data.insert(PiholeFile::Blacklist, blacklist.try_clone().unwrap());
+        data.insert(PiholeFile::SetupVars, setup_vars.try_clone().unwrap());
 
         test_endpoint(
             Method::Get,
@@ -89,15 +106,25 @@ mod test {
 
     #[test]
     fn test_get_wildlist() {
-        let wildlist = [
-            "address=/example.com/10.1.1.1",
-            "address=/example.net/10.1.1.1"
-        ].join("\n");
-        let setup_vars = "IPV4_ADDRESS=10.1.1.1";
+        let mut wildlist = tempfile::tempfile().unwrap();
+        let mut setup_vars = tempfile::tempfile().unwrap();
+
+        writeln!(
+            wildlist,
+            "{}",
+            [
+                "address=/example.com/10.1.1.1",
+                "address=/example.net/10.1.1.1"
+            ].join("\n")
+        ).unwrap();
+        writeln!(setup_vars, "IPV4_ADDRESS=10.1.1.1").unwrap();
+
+        wildlist.seek(SeekFrom::Start(0)).unwrap();
+        setup_vars.seek(SeekFrom::Start(0)).unwrap();
 
         let mut data = HashMap::new();
-        data.insert(PiholeFile::Wildlist, wildlist.into_bytes());
-        data.insert(PiholeFile::SetupVars, setup_vars.into());
+        data.insert(PiholeFile::Wildlist, wildlist.try_clone().unwrap());
+        data.insert(PiholeFile::SetupVars, setup_vars.try_clone().unwrap());
 
         test_endpoint(
             Method::Get,

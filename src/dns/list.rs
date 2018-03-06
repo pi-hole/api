@@ -9,7 +9,7 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use std::io::prelude::*;
-use std::io::{self, BufWriter};
+use std::io::{self, BufReader, BufWriter};
 use std::fs::OpenOptions;
 use std::os::unix::fs::OpenOptionsExt;
 
@@ -37,7 +37,7 @@ impl List {
 
 /// Read in the domains from a list
 pub fn get_list(list: List, config: &Config) -> util::Reply {
-    let reader = match config.read_file(list.get_file()) {
+    let file = match config.read_file(list.get_file()) {
         Ok(f) => f,
         Err(e) => {
             if e.kind() == io::ErrorKind::NotFound {
@@ -49,6 +49,7 @@ pub fn get_list(list: List, config: &Config) -> util::Reply {
             }
         }
     };
+    let reader = BufReader::new(file);
 
     // Used for the wildcard list to skip IPv6 lines
     let mut skip_lines = false;
@@ -111,7 +112,7 @@ pub fn add_list(list: List, domain: &str, config: &Config) -> Result<(), util::E
 
     // Read list domains (if the list exists, otherwise the list is empty)
     if config.file_exists(list_file) {
-        let reader = config.read_file(list_file)?;
+        let reader = BufReader::new(config.read_file(list_file)?);
 
         // Add domains
         domains.extend(reader
@@ -170,7 +171,7 @@ pub fn remove_list(list: List, domain: &str, config: &Config) -> Result<(), util
 
     // Read list domains (if the list exists, otherwise the list is empty)
     if config.file_exists(list_file) {
-        let reader = config.read_file(list_file)?;
+        let reader = BufReader::new(config.read_file(list_file)?);
 
         // Add domains
         domains.extend(reader

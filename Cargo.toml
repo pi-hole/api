@@ -22,5 +22,8 @@ serde_json = "1.0"
 rmp = "0.8"
 regex = "0.2"
 
+[dev-dependencies]
+tempfile = "2.2.0"
+
 [patch.crates-io]
 ring = { git = "https://github.com/SergioBenitez/ring", branch = "v0.11" }
