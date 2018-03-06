@@ -37,14 +37,15 @@ pub fn test_endpoint_ftl(
 pub fn test_endpoint_config(
     endpoint: &str,
     pihole_file: PiholeFile,
-    file: File,
+    file_data: &str,
     expected: serde_json::Value
 ) {
-    // Add the test data
-    let mut data = HashMap::new();
-    data.insert(pihole_file, file);
-
-    test_endpoint(Method::Get, endpoint, HashMap::new(), data, expected)
+    test_endpoint_config_multi(
+        Method::Get,
+        endpoint,
+        vec![(pihole_file, file_data, file_data)],
+        expected
+    );
 }
 
 /// Test an endpoint with multiple mocked files

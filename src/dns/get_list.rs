@@ -33,8 +33,6 @@ pub fn get_wildlist(config: State<Config>) -> util::Reply {
 
 #[cfg(test)]
 mod test {
-    extern crate tempfile;
-
     use config::PiholeFile;
     use rocket::http::Method;
     use serde_json::Value;

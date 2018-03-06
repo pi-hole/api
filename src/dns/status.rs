@@ -50,25 +50,15 @@ fn check_for_gravity<'a>(file: File) -> io::Result<&'a str> {
 
 #[cfg(test)]
 mod test {
-    extern crate tempfile;
-
     use config::PiholeFile;
     use testing::test_endpoint_config;
-    use std::io::prelude::*;
-    use std::io::SeekFrom;
 
     #[test]
     fn test_status_enabled() {
-        let mut config = tempfile::tempfile().unwrap();
-
-        writeln!(config, "addn-hosts=/etc/pihole/gravity.list").unwrap();
-
-        config.seek(SeekFrom::Start(0)).unwrap();
-
         test_endpoint_config(
             "/admin/api/dns/status",
             PiholeFile::DnsmasqMainConfig,
-            config,
+            "addn-hosts=/etc/pihole/gravity.list",
             json!({
                 "data": {
                     "status": "enabled"
@@ -80,16 +70,10 @@ mod test {
 
     #[test]
     fn test_status_disabled() {
-        let mut config = tempfile::tempfile().unwrap();
-
-        writeln!(config, "#addn-hosts=/etc/pihole/gravity.list").unwrap();
-
-        config.seek(SeekFrom::Start(0)).unwrap();
-
         test_endpoint_config(
             "/admin/api/dns/status",
             PiholeFile::DnsmasqMainConfig,
-            config,
+            "#addn-hosts=/etc/pihole/gravity.list",
             json!({
                 "data": {
                     "status": "disabled"
@@ -101,16 +85,10 @@ mod test {
 
     #[test]
     fn test_status_unknown() {
-        let mut config = tempfile::tempfile().unwrap();
-
-        writeln!(config, "random data...").unwrap();
-
-        config.seek(SeekFrom::Start(0)).unwrap();
-
         test_endpoint_config(
             "/admin/api/dns/status",
             PiholeFile::DnsmasqMainConfig,
-            config,
+            "random data...",
             json!({
                 "data": {
                     "status": "unknown"
