@@ -38,10 +38,7 @@ mod test {
     use config::PiholeFile;
     use rocket::http::Method;
     use serde_json::Value;
-    use std::collections::HashMap;
-    use std::io::{self, SeekFrom};
-    use std::io::prelude::*;
-    use testing::test_endpoint;
+    use testing::test_endpoint_config_multi;
 
     // Generic test for get_list functions
     fn test_list(
@@ -49,43 +46,18 @@ mod test {
         initial_content: &str,
         endpoint: &str,
         expected_json: Value
-    ) -> io::Result<()> {
-        let mut list = tempfile::tempfile()?;
-        let mut setup_vars = tempfile::tempfile()?;
-
+    ) {
         let initial_setup_vars = "IPV4_ADDRESS=10.1.1.1";
 
-        write!(list, "{}", initial_content)?;
-        write!(setup_vars, "{}", initial_setup_vars)?;
-
-        list.seek(SeekFrom::Start(0))?;
-        setup_vars.seek(SeekFrom::Start(0))?;
-
-        let mut data = HashMap::new();
-        data.insert(list_file, list.try_clone()?);
-        data.insert(PiholeFile::SetupVars, setup_vars.try_clone()?);
-
-        test_endpoint(
+        test_endpoint_config_multi(
             Method::Get,
             endpoint,
-            HashMap::new(),
-            data,
+            vec![
+                (PiholeFile::SetupVars, initial_setup_vars, initial_setup_vars),
+                (list_file, initial_content, initial_content)
+            ],
             expected_json
         );
-
-        // Verify that the whitelist and setup_vars haven't been changed
-        let mut buffer = String::new();
-        list.seek(SeekFrom::Start(0))?;
-        setup_vars.seek(SeekFrom::Start(0))?;
-
-        list.read_to_string(&mut buffer)?;
-        assert_eq!(initial_content, buffer);
-
-        buffer.clear();
-        setup_vars.read_to_string(&mut buffer)?;
-        assert_eq!(initial_setup_vars, buffer);
-
-        Ok(())
     }
 
     #[test]
@@ -101,7 +73,7 @@ mod test {
                 ],
                 "errors": []
             })
-        ).unwrap();
+        );
     }
 
     #[test]
@@ -117,7 +89,7 @@ mod test {
                 ],
                 "errors": []
             })
-        ).unwrap();
+        );
     }
 
     #[test]
@@ -133,6 +105,6 @@ mod test {
                 ],
                 "errors": []
             })
-        ).unwrap();
+        );
     }
 }
