@@ -9,7 +9,7 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use config::Config;
-use dns::list::{List, get_list};
+use dns::list::{get_list, List};
 use rocket::State;
 use util;
 
@@ -35,33 +35,65 @@ pub fn get_wildlist(config: State<Config>) -> util::Reply {
 mod test {
     extern crate tempfile;
 
-    use testing::test_endpoint;
     use config::PiholeFile;
-    use std::collections::HashMap;
     use rocket::http::Method;
+    use serde_json::Value;
+    use std::collections::HashMap;
+    use std::io::{self, SeekFrom};
     use std::io::prelude::*;
-    use std::io::SeekFrom;
+    use testing::test_endpoint;
 
-    #[test]
-    fn test_get_whitelist() {
-        let mut whitelist = tempfile::tempfile().unwrap();
-        let mut setup_vars = tempfile::tempfile().unwrap();
+    // Generic test for get_list functions
+    fn test_list(
+        list_file: PiholeFile,
+        initial_content: &str,
+        endpoint: &str,
+        expected_json: Value
+    ) -> io::Result<()> {
+        let mut list = tempfile::tempfile()?;
+        let mut setup_vars = tempfile::tempfile()?;
 
-        writeln!(whitelist, "{}", ["example.com", "example.net"].join("\n")).unwrap();
-        writeln!(setup_vars, "IPV4_ADDRESS=10.1.1.1").unwrap();
+        let initial_setup_vars = "IPV4_ADDRESS=10.1.1.1";
 
-        whitelist.seek(SeekFrom::Start(0)).unwrap();
-        setup_vars.seek(SeekFrom::Start(0)).unwrap();
+        write!(list, "{}", initial_content)?;
+        write!(setup_vars, "{}", initial_setup_vars)?;
+
+        list.seek(SeekFrom::Start(0))?;
+        setup_vars.seek(SeekFrom::Start(0))?;
 
         let mut data = HashMap::new();
-        data.insert(PiholeFile::Whitelist, whitelist.try_clone().unwrap());
-        data.insert(PiholeFile::SetupVars, setup_vars.try_clone().unwrap());
+        data.insert(list_file, list.try_clone()?);
+        data.insert(PiholeFile::SetupVars, setup_vars.try_clone()?);
 
         test_endpoint(
             Method::Get,
-            "/admin/api/dns/whitelist",
-            HashMap::default(),
+            endpoint,
+            HashMap::new(),
             data,
+            expected_json
+        );
+
+        // Verify that the whitelist and setup_vars haven't been changed
+        let mut buffer = String::new();
+        list.seek(SeekFrom::Start(0))?;
+        setup_vars.seek(SeekFrom::Start(0))?;
+
+        list.read_to_string(&mut buffer)?;
+        assert_eq!(initial_content, buffer);
+
+        buffer.clear();
+        setup_vars.read_to_string(&mut buffer)?;
+        assert_eq!(initial_setup_vars, buffer);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_whitelist() {
+        test_list(
+            PiholeFile::Whitelist,
+            "example.com\nexample.net\n",
+            "/admin/api/dns/whitelist",
             json!({
                 "data": [
                     "example.com",
@@ -69,31 +101,15 @@ mod test {
                 ],
                 "errors": []
             })
-        );
-
-        // todo: verify whitelist and setupvars aren't changed
+        ).unwrap();
     }
 
     #[test]
     fn test_get_blacklist() {
-        let mut blacklist = tempfile::tempfile().unwrap();
-        let mut setup_vars = tempfile::tempfile().unwrap();
-
-        writeln!(blacklist, "{}", ["example.com", "example.net"].join("\n")).unwrap();
-        writeln!(setup_vars, "IPV4_ADDRESS=10.1.1.1").unwrap();
-
-        blacklist.seek(SeekFrom::Start(0)).unwrap();
-        setup_vars.seek(SeekFrom::Start(0)).unwrap();
-
-        let mut data = HashMap::new();
-        data.insert(PiholeFile::Blacklist, blacklist.try_clone().unwrap());
-        data.insert(PiholeFile::SetupVars, setup_vars.try_clone().unwrap());
-
-        test_endpoint(
-            Method::Get,
+        test_list(
+            PiholeFile::Blacklist,
+            "example.com\nexample.net\n",
             "/admin/api/dns/blacklist",
-            HashMap::default(),
-            data,
             json!({
                 "data": [
                     "example.com",
@@ -101,36 +117,15 @@ mod test {
                 ],
                 "errors": []
             })
-        );
+        ).unwrap();
     }
 
     #[test]
     fn test_get_wildlist() {
-        let mut wildlist = tempfile::tempfile().unwrap();
-        let mut setup_vars = tempfile::tempfile().unwrap();
-
-        writeln!(
-            wildlist,
-            "{}",
-            [
-                "address=/example.com/10.1.1.1",
-                "address=/example.net/10.1.1.1"
-            ].join("\n")
-        ).unwrap();
-        writeln!(setup_vars, "IPV4_ADDRESS=10.1.1.1").unwrap();
-
-        wildlist.seek(SeekFrom::Start(0)).unwrap();
-        setup_vars.seek(SeekFrom::Start(0)).unwrap();
-
-        let mut data = HashMap::new();
-        data.insert(PiholeFile::Wildlist, wildlist.try_clone().unwrap());
-        data.insert(PiholeFile::SetupVars, setup_vars.try_clone().unwrap());
-
-        test_endpoint(
-            Method::Get,
+        test_list(
+            PiholeFile::Wildlist,
+            "address=/example.com/10.1.1.1\naddress=/example.net/10.1.1.1\n",
             "/admin/api/dns/wildlist",
-            HashMap::default(),
-            data,
             json!({
                 "data": [
                     "example.com",
@@ -138,6 +133,6 @@ mod test {
                 ],
                 "errors": []
             })
-        );
+        ).unwrap();
     }
 }
