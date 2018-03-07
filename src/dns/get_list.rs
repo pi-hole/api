@@ -42,7 +42,7 @@ mod test {
             .endpoint("/admin/api/dns/whitelist")
             .file(PiholeFile::Whitelist, "example.com\nexample.net\n")
             .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": [
                         "example.com",
@@ -60,7 +60,7 @@ mod test {
             .endpoint("/admin/api/dns/blacklist")
             .file(PiholeFile::Blacklist, "example.com\nexample.net\n")
             .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": [
                         "example.com",
@@ -81,7 +81,7 @@ mod test {
                 "address=/example.com/10.1.1.1\naddress=/example.net/10.1.1.1\n"
             )
             .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": [
                         "example.com",

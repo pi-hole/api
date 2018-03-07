@@ -80,7 +80,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/stats/forward_destinations")
             .ftl("forward-dest", data)
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": {
                         "google-dns-alt|8.8.4.4": 0.4000000059604645,

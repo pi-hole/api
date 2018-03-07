@@ -75,7 +75,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/dns/whitelist")
             .method(Method::Post)
-            .file_expected(PiholeFile::Whitelist, "", "example.com\n")
+            .file_expect(PiholeFile::Whitelist, "", "example.com\n")
             .file(PiholeFile::Blacklist, "")
             .file(PiholeFile::Wildlist, "")
             .body(
@@ -83,7 +83,7 @@ mod test {
                     "domain": "example.com"
                 })
             )
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": {
                         "status": "success"
@@ -99,7 +99,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/dns/blacklist")
             .method(Method::Post)
-            .file_expected(PiholeFile::Blacklist, "", "example.com\n")
+            .file_expect(PiholeFile::Blacklist, "", "example.com\n")
             .file(PiholeFile::Whitelist, "")
             .file(PiholeFile::Wildlist, "")
             .body(
@@ -107,7 +107,7 @@ mod test {
                     "domain": "example.com"
                 })
             )
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": {
                         "status": "success"
@@ -123,7 +123,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/dns/wildlist")
             .method(Method::Post)
-            .file_expected(
+            .file_expect(
                 PiholeFile::Wildlist,
                 "",
                 "address=/example.com/10.1.1.1\n")
@@ -135,7 +135,7 @@ mod test {
                     "domain": "example.com"
                 })
             )
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": {
                         "status": "success"

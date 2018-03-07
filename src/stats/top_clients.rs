@@ -128,7 +128,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/stats/top_clients")
             .ftl("top-clients (10)", data)
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": {
                         "top_clients": {
@@ -159,7 +159,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/stats/top_clients?limit=2")
             .ftl("top-clients (2)", data)
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": {
                         "top_clients": {

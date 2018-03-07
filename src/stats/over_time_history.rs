@@ -49,7 +49,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/stats/overTime/history")
             .ftl("overTime", data)
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": {
                         "blocked_over_time": {

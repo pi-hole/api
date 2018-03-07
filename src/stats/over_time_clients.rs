@@ -82,7 +82,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/stats/overTime/clients")
             .ftl("ClientsoverTime", data)
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": {
                         "1520126228": [7, 3],

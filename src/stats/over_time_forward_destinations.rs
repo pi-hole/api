@@ -109,7 +109,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/stats/overTime/forward_destinations")
             .ftl("ForwardedoverTime", data)
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": {
                         "forward_destinations": [

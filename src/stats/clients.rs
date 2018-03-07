@@ -73,7 +73,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/stats/clients")
             .ftl("client-names", data)
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": [
                         [

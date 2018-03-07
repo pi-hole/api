@@ -68,7 +68,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/stats/overTime/query_types")
             .ftl("QueryTypesoverTime", data)
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": {
                         "1520126228": [

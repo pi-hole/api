@@ -42,7 +42,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/stats/query_types")
             .ftl("querytypes", data)
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": {
                         "A": 0.699999988079071,

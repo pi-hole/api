@@ -101,7 +101,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/stats/history")
             .ftl("getallqueries", data)
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": [
                         [

@@ -94,7 +94,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/stats/unknown_queries")
             .ftl("unknown", data)
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": [
                         [

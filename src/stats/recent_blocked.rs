@@ -86,7 +86,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/stats/recent_blocked")
             .ftl("recentBlocked (1)", data)
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": [
                         "example.com"
@@ -109,7 +109,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/stats/recent_blocked?num=4")
             .ftl("recentBlocked (4)", data)
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": [
                         "example.com",

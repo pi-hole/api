@@ -93,10 +93,10 @@ impl TestConfig {
     }
 
     pub fn file(self, pihole_file: PiholeFile, initial_data: &str) -> Self {
-        self.file_expected(pihole_file, initial_data, initial_data)
+        self.file_expect(pihole_file, initial_data, initial_data)
     }
 
-    pub fn file_expected(
+    pub fn file_expect(
         mut self,
         pihole_file: PiholeFile,
         initial_data: &str,
@@ -111,7 +111,7 @@ impl TestConfig {
         self
     }
 
-    pub fn expected_json(mut self, expected_json: serde_json::Value) -> Self {
+    pub fn expect_json(mut self, expected_json: serde_json::Value) -> Self {
         self.expected_json = expected_json;
         self
     }

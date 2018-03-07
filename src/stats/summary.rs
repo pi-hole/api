@@ -67,7 +67,7 @@ mod test {
         TestConfig::new()
             .endpoint("/admin/api/stats/summary")
             .ftl("stats", data)
-            .expected_json(
+            .expect_json(
                 json!({
                     "data": {
                         "domains_blocked": -1,
