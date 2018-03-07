@@ -75,7 +75,7 @@ pub fn get_recent_blocked(ftl: &FtlConnectionType, num: usize) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint_ftl, write_eom};
+    use testing::{TestConfig, write_eom};
 
     #[test]
     fn test_recent_blocked() {
@@ -83,17 +83,18 @@ mod test {
         encode::write_str(&mut data, "example.com").unwrap();
         write_eom(&mut data);
 
-        test_endpoint_ftl(
-            "/admin/api/stats/recent_blocked",
-            "recentBlocked (1)",
-            data,
-            json!({
-                "data": [
-                    "example.com"
-                ],
-                "errors": []
-            })
-        );
+        TestConfig::new()
+            .endpoint("/admin/api/stats/recent_blocked")
+            .ftl("recentBlocked (1)", data)
+            .expected_json(
+                json!({
+                    "data": [
+                        "example.com"
+                    ],
+                    "errors": []
+                })
+            )
+            .test();
     }
 
     #[test]
@@ -105,19 +106,20 @@ mod test {
         encode::write_str(&mut data, "ads.net").unwrap();
         write_eom(&mut data);
 
-        test_endpoint_ftl(
-            "/admin/api/stats/recent_blocked?num=4",
-            "recentBlocked (4)",
-            data,
-            json!({
-                "data": [
-                    "example.com",
-                    "doubleclick.com",
-                    "google.com",
-                    "ads.net"
-                ],
-                "errors": []
-            })
-        );
+        TestConfig::new()
+            .endpoint("/admin/api/stats/recent_blocked?num=4")
+            .ftl("recentBlocked (4)", data)
+            .expected_json(
+                json!({
+                    "data": [
+                        "example.com",
+                        "doubleclick.com",
+                        "google.com",
+                        "ads.net"
+                    ],
+                    "errors": []
+                })
+            )
+            .test();
     }
 }

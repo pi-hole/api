@@ -61,7 +61,7 @@ pub fn forward_destinations(ftl: State<FtlConnectionType>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint_ftl, write_eom};
+    use testing::{TestConfig, write_eom};
 
     #[test]
     fn test_forward_destinations() {
@@ -77,18 +77,19 @@ mod test {
         encode::write_f32(&mut data, 0.3).unwrap();
         write_eom(&mut data);
 
-        test_endpoint_ftl(
-            "/admin/api/stats/forward_destinations",
-            "forward-dest",
-            data,
-            json!({
-                "data": {
-                    "google-dns-alt|8.8.4.4": 0.4000000059604645,
-                    "google-dns|8.8.8.8": 0.30000001192092898,
-                    "local|local": 0.30000001192092898
-                },
-                "errors": []
-            }),
-        );
+        TestConfig::new()
+            .endpoint("/admin/api/stats/forward_destinations")
+            .ftl("forward-dest", data)
+            .expected_json(
+                json!({
+                    "data": {
+                        "google-dns-alt|8.8.4.4": 0.4000000059604645,
+                        "google-dns|8.8.8.8": 0.30000001192092898,
+                        "local|local": 0.30000001192092898
+                    },
+                    "errors": []
+                })
+            )
+            .test();
     }
 }

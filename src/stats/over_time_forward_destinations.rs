@@ -84,7 +84,7 @@ pub fn over_time_forward_destinations(ftl: State<FtlConnectionType>) -> util::Re
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint_ftl, write_eom};
+    use testing::{TestConfig, write_eom};
 
     #[test]
     fn test_over_time_forward_destinations() {
@@ -106,32 +106,33 @@ mod test {
         encode::write_f32(&mut data, 0.3).unwrap();
         write_eom(&mut data);
 
-        test_endpoint_ftl(
-            "/admin/api/stats/overTime/forward_destinations",
-            "ForwardedoverTime",
-            data,
-            json!({
-                "data": {
-                    "forward_destinations": [
-                        "google-dns-alt|8.8.4.4",
-                        "google-dns|8.8.8.8",
-                        "local|local"
-                    ],
-                    "over_time": {
-                        "1520126228": [
-                            0.30000001192092898,
-                            0.30000001192092898,
-                            0.4000000059604645
+        TestConfig::new()
+            .endpoint("/admin/api/stats/overTime/forward_destinations")
+            .ftl("ForwardedoverTime", data)
+            .expected_json(
+                json!({
+                    "data": {
+                        "forward_destinations": [
+                            "google-dns-alt|8.8.4.4",
+                            "google-dns|8.8.8.8",
+                            "local|local"
                         ],
-                        "1520126406": [
-                            0.5,
-                            0.20000000298023225,
-                            0.30000001192092898
-                        ]
-                    }
-                },
-                "errors": []
-            })
-        );
+                        "over_time": {
+                            "1520126228": [
+                                0.30000001192092898,
+                                0.30000001192092898,
+                                0.4000000059604645
+                            ],
+                            "1520126406": [
+                                0.5,
+                                0.20000000298023225,
+                                0.30000001192092898
+                            ]
+                        }
+                    },
+                    "errors": []
+                })
+            )
+            .test();
     }
 }

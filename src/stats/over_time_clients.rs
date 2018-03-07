@@ -64,7 +64,7 @@ pub fn over_time_clients(ftl: State<FtlConnectionType>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint_ftl, write_eom};
+    use testing::{TestConfig, write_eom};
 
     #[test]
     fn test_over_time_clients() {
@@ -79,17 +79,18 @@ mod test {
         encode::write_i32(&mut data, -1).unwrap();
         write_eom(&mut data);
 
-        test_endpoint_ftl(
-            "/admin/api/stats/overTime/clients",
-            "ClientsoverTime",
-            data,
-            json!({
-                "data": {
-                    "1520126228": [7, 3],
-                    "1520126406": [6, 4]
-                },
-                "errors": []
-            })
-        );
+        TestConfig::new()
+            .endpoint("/admin/api/stats/overTime/clients")
+            .ftl("ClientsoverTime", data)
+            .expected_json(
+                json!({
+                    "data": {
+                        "1520126228": [7, 3],
+                        "1520126406": [6, 4]
+                    },
+                    "errors": []
+                })
+            )
+            .test();
     }
 }

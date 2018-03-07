@@ -79,7 +79,7 @@ fn get_history(ftl: &FtlConnectionType, command: &str) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint_ftl, write_eom};
+    use testing::{TestConfig, write_eom};
 
     #[test]
     fn test_history() {
@@ -98,31 +98,32 @@ mod test {
         encode::write_u8(&mut data, 1).unwrap();
         write_eom(&mut data);
 
-        test_endpoint_ftl(
-            "/admin/api/stats/history",
-            "getallqueries",
-            data,
-            json!({
-                "data": [
-                    [
-                        1520126228,
-                        "IPv4",
-                        "example.com",
-                        "client1",
-                        2,
-                        1
+        TestConfig::new()
+            .endpoint("/admin/api/stats/history")
+            .ftl("getallqueries", data)
+            .expected_json(
+                json!({
+                    "data": [
+                        [
+                            1520126228,
+                            "IPv4",
+                            "example.com",
+                            "client1",
+                            2,
+                            1
+                        ],
+                        [
+                            1520126406,
+                            "IPv6",
+                            "doubleclick.com",
+                            "client2",
+                            1,
+                            1
+                        ]
                     ],
-                    [
-                        1520126406,
-                        "IPv6",
-                        "doubleclick.com",
-                        "client2",
-                        1,
-                        1
-                    ]
-                ],
-                "errors": []
-            })
-        );
+                    "errors": []
+                })
+            )
+            .test();
     }
 }

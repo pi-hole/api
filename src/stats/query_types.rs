@@ -30,7 +30,7 @@ pub fn query_types(ftl: State<FtlConnectionType>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint_ftl, write_eom};
+    use testing::{TestConfig, write_eom};
 
     #[test]
     fn test_query_types() {
@@ -39,17 +39,18 @@ mod test {
         encode::write_f32(&mut data, 0.3).unwrap();
         write_eom(&mut data);
 
-        test_endpoint_ftl(
-            "/admin/api/stats/query_types",
-            "querytypes",
-            data,
-            json!({
-                "data": {
-                    "A": 0.699999988079071,
-                    "AAAA": 0.30000001192092898
-                },
-                "errors": []
-            })
-        );
+        TestConfig::new()
+            .endpoint("/admin/api/stats/query_types")
+            .ftl("querytypes", data)
+            .expected_json(
+                json!({
+                    "data": {
+                        "A": 0.699999988079071,
+                        "AAAA": 0.30000001192092898
+                    },
+                    "errors": []
+                })
+            )
+            .test();
     }
 }

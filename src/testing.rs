@@ -11,7 +11,7 @@
 extern crate tempfile;
 
 use config::PiholeFile;
-use rocket::http::Method;
+use rocket::http::{Method, ContentType};
 use serde_json;
 use setup;
 use std::collections::HashMap;
@@ -19,100 +19,170 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 
-/// Test an endpoint with mocked FTL data
-pub fn test_endpoint_ftl(
-    endpoint: &str,
-    ftl_command: &str,
-    ftl_data: Vec<u8>,
-    expected: serde_json::Value
-) {
-    // Add the test data
-    let mut data = HashMap::new();
-    data.insert(ftl_command.to_owned(), ftl_data);
-
-    test_endpoint(Method::Get, endpoint, data, HashMap::new(), expected)
-}
-
-/// Test an endpoint with a mocked file
-pub fn test_endpoint_config(
-    endpoint: &str,
+/// Represents a mocked file along with the initial and expected data
+struct TestFile {
     pihole_file: PiholeFile,
-    file_data: &str,
-    expected: serde_json::Value
-) {
-    test_endpoint_config_multi(
-        Method::Get,
-        endpoint,
-        vec![(pihole_file, file_data, file_data)],
-        expected
-    );
+    temp_file: Option<File>,
+    initial_data: String,
+    expected_data: String
 }
 
-/// Test an endpoint with multiple mocked files
-///
-/// The `files` argument is a `Vec` of `(file, initial, expected)`
-/// where `file` is the `PiholeFile` to mock, `initial` is the initial content of the file,
-/// and `expected` is the expected content of the file after the test.
-pub fn test_endpoint_config_multi(
-    method: Method,
-    endpoint: &str,
-    files: Vec<(PiholeFile, &str, &str)>,
-    expected: serde_json::Value
-) {
-    let mut data = HashMap::new();
-    let mut file_data = Vec::new();
-
-    // Create temporary mock files
-    for (pihole_file, initial, expected) in files {
-        // Create the file handle
-        let mut file = tempfile::tempfile().unwrap();
-
-        // Write the initial data to the file
-        write!(file, "{}", initial).unwrap();
-        file.seek(SeekFrom::Start(0)).unwrap();
-
-        // Save the file for the test and verification
-        file_data.push((file.try_clone().unwrap(), expected));
-        data.insert(pihole_file, file);
-    }
-
-    // Test the endpoint
-    test_endpoint(method, endpoint, HashMap::new(), data, expected);
-
-    // Verify files are as expected at the end
-    let mut buffer = String::new();
-    for (mut file, expected) in file_data {
-        file.seek(SeekFrom::Start(0)).unwrap();
-        file.read_to_string(&mut buffer).unwrap();
-
-        assert_eq!(buffer, expected);
-        buffer.clear();
+impl TestFile {
+    fn new(pihole_file: PiholeFile, initial_data: String, expected_data: String) -> TestFile {
+        TestFile {
+            pihole_file,
+            temp_file: None,
+            initial_data,
+            expected_data
+        }
     }
 }
 
-/// Test an endpoint by inputting test data and checking the response
-pub fn test_endpoint(
+/// Represents a test configuration, with all the data needed to carry out the test
+pub struct TestConfig {
+    endpoint: String,
     method: Method,
-    endpoint: &str,
-    ftl_data: HashMap<String, Vec<u8>>,
-    config_data: HashMap<PiholeFile, File>,
-    expected: serde_json::Value
-) {
-    // Start the test client
-    let client = setup::test(ftl_data, config_data);
+    body_data: Option<serde_json::Value>,
+    ftl_command: String,
+    ftl_data: Vec<u8>,
+    test_files: Vec<TestFile>,
+    expected_json: serde_json::Value
+}
 
-    // Get the response
-    let mut response = client.req(method, endpoint).dispatch();
-    let body = response.body_string();
+impl Default for TestConfig {
+    fn default() -> Self {
+        TestConfig {
+            endpoint: "".to_owned(),
+            method: Method::Get,
+            body_data: None,
+            ftl_command: "".to_owned(),
+            ftl_data: Vec::new(),
+            test_files: Vec::new(),
+            expected_json: json!({
+                "data": [],
+                "errors": []
+            })
+        }
+    }
+}
 
-    // Check that something was returned
-    assert!(body.is_some());
+impl TestConfig {
+    pub fn new() -> TestConfig {
+        TestConfig::default()
+    }
 
-    // Check that it is correct JSON
-    let parsed: serde_json::Value = serde_json::from_str(&body.unwrap()).unwrap();
+    pub fn endpoint(mut self, endpoint: &str) -> Self {
+        self.endpoint = endpoint.to_owned();
+        self
+    }
 
-    // Check that is is the same as the expected JSON
-    assert_eq!(expected, parsed);
+    pub fn method(mut self, method: Method) -> Self {
+        self.method = method;
+        self
+    }
+
+    pub fn body(mut self, body: serde_json::Value) -> Self {
+        self.body_data = Some(body);
+        self
+    }
+
+    pub fn ftl<D: Into<Vec<u8>>>(mut self, command: &str, data: D) -> Self {
+        self.ftl_command = command.to_owned();
+        self.ftl_data = data.into();
+        self
+    }
+
+    pub fn file(self, pihole_file: PiholeFile, initial_data: &str) -> Self {
+        self.file_expected(pihole_file, initial_data, initial_data)
+    }
+
+    pub fn file_expected(
+        mut self,
+        pihole_file: PiholeFile,
+        initial_data: &str,
+        expected_data: &str
+    ) -> Self {
+        let test_file = TestFile::new(
+            pihole_file,
+            initial_data.to_owned(),
+            expected_data.to_owned()
+        );
+        self.test_files.push(test_file);
+        self
+    }
+
+    pub fn expected_json(mut self, expected_json: serde_json::Value) -> Self {
+        self.expected_json = expected_json;
+        self
+    }
+
+    pub fn test(mut self) {
+        let mut config_data = HashMap::new();
+
+        // Create temporary mock files
+        for test_file in self.test_files.iter_mut() {
+            // Create the file handle
+            let mut file = tempfile::tempfile().unwrap();
+
+            // Write the initial data to the file
+            write!(file, "{}", test_file.initial_data).unwrap();
+            file.seek(SeekFrom::Start(0)).unwrap();
+
+            // Save the file for the test and verification
+            config_data.insert(test_file.pihole_file, file.try_clone().unwrap());
+            test_file.temp_file = Some(file);
+        }
+
+        // Start the test client
+        let mut ftl_data = HashMap::new();
+        ftl_data.insert(self.ftl_command, self.ftl_data);
+        let client = setup::test(ftl_data, config_data);
+
+        // Make the request
+        let mut request = client.req(self.method, self.endpoint);
+
+        // Set the body data if necessary
+        if let Some(data) = self.body_data {
+            request.add_header(ContentType::JSON);
+            request.set_body(serde_json::to_vec(&data).unwrap());
+        }
+        println!("{:?}", request);
+
+        // Dispatch the request
+        let mut response = request.dispatch();
+
+        // Check that something was returned
+        let body = response.body_string();
+        assert!(body.is_some());
+
+        // Check that it is correct JSON
+        let parsed: serde_json::Value = serde_json::from_str(&body.unwrap()).unwrap();
+
+        // Check that is is the same as the expected JSON
+        assert_eq!(self.expected_json, parsed);
+
+        // Verify files are as expected at the end
+        let mut buffer = String::new();
+
+        // Get the file handles and expected data
+        let expected_data: Vec<(File, String)> = self.test_files.into_iter()
+            .map(|test_file| {
+                let expected = test_file.expected_data;
+                let file = test_file.temp_file.unwrap();
+
+                (file, expected)
+            })
+            .collect();
+
+        // Check the files against the expected data
+        for (mut file, expected) in expected_data {
+            file.seek(SeekFrom::Start(0)).unwrap();
+            file.read_to_string(&mut buffer).unwrap();
+
+            assert_eq!(buffer, expected);
+            buffer.clear();
+        }
+    }
 }
 
 /// Add the end of message byte to the data

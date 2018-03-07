@@ -34,75 +34,62 @@ pub fn get_wildlist(config: State<Config>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use config::PiholeFile;
-    use rocket::http::Method;
-    use serde_json::Value;
-    use testing::test_endpoint_config_multi;
-
-    // Generic test for get_list functions
-    fn test_list(
-        list_file: PiholeFile,
-        initial_content: &str,
-        endpoint: &str,
-        expected_json: Value
-    ) {
-        let initial_setup_vars = "IPV4_ADDRESS=10.1.1.1";
-
-        test_endpoint_config_multi(
-            Method::Get,
-            endpoint,
-            vec![
-                (PiholeFile::SetupVars, initial_setup_vars, initial_setup_vars),
-                (list_file, initial_content, initial_content)
-            ],
-            expected_json
-        );
-    }
+    use testing::TestConfig;
 
     #[test]
     fn test_get_whitelist() {
-        test_list(
-            PiholeFile::Whitelist,
-            "example.com\nexample.net\n",
-            "/admin/api/dns/whitelist",
-            json!({
-                "data": [
-                    "example.com",
-                    "example.net"
-                ],
-                "errors": []
-            })
-        );
+        TestConfig::new()
+            .endpoint("/admin/api/dns/whitelist")
+            .file(PiholeFile::Whitelist, "example.com\nexample.net\n")
+            .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
+            .expected_json(
+                json!({
+                    "data": [
+                        "example.com",
+                        "example.net"
+                    ],
+                    "errors": []
+                })
+            )
+            .test();
     }
 
     #[test]
     fn test_get_blacklist() {
-        test_list(
-            PiholeFile::Blacklist,
-            "example.com\nexample.net\n",
-            "/admin/api/dns/blacklist",
-            json!({
-                "data": [
-                    "example.com",
-                    "example.net"
-                ],
-                "errors": []
-            })
-        );
+        TestConfig::new()
+            .endpoint("/admin/api/dns/blacklist")
+            .file(PiholeFile::Blacklist, "example.com\nexample.net\n")
+            .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
+            .expected_json(
+                json!({
+                    "data": [
+                        "example.com",
+                        "example.net"
+                    ],
+                    "errors": []
+                })
+            )
+            .test();
     }
 
     #[test]
     fn test_get_wildlist() {
-        test_list(
-            PiholeFile::Wildlist,
-            "address=/example.com/10.1.1.1\naddress=/example.net/10.1.1.1\n",
-            "/admin/api/dns/wildlist",
-            json!({
-                "data": [
-                    "example.com",
-                    "example.net"
-                ],
-                "errors": []
-            })
-        );
+        TestConfig::new()
+            .endpoint("/admin/api/dns/wildlist")
+            .file(
+                PiholeFile::Wildlist,
+                "address=/example.com/10.1.1.1\naddress=/example.net/10.1.1.1\n"
+            )
+            .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
+            .expected_json(
+                json!({
+                    "data": [
+                        "example.com",
+                        "example.net"
+                    ],
+                    "errors": []
+                })
+            )
+            .test();
     }
 }

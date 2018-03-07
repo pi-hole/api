@@ -131,7 +131,7 @@ fn get_top_domains(ftl: &FtlConnectionType, blocked: bool, params: TopParams) ->
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint_ftl, write_eom};
+    use testing::{TestConfig, write_eom};
 
     #[test]
     fn test_top_domains() {
@@ -143,21 +143,22 @@ mod test {
         encode::write_i32(&mut data, 3).unwrap();
         write_eom(&mut data);
 
-        test_endpoint_ftl(
-            "/admin/api/stats/top_domains",
-            "top-domains (10)",
-            data,
-            json!({
-                "data": {
-                    "top_domains": {
-                        "example.com": 7,
-                        "example.net": 3
+        TestConfig::new()
+            .endpoint("/admin/api/stats/top_domains")
+            .ftl("top-domains (10)", data)
+            .expected_json(
+                json!({
+                    "data": {
+                        "top_domains": {
+                            "example.com": 7,
+                            "example.net": 3
+                        },
+                        "total_queries": 10
                     },
-                    "total_queries": 10
-                },
-                "errors": []
-            })
-        );
+                    "errors": []
+                })
+            )
+            .test();
     }
 
     #[test]
@@ -168,19 +169,20 @@ mod test {
         encode::write_i32(&mut data, 7).unwrap();
         write_eom(&mut data);
 
-        test_endpoint_ftl(
-            "/admin/api/stats/top_domains?limit=1",
-            "top-domains (1)",
-            data,
-            json!({
-                "data": {
-                    "top_domains": {
-                        "example.com": 7
+        TestConfig::new()
+            .endpoint("/admin/api/stats/top_domains?limit=1")
+            .ftl("top-domains (1)", data)
+            .expected_json(
+                json!({
+                    "data": {
+                        "top_domains": {
+                            "example.com": 7
+                        },
+                        "total_queries": 10
                     },
-                    "total_queries": 10
-                },
-                "errors": []
-            })
-        );
+                    "errors": []
+                })
+            )
+            .test();
     }
 }

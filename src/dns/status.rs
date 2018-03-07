@@ -51,50 +51,53 @@ fn check_for_gravity<'a>(file: File) -> io::Result<&'a str> {
 #[cfg(test)]
 mod test {
     use config::PiholeFile;
-    use testing::test_endpoint_config;
+    use testing::TestConfig;
 
     #[test]
     fn test_status_enabled() {
-        test_endpoint_config(
-            "/admin/api/dns/status",
-            PiholeFile::DnsmasqMainConfig,
-            "addn-hosts=/etc/pihole/gravity.list",
-            json!({
-                "data": {
-                    "status": "enabled"
-                },
-                "errors": []
-            })
-        );
+        TestConfig::new()
+            .endpoint("/admin/api/dns/status")
+            .file(PiholeFile::DnsmasqMainConfig, "addn-hosts=/etc/pihole/gravity.list")
+            .expected_json(
+                json!({
+                    "data": {
+                        "status": "enabled"
+                    },
+                    "errors": []
+                })
+            )
+            .test();
     }
 
     #[test]
     fn test_status_disabled() {
-        test_endpoint_config(
-            "/admin/api/dns/status",
-            PiholeFile::DnsmasqMainConfig,
-            "#addn-hosts=/etc/pihole/gravity.list",
-            json!({
-                "data": {
-                    "status": "disabled"
-                },
-                "errors": []
-            })
-        );
+        TestConfig::new()
+            .endpoint("/admin/api/dns/status")
+            .file(PiholeFile::DnsmasqMainConfig, "#addn-hosts=/etc/pihole/gravity.list")
+            .expected_json(
+                json!({
+                    "data": {
+                        "status": "disabled"
+                    },
+                    "errors": []
+                })
+            )
+            .test();
     }
 
     #[test]
     fn test_status_unknown() {
-        test_endpoint_config(
-            "/admin/api/dns/status",
-            PiholeFile::DnsmasqMainConfig,
-            "random data...",
-            json!({
-                "data": {
-                    "status": "unknown"
-                },
-                "errors": []
-            })
-        );
+        TestConfig::new()
+            .endpoint("/admin/api/dns/status")
+            .file(PiholeFile::DnsmasqMainConfig, "random data...")
+            .expected_json(
+                json!({
+                    "data": {
+                        "status": "unknown"
+                    },
+                    "errors": []
+                })
+            )
+            .test();
     }
 }

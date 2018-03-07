@@ -108,7 +108,7 @@ fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> util::Re
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint_ftl, write_eom};
+    use testing::{TestConfig, write_eom};
 
     #[test]
     fn test_top_clients() {
@@ -125,22 +125,23 @@ mod test {
         encode::write_i32(&mut data, 10).unwrap();
         write_eom(&mut data);
 
-        test_endpoint_ftl(
-            "/admin/api/stats/top_clients",
-            "top-clients (10)",
-            data,
-            json!({
-                "data": {
-                    "top_clients": {
-                        "10.1.1.2": 20,
-                        "client1|10.1.1.1": 30,
-                        "client3|10.1.1.3": 10
+        TestConfig::new()
+            .endpoint("/admin/api/stats/top_clients")
+            .ftl("top-clients (10)", data)
+            .expected_json(
+                json!({
+                    "data": {
+                        "top_clients": {
+                            "10.1.1.2": 20,
+                            "client1|10.1.1.1": 30,
+                            "client3|10.1.1.3": 10
+                        },
+                        "total_queries": 100
                     },
-                    "total_queries": 100
-                },
-                "errors": []
-            })
-        );
+                    "errors": []
+                })
+            )
+            .test();
     }
 
     #[test]
@@ -155,20 +156,21 @@ mod test {
         encode::write_i32(&mut data, 20).unwrap();
         write_eom(&mut data);
 
-        test_endpoint_ftl(
-            "/admin/api/stats/top_clients?limit=2",
-            "top-clients (2)",
-            data,
-            json!({
-                "data": {
-                    "top_clients": {
-                        "10.1.1.2": 20,
-                        "client1|10.1.1.1": 30
+        TestConfig::new()
+            .endpoint("/admin/api/stats/top_clients?limit=2")
+            .ftl("top-clients (2)", data)
+            .expected_json(
+                json!({
+                    "data": {
+                        "top_clients": {
+                            "10.1.1.2": 20,
+                            "client1|10.1.1.1": 30
+                        },
+                        "total_queries": 100
                     },
-                    "total_queries": 100
-                },
-                "errors": []
-            })
-        );
+                    "errors": []
+                })
+            )
+            .test();
     }
 }

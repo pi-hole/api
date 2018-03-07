@@ -47,7 +47,7 @@ pub fn get_summary(ftl: State<FtlConnectionType>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint_ftl, write_eom};
+    use testing::{TestConfig, write_eom};
 
     #[test]
     fn test_summary() {
@@ -64,25 +64,26 @@ mod test {
         encode::write_u8(&mut data, 2).unwrap();
         write_eom(&mut data);
 
-        test_endpoint_ftl(
-            "/admin/api/stats/summary",
-            "stats",
-            data,
-            json!({
-                "data": {
-                    "domains_blocked": -1,
-                    "total_queries": 7,
-                    "blocked_queries": 2,
-                    "percent_blocked": 28.571428298950197,
-                    "unique_domains": 6,
-                    "forwarded_queries": 3,
-                    "cached_queries": 2,
-                    "total_clients": 3,
-                    "unique_clients": 3,
-                    "status": 2
-                },
-                "errors": []
-            }),
-        );
+        TestConfig::new()
+            .endpoint("/admin/api/stats/summary")
+            .ftl("stats", data)
+            .expected_json(
+                json!({
+                    "data": {
+                        "domains_blocked": -1,
+                        "total_queries": 7,
+                        "blocked_queries": 2,
+                        "percent_blocked": 28.571428298950197,
+                        "unique_domains": 6,
+                        "forwarded_queries": 3,
+                        "cached_queries": 2,
+                        "total_clients": 3,
+                        "unique_clients": 3,
+                        "status": 2
+                    },
+                    "errors": []
+                })
+            )
+            .test();
     }
 }

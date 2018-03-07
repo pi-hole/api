@@ -37,8 +37,8 @@ pub fn start() {
 
 /// Setup the API with the testing data and return a Client to test with
 pub fn test(
-    ftl_test_data: HashMap<String, Vec<u8>>,
-    config_test_data: HashMap<PiholeFile, File>
+    ftl_data: HashMap<String, Vec<u8>>,
+    config_data: HashMap<PiholeFile, File>
 ) -> Client {
     Client::new(setup(
         rocket::custom(
@@ -47,8 +47,8 @@ pub fn test(
                 .unwrap(),
             false,
         ),
-        ftl::FtlConnectionType::Test(ftl_test_data),
-        Config::Test(config_test_data)
+        ftl::FtlConnectionType::Test(ftl_data),
+        Config::Test(config_data)
     )).unwrap()
 }
 

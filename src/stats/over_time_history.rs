@@ -29,7 +29,7 @@ pub fn over_time_history(ftl: State<FtlConnectionType>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint_ftl, write_eom};
+    use testing::{TestConfig, write_eom};
 
     #[test]
     fn test_over_time_history() {
@@ -46,23 +46,24 @@ mod test {
         encode::write_i32(&mut data, 5).unwrap();
         write_eom(&mut data);
 
-        test_endpoint_ftl(
-            "/admin/api/stats/overTime/history",
-            "overTime",
-            data,
-            json!({
-                "data": {
-                    "blocked_over_time": {
-                        "1520126228": 5,
-                        "1520126406": 5
+        TestConfig::new()
+            .endpoint("/admin/api/stats/overTime/history")
+            .ftl("overTime", data)
+            .expected_json(
+                json!({
+                    "data": {
+                        "blocked_over_time": {
+                            "1520126228": 5,
+                            "1520126406": 5
+                        },
+                        "domains_over_time": {
+                            "1520126228": 10,
+                            "1520126406": 20
+                        }
                     },
-                    "domains_over_time": {
-                        "1520126228": 10,
-                        "1520126406": 20
-                    }
-                },
-                "errors": []
-            })
-        );
+                    "errors": []
+                })
+            )
+            .test();
     }
 }

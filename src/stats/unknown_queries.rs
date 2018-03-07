@@ -70,7 +70,7 @@ pub fn unknown_queries(ftl: State<FtlConnectionType>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{test_endpoint_ftl, write_eom};
+    use testing::{TestConfig, write_eom};
 
     #[test]
     fn test_unknown_queries() {
@@ -91,33 +91,34 @@ mod test {
         encode::write_bool(&mut data, true).unwrap();
         write_eom(&mut data);
 
-        test_endpoint_ftl(
-            "/admin/api/stats/unknown_queries",
-            "unknown",
-            data,
-            json!({
-                "data": [
-                    [
-                        1520126228,
-                        0,
-                        "IPv4",
-                        "example.com",
-                        "client1",
-                        2,
-                        false
+        TestConfig::new()
+            .endpoint("/admin/api/stats/unknown_queries")
+            .ftl("unknown", data)
+            .expected_json(
+                json!({
+                    "data": [
+                        [
+                            1520126228,
+                            0,
+                            "IPv4",
+                            "example.com",
+                            "client1",
+                            2,
+                            false
+                        ],
+                        [
+                            1520126406,
+                            1,
+                            "IPv6",
+                            "doubleclick.com",
+                            "client2",
+                            1,
+                            true
+                        ]
                     ],
-                    [
-                        1520126406,
-                        1,
-                        "IPv6",
-                        "doubleclick.com",
-                        "client2",
-                        1,
-                        true
-                    ]
-                ],
-                "errors": []
-            })
-        );
+                    "errors": []
+                })
+            )
+            .test();
     }
 }
