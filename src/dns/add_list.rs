@@ -63,3 +63,86 @@ pub fn add_wildlist(config: State<Config>, domain_input: Json<DomainInput>) -> u
     reload_gravity(List::Wildlist, &config)?;
     util::reply_success()
 }
+
+#[cfg(test)]
+mod test {
+    use rocket::http::Method;
+    use testing::TestConfig;
+    use config::PiholeFile;
+
+    #[test]
+    fn test_add_whitelist() {
+        TestConfig::new()
+            .endpoint("/admin/api/dns/whitelist")
+            .method(Method::Post)
+            .file_expected(PiholeFile::Whitelist, "", "example.com\n")
+            .file(PiholeFile::Blacklist, "")
+            .file(PiholeFile::Wildlist, "")
+            .body(
+                json!({
+                    "domain": "example.com"
+                })
+            )
+            .expected_json(
+                json!({
+                    "data": {
+                        "status": "success"
+                    },
+                    "errors": []
+                })
+            )
+            .test();
+    }
+
+    #[test]
+    fn test_add_blacklist() {
+        TestConfig::new()
+            .endpoint("/admin/api/dns/blacklist")
+            .method(Method::Post)
+            .file_expected(PiholeFile::Blacklist, "", "example.com\n")
+            .file(PiholeFile::Whitelist, "")
+            .file(PiholeFile::Wildlist, "")
+            .body(
+                json!({
+                    "domain": "example.com"
+                })
+            )
+            .expected_json(
+                json!({
+                    "data": {
+                        "status": "success"
+                    },
+                    "errors": []
+                })
+            )
+            .test();
+    }
+
+    #[test]
+    fn test_add_wildlist() {
+        TestConfig::new()
+            .endpoint("/admin/api/dns/wildlist")
+            .method(Method::Post)
+            .file_expected(
+                PiholeFile::Wildlist,
+                "",
+                "address=/example.com/10.1.1.1\n")
+            .file(PiholeFile::Whitelist, "")
+            .file(PiholeFile::Blacklist, "")
+            .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
+            .body(
+                json!({
+                    "domain": "example.com"
+                })
+            )
+            .expected_json(
+                json!({
+                    "data": {
+                        "status": "success"
+                    },
+                    "errors": []
+                })
+            )
+            .test();
+    }
+}

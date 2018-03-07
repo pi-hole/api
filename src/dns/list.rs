@@ -137,8 +137,18 @@ pub fn add_list(list: List, domain: &str, config: &Config) -> Result<(), util::E
 
     let mut list_file = config.write_file(list_file, file_options)?;
 
-    // Add the domain to the end of the list
-    writeln!(list_file, "{}", domain)?;
+    // Add the domain to the list (account for wildlist format)
+    if list == List::Wildlist {
+        if let Some(ipv4) = read_setup_vars("IPV4_ADDRESS", config)? {
+            writeln!(list_file, "address=/{}/{}", domain, ipv4)?;
+        }
+
+        if let Some(ipv6) = read_setup_vars("IPV6_ADDRESS", config)? {
+            writeln!(list_file, "address=/{}/{}", domain, ipv6)?;
+        }
+    } else {
+        writeln!(list_file, "{}", domain)?;
+    }
 
     Ok(())
 }
