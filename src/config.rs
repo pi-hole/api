@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
+use std::os::unix::fs::OpenOptionsExt;
 use std::io;
 use std::path::Path;
 
@@ -55,17 +56,35 @@ impl Config {
     pub fn write_file(
         &self,
         file: PiholeFile,
-        open_options: OpenOptions
+        append: bool
     ) -> io::Result<File> {
         match *self {
             Config::Production => {
+                let mut open_options = OpenOptions::new();
+                open_options
+                    .create(true)
+                    .write(true)
+                    .mode(0o644);
+
+                if append {
+                    open_options.append(true);
+                } else {
+                    open_options.truncate(true);
+                }
+
                 open_options.open(self.file_location(file))
             },
             Config::Test(ref map) => {
-                match map.get(&file) {
+                let file = match map.get(&file) {
                     Some(data) => data,
                     None => return Err(io::Error::new(io::ErrorKind::NotFound, "Missing test data"))
-                }.try_clone()
+                }.try_clone()?;
+
+                if !append {
+                    file.set_len(0)?;
+                }
+
+                Ok(file)
             }
         }
     }

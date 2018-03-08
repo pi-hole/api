@@ -16,19 +16,19 @@ use util;
 /// Get the Whitelist domains
 #[get("/dns/whitelist")]
 pub fn get_whitelist(config: State<Config>) -> util::Reply {
-    get_list(List::Whitelist, &config)
+    util::reply_data(get_list(List::Whitelist, &config)?)
 }
 
 /// Get the Blacklist domains
 #[get("/dns/blacklist")]
 pub fn get_blacklist(config: State<Config>) -> util::Reply {
-    get_list(List::Blacklist, &config)
+    util::reply_data(get_list(List::Blacklist, &config)?)
 }
 
 /// Get the Wildcard list domains
 #[get("/dns/wildlist")]
 pub fn get_wildlist(config: State<Config>) -> util::Reply {
-    get_list(List::Wildlist, &config)
+    util::reply_data(get_list(List::Wildlist, &config)?)
 }
 
 #[cfg(test)]

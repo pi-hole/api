@@ -78,6 +78,7 @@ mod test {
             .file_expect(PiholeFile::Whitelist, "", "example.com\n")
             .file(PiholeFile::Blacklist, "")
             .file(PiholeFile::Wildlist, "")
+            .file(PiholeFile::SetupVars, "")
             .body(
                 json!({
                     "domain": "example.com"
@@ -102,6 +103,7 @@ mod test {
             .file_expect(PiholeFile::Blacklist, "", "example.com\n")
             .file(PiholeFile::Whitelist, "")
             .file(PiholeFile::Wildlist, "")
+            .file(PiholeFile::SetupVars, "")
             .body(
                 json!({
                     "domain": "example.com"

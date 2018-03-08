@@ -10,15 +10,13 @@
 
 use std::io::prelude::*;
 use std::io::{self, BufReader, BufWriter};
-use std::fs::OpenOptions;
-use std::os::unix::fs::OpenOptionsExt;
 
 use util;
 use dns::common::{is_valid_domain, read_setup_vars};
 use config::{Config, PiholeFile};
 
 /// Represents one of the lists of domains used by Gravity
-#[derive(PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum List {
     Whitelist,
     Blacklist,
@@ -36,14 +34,13 @@ impl List {
 }
 
 /// Read in the domains from a list
-pub fn get_list(list: List, config: &Config) -> util::Reply {
+pub fn get_list(list: List, config: &Config) -> Result<Vec<String>, util::Error> {
     let file = match config.read_file(list.get_file()) {
         Ok(f) => f,
         Err(e) => {
             if e.kind() == io::ErrorKind::NotFound {
-                // If the file is not found, then the list is empty. [0; 0] is an empty list of
-                // type i32. We can't use [] because the type needs to be known.
-                return util::reply_data([0; 0]);
+                // If the file is not found, then the list is empty
+                return Ok(Vec::new());
             } else {
                 return Err(e.into());
             }
@@ -97,7 +94,7 @@ pub fn get_list(list: List, config: &Config) -> util::Reply {
         lines.push(parsed_line);
     }
 
-    util::reply_data(lines)
+    Ok(lines)
 }
 
 /// Add a domain to a list
@@ -128,14 +125,8 @@ pub fn add_list(list: List, domain: &str, config: &Config) -> Result<(), util::E
         return Err(util::Error::AlreadyExists);
     }
 
-    // Open the list file (and create it if it doesn't exist)
-    let mut file_options = OpenOptions::new();
-    file_options
-        .create(true)
-        .append(true)
-        .mode(0o644);
-
-    let mut list_file = config.write_file(list_file, file_options)?;
+    // Open the list file in append mode (and create it if it doesn't exist)
+    let mut list_file = config.write_file(list_file, true)?;
 
     // Add the domain to the list (account for wildlist format)
     if list == List::Wildlist {
@@ -176,21 +167,7 @@ pub fn remove_list(list: List, domain: &str, config: &Config) -> Result<(), util
         return Err(util::Error::InvalidDomain);
     }
 
-    let list_file = list.get_file();
-    let mut domains = Vec::new();
-
-    // Read list domains (if the list exists, otherwise the list is empty)
-    if config.file_exists(list_file) {
-        let reader = BufReader::new(config.read_file(list_file)?);
-
-        // Add domains
-        domains.extend(reader
-            .lines()
-            .filter_map(|line| line.ok())
-            // Only get valid domains
-            .filter(|domain| is_valid_domain(domain))
-        );
-    }
+    let domains = get_list(list, config)?;
 
     // Check if the domain is already in the list
     if !domains.contains(&domain.to_owned()) {
@@ -199,20 +176,29 @@ pub fn remove_list(list: List, domain: &str, config: &Config) -> Result<(), util
 
     // Open the list file (and create it if it doesn't exist). This will truncate the list so we can
     // add all the domains except the one we are deleting
-    let mut file_options = OpenOptions::new();
-    file_options
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .mode(0o644);
-
-    let list_file = config.write_file(list_file, file_options)?;
+    let list_file = config.write_file(list.get_file(), false)?;
     let mut writer = BufWriter::new(list_file);
 
     // Write all domains except the one we're deleting
-    for domain in domains.into_iter().filter(|item| item != domain) {
-        writer.write_all(domain.as_bytes())?;
-        writer.write_all(b"\n")?;
+    let domain_iter = domains.into_iter().filter(|item| item != domain);
+    if list == List::Wildlist {
+        // Get the address information in case we're removing from the wildlist
+        let ipv4 = read_setup_vars("IPV4_ADDRESS", config)?;
+        let ipv6 = read_setup_vars("IPV6_ADDRESS", config)?;
+
+        for domain in domain_iter {
+            if let Some(ref address) = ipv4 {
+                writeln!(writer, "address=/{}/{}", domain, address)?;
+            }
+
+            if let Some(ref address) = ipv6 {
+                writeln!(writer, "address=/{}/{}", domain, address)?;
+            }
+        }
+    } else {
+        for domain in domain_iter {
+            writeln!(writer, "{}", domain)?;
+        }
     }
 
     Ok(())

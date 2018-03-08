@@ -43,3 +43,64 @@ pub fn delete_wildlist(config: State<Config>, domain: String) -> util::Reply {
     // At this point, since we haven't hit an error yet, reload gravity and return success
     util::reply_success()
 }
+
+#[cfg(test)]
+mod test {
+    use testing::TestConfig;
+    use config::PiholeFile;
+    use rocket::http::Method;
+
+    #[test]
+    fn test_delete_whitelist() {
+        TestConfig::new()
+            .endpoint("/admin/api/dns/whitelist/example.com")
+            .method(Method::Delete)
+            .file_expect(PiholeFile::Whitelist, "example.com\n", "")
+            .file(PiholeFile::SetupVars, "")
+            .expect_json(
+                json!({
+                    "data": {
+                        "status": "success"
+                    },
+                    "errors": []
+                })
+            )
+            .test();
+    }
+
+    #[test]
+    fn test_delete_blacklist() {
+        TestConfig::new()
+            .endpoint("/admin/api/dns/blacklist/example.com")
+            .method(Method::Delete)
+            .file_expect(PiholeFile::Blacklist, "example.com\n", "")
+            .file(PiholeFile::SetupVars, "")
+            .expect_json(
+                json!({
+                    "data": {
+                        "status": "success"
+                    },
+                    "errors": []
+                })
+            )
+            .test();
+    }
+
+    #[test]
+    fn test_delete_wildlist() {
+        TestConfig::new()
+            .endpoint("/admin/api/dns/wildlist/example.com")
+            .method(Method::Delete)
+            .file_expect(PiholeFile::Wildlist, "address=/example.com/10.1.1.1\n", "")
+            .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
+            .expect_json(
+                json!({
+                    "data": {
+                        "status": "success"
+                    },
+                    "errors": []
+                })
+            )
+            .test();
+    }
+}
