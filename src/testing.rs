@@ -135,7 +135,6 @@ impl TestConfig {
             request.add_header(ContentType::JSON);
             request.set_body(serde_json::to_vec(&data).unwrap());
         }
-        println!("{:?}", request);
 
         // Dispatch the request
         let mut response = request.dispatch();
