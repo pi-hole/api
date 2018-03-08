@@ -43,32 +43,24 @@ pub struct TestConfig {
     endpoint: String,
     method: Method,
     body_data: Option<serde_json::Value>,
-    ftl_command: String,
-    ftl_data: Vec<u8>,
+    ftl_data: HashMap<String, Vec<u8>>,
     test_files: Vec<TestFile>,
     expected_json: serde_json::Value
 }
 
-impl Default for TestConfig {
-    fn default() -> Self {
+impl TestConfig {
+    pub fn new() -> TestConfig {
         TestConfig {
             endpoint: "".to_owned(),
             method: Method::Get,
             body_data: None,
-            ftl_command: "".to_owned(),
-            ftl_data: Vec::new(),
+            ftl_data: HashMap::new(),
             test_files: Vec::new(),
             expected_json: json!({
                 "data": [],
                 "errors": []
             })
         }
-    }
-}
-
-impl TestConfig {
-    pub fn new() -> TestConfig {
-        TestConfig::default()
     }
 
     pub fn endpoint(mut self, endpoint: &str) -> Self {
@@ -86,9 +78,8 @@ impl TestConfig {
         self
     }
 
-    pub fn ftl<D: Into<Vec<u8>>>(mut self, command: &str, data: D) -> Self {
-        self.ftl_command = command.to_owned();
-        self.ftl_data = data.into();
+    pub fn ftl(mut self, command: &str, data: Vec<u8>) -> Self {
+        self.ftl_data.insert(command.to_owned(), data);
         self
     }
 
@@ -134,9 +125,7 @@ impl TestConfig {
         }
 
         // Start the test client
-        let mut ftl_data = HashMap::new();
-        ftl_data.insert(self.ftl_command, self.ftl_data);
-        let client = setup::test(ftl_data, config_data);
+        let client = setup::test(self.ftl_data, config_data);
 
         // Make the request
         let mut request = client.req(self.method, self.endpoint);
