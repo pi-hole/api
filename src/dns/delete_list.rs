@@ -8,17 +8,17 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use config::Config;
+use config::{Config, PiholeFile};
 use dns::common::reload_gravity;
-use dns::list::{List, remove_list};
+use dns::list::remove_list;
 use rocket::State;
 use util;
 
 /// Delete a domain from the whitelist
 #[delete("/dns/whitelist/<domain>")]
 pub fn delete_whitelist(config: State<Config>, domain: String) -> util::Reply {
-    remove_list(List::Whitelist, &domain, &config)?;
-    reload_gravity(List::Whitelist, &config)?;
+    remove_list(PiholeFile::Whitelist, &domain, &config)?;
+    reload_gravity(PiholeFile::Whitelist, &config)?;
 
     // At this point, since we haven't hit an error yet, reload gravity and return success
     util::reply_success()
@@ -27,8 +27,8 @@ pub fn delete_whitelist(config: State<Config>, domain: String) -> util::Reply {
 /// Delete a domain from the blacklist
 #[delete("/dns/blacklist/<domain>")]
 pub fn delete_blacklist(config: State<Config>, domain: String) -> util::Reply {
-    remove_list(List::Blacklist, &domain, &config)?;
-    reload_gravity(List::Blacklist, &config)?;
+    remove_list(PiholeFile::Blacklist, &domain, &config)?;
+    reload_gravity(PiholeFile::Blacklist, &config)?;
 
     // At this point, since we haven't hit an error yet, reload gravity and return success
     util::reply_success()
@@ -37,8 +37,8 @@ pub fn delete_blacklist(config: State<Config>, domain: String) -> util::Reply {
 /// Delete a domain from the wildcard list
 #[delete("/dns/wildlist/<domain>")]
 pub fn delete_wildlist(config: State<Config>, domain: String) -> util::Reply {
-    remove_list(List::Wildlist, &domain, &config)?;
-    reload_gravity(List::Wildlist, &config)?;
+    remove_list(PiholeFile::Wildlist, &domain, &config)?;
+    reload_gravity(PiholeFile::Wildlist, &config)?;
 
     // At this point, since we haven't hit an error yet, reload gravity and return success
     util::reply_success()

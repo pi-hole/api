@@ -15,27 +15,20 @@ use util;
 use dns::common::{is_valid_domain, read_setup_vars};
 use config::{Config, PiholeFile};
 
-/// Represents one of the lists of domains used by Gravity
-#[derive(Copy, Clone, PartialEq)]
-pub enum List {
-    Whitelist,
-    Blacklist,
-    Wildlist
-}
-
-impl List {
-    fn get_file(&self) -> PiholeFile {
-        match *self {
-            List::Whitelist => PiholeFile::Whitelist,
-            List::Blacklist => PiholeFile::Blacklist,
-            List::Wildlist => PiholeFile::Wildlist
-        }
+/// Check that the file is a domain list, and return `Error::Unknown` otherwise
+fn verify_list(file: PiholeFile) -> Result<(), util::Error> {
+    match file {
+        PiholeFile::Whitelist | PiholeFile::Blacklist | PiholeFile::Wildlist => Ok(()),
+        _ => Err(util::Error::Unknown)
     }
 }
 
 /// Read in the domains from a list
-pub fn get_list(list: List, config: &Config) -> Result<Vec<String>, util::Error> {
-    let file = match config.read_file(list.get_file()) {
+pub fn get_list(list: PiholeFile, config: &Config) -> Result<Vec<String>, util::Error> {
+    // Only allow the domain lists to be used
+    verify_list(list)?;
+
+    let file = match config.read_file(list) {
         Ok(f) => f,
         Err(e) => {
             if e.kind() == io::ErrorKind::NotFound {
@@ -50,7 +43,7 @@ pub fn get_list(list: List, config: &Config) -> Result<Vec<String>, util::Error>
 
     // Used for the wildcard list to skip IPv6 lines
     let mut skip_lines = false;
-    let is_wildcard = list == List::Wildlist;
+    let is_wildcard = list == PiholeFile::Wildlist;
 
     if is_wildcard {
         // Check if both IPv4 and IPv6 are used.
@@ -98,18 +91,20 @@ pub fn get_list(list: List, config: &Config) -> Result<Vec<String>, util::Error>
 }
 
 /// Add a domain to a list
-pub fn add_list(list: List, domain: &str, config: &Config) -> Result<(), util::Error> {
+pub fn add_list(list: PiholeFile, domain: &str, config: &Config) -> Result<(), util::Error> {
+    // Only allow the domain lists to be used
+    verify_list(list)?;
+
     // Check if it's a valid domain before doing anything
     if !is_valid_domain(domain) {
         return Err(util::Error::InvalidDomain);
     }
 
-    let list_file = list.get_file();
     let mut domains = Vec::new();
 
     // Read list domains (if the list exists, otherwise the list is empty)
-    if config.file_exists(list_file) {
-        let reader = BufReader::new(config.read_file(list_file)?);
+    if config.file_exists(list) {
+        let reader = BufReader::new(config.read_file(list)?);
 
         // Add domains
         domains.extend(reader
@@ -126,10 +121,10 @@ pub fn add_list(list: List, domain: &str, config: &Config) -> Result<(), util::E
     }
 
     // Open the list file in append mode (and create it if it doesn't exist)
-    let mut list_file = config.write_file(list_file, true)?;
+    let mut list_file = config.write_file(list, true)?;
 
     // Add the domain to the list (account for wildlist format)
-    if list == List::Wildlist {
+    if list == PiholeFile::Wildlist {
         if let Some(ipv4) = read_setup_vars("IPV4_ADDRESS", config)? {
             writeln!(list_file, "address=/{}/{}", domain, ipv4)?;
         }
@@ -145,7 +140,7 @@ pub fn add_list(list: List, domain: &str, config: &Config) -> Result<(), util::E
 }
 
 /// Try to remove a domain from the list, but it is not an error if the domain does not exist there
-pub fn try_remove_list(list: List, domain: &str, config: &Config) -> Result<(), util::Error> {
+pub fn try_remove_list(list: PiholeFile, domain: &str, config: &Config) -> Result<(), util::Error> {
     match remove_list(list, domain, config) {
         // Pass through successful results
         Ok(ok) => Ok(ok),
@@ -161,7 +156,10 @@ pub fn try_remove_list(list: List, domain: &str, config: &Config) -> Result<(), 
 }
 
 /// Remove a domain from a list
-pub fn remove_list(list: List, domain: &str, config: &Config) -> Result<(), util::Error> {
+pub fn remove_list(list: PiholeFile, domain: &str, config: &Config) -> Result<(), util::Error> {
+    // Only allow the domain lists to be used
+    verify_list(list)?;
+
     // Check if it's a valid domain before doing anything
     if !is_valid_domain(domain) {
         return Err(util::Error::InvalidDomain);
@@ -176,12 +174,12 @@ pub fn remove_list(list: List, domain: &str, config: &Config) -> Result<(), util
 
     // Open the list file (and create it if it doesn't exist). This will truncate the list so we can
     // add all the domains except the one we are deleting
-    let list_file = config.write_file(list.get_file(), false)?;
+    let list_file = config.write_file(list, false)?;
     let mut writer = BufWriter::new(list_file);
 
     // Write all domains except the one we're deleting
     let domain_iter = domains.into_iter().filter(|item| item != domain);
-    if list == List::Wildlist {
+    if list == PiholeFile::Wildlist {
         // Get the address information in case we're removing from the wildlist
         let ipv4 = read_setup_vars("IPV4_ADDRESS", config)?;
         let ipv6 = read_setup_vars("IPV6_ADDRESS", config)?;

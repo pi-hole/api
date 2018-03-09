@@ -4,7 +4,7 @@ use std::os::unix::fs::OpenOptionsExt;
 use std::io;
 use std::path::Path;
 
-/// Some of the files exposed by the `Config`
+/// The files exposed by the `Config`
 #[derive(Eq, PartialEq, Hash, Copy, Clone)]
 pub enum PiholeFile {
     DnsmasqMainConfig,

@@ -8,27 +8,27 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use config::Config;
-use dns::list::{get_list, List};
+use config::{Config, PiholeFile};
+use dns::list::get_list;
 use rocket::State;
 use util;
 
 /// Get the Whitelist domains
 #[get("/dns/whitelist")]
 pub fn get_whitelist(config: State<Config>) -> util::Reply {
-    util::reply_data(get_list(List::Whitelist, &config)?)
+    util::reply_data(get_list(PiholeFile::Whitelist, &config)?)
 }
 
 /// Get the Blacklist domains
 #[get("/dns/blacklist")]
 pub fn get_blacklist(config: State<Config>) -> util::Reply {
-    util::reply_data(get_list(List::Blacklist, &config)?)
+    util::reply_data(get_list(PiholeFile::Blacklist, &config)?)
 }
 
 /// Get the Wildcard list domains
 #[get("/dns/wildlist")]
 pub fn get_wildlist(config: State<Config>) -> util::Reply {
-    util::reply_data(get_list(List::Wildlist, &config)?)
+    util::reply_data(get_list(PiholeFile::Wildlist, &config)?)
 }
 
 #[cfg(test)]
