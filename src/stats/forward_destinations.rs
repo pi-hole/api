@@ -61,7 +61,7 @@ pub fn forward_destinations(ftl: State<FtlConnectionType>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestConfig, write_eom};
+    use testing::{TestBuilder, write_eom};
 
     #[test]
     fn test_forward_destinations() {
@@ -77,7 +77,7 @@ mod test {
         encode::write_f32(&mut data, 0.3).unwrap();
         write_eom(&mut data);
 
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/stats/forward_destinations")
             .ftl("forward-dest", data)
             .expect_json(

@@ -46,13 +46,13 @@ pub fn delete_wildlist(config: State<Config>, domain: String) -> util::Reply {
 
 #[cfg(test)]
 mod test {
-    use testing::TestConfig;
+    use testing::TestBuilder;
     use config::PiholeFile;
     use rocket::http::Method;
 
     #[test]
     fn test_delete_whitelist() {
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/dns/whitelist/example.com")
             .method(Method::Delete)
             .file_expect(PiholeFile::Whitelist, "example.com\n", "")
@@ -70,7 +70,7 @@ mod test {
 
     #[test]
     fn test_delete_blacklist() {
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/dns/blacklist/example.com")
             .method(Method::Delete)
             .file_expect(PiholeFile::Blacklist, "example.com\n", "")
@@ -88,7 +88,7 @@ mod test {
 
     #[test]
     fn test_delete_wildlist() {
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/dns/wildlist/example.com")
             .method(Method::Delete)
             .file_expect(PiholeFile::Wildlist, "address=/example.com/10.1.1.1\n", "")

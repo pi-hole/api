@@ -54,7 +54,7 @@ pub fn clients(ftl: State<FtlConnectionType>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestConfig, write_eom};
+    use testing::{TestBuilder, write_eom};
 
     #[test]
     fn test_clients() {
@@ -70,7 +70,7 @@ mod test {
         encode::write_i32(&mut data, 10).unwrap();
         write_eom(&mut data);
 
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/stats/clients")
             .ftl("client-names", data)
             .expect_json(

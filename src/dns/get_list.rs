@@ -34,11 +34,11 @@ pub fn get_wildlist(config: State<Config>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use config::PiholeFile;
-    use testing::TestConfig;
+    use testing::TestBuilder;
 
     #[test]
     fn test_get_whitelist() {
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/dns/whitelist")
             .file(PiholeFile::Whitelist, "example.com\nexample.net\n")
             .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
@@ -56,7 +56,7 @@ mod test {
 
     #[test]
     fn test_get_blacklist() {
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/dns/blacklist")
             .file(PiholeFile::Blacklist, "example.com\nexample.net\n")
             .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
@@ -74,7 +74,7 @@ mod test {
 
     #[test]
     fn test_get_wildlist() {
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/dns/wildlist")
             .file(
                 PiholeFile::Wildlist,

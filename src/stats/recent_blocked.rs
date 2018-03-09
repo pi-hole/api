@@ -75,7 +75,7 @@ pub fn get_recent_blocked(ftl: &FtlConnectionType, num: usize) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestConfig, write_eom};
+    use testing::{TestBuilder, write_eom};
 
     #[test]
     fn test_recent_blocked() {
@@ -83,7 +83,7 @@ mod test {
         encode::write_str(&mut data, "example.com").unwrap();
         write_eom(&mut data);
 
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/stats/recent_blocked")
             .ftl("recentBlocked (1)", data)
             .expect_json(
@@ -106,7 +106,7 @@ mod test {
         encode::write_str(&mut data, "ads.net").unwrap();
         write_eom(&mut data);
 
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/stats/recent_blocked?num=4")
             .ftl("recentBlocked (4)", data)
             .expect_json(

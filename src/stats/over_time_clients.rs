@@ -64,7 +64,7 @@ pub fn over_time_clients(ftl: State<FtlConnectionType>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestConfig, write_eom};
+    use testing::{TestBuilder, write_eom};
 
     #[test]
     fn test_over_time_clients() {
@@ -79,7 +79,7 @@ mod test {
         encode::write_i32(&mut data, -1).unwrap();
         write_eom(&mut data);
 
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/stats/overTime/clients")
             .ftl("ClientsoverTime", data)
             .expect_json(

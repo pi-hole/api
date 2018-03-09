@@ -79,7 +79,7 @@ fn get_history(ftl: &FtlConnectionType, command: &str) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestConfig, write_eom};
+    use testing::{TestBuilder, write_eom};
 
     #[test]
     fn test_history() {
@@ -98,7 +98,7 @@ mod test {
         encode::write_u8(&mut data, 1).unwrap();
         write_eom(&mut data);
 
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/stats/history")
             .ftl("getallqueries", data)
             .expect_json(

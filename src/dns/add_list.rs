@@ -67,12 +67,12 @@ pub fn add_wildlist(config: State<Config>, domain_input: Json<DomainInput>) -> u
 #[cfg(test)]
 mod test {
     use rocket::http::Method;
-    use testing::TestConfig;
+    use testing::TestBuilder;
     use config::PiholeFile;
 
     #[test]
     fn test_add_whitelist() {
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/dns/whitelist")
             .method(Method::Post)
             .file_expect(PiholeFile::Whitelist, "", "example.com\n")
@@ -97,7 +97,7 @@ mod test {
 
     #[test]
     fn test_add_blacklist() {
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/dns/blacklist")
             .method(Method::Post)
             .file_expect(PiholeFile::Blacklist, "", "example.com\n")
@@ -122,7 +122,7 @@ mod test {
 
     #[test]
     fn test_add_wildlist() {
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/dns/wildlist")
             .method(Method::Post)
             .file_expect(

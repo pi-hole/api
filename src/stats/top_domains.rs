@@ -131,7 +131,7 @@ fn get_top_domains(ftl: &FtlConnectionType, blocked: bool, params: TopParams) ->
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestConfig, write_eom};
+    use testing::{TestBuilder, write_eom};
 
     #[test]
     fn test_top_domains() {
@@ -143,7 +143,7 @@ mod test {
         encode::write_i32(&mut data, 3).unwrap();
         write_eom(&mut data);
 
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains")
             .ftl("top-domains (10)", data)
             .expect_json(
@@ -169,7 +169,7 @@ mod test {
         encode::write_i32(&mut data, 7).unwrap();
         write_eom(&mut data);
 
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains?limit=1")
             .ftl("top-domains (1)", data)
             .expect_json(

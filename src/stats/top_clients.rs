@@ -108,7 +108,7 @@ fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> util::Re
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestConfig, write_eom};
+    use testing::{TestBuilder, write_eom};
 
     #[test]
     fn test_top_clients() {
@@ -125,7 +125,7 @@ mod test {
         encode::write_i32(&mut data, 10).unwrap();
         write_eom(&mut data);
 
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/stats/top_clients")
             .ftl("top-clients (10)", data)
             .expect_json(
@@ -156,7 +156,7 @@ mod test {
         encode::write_i32(&mut data, 20).unwrap();
         write_eom(&mut data);
 
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/stats/top_clients?limit=2")
             .ftl("top-clients (2)", data)
             .expect_json(

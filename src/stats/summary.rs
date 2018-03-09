@@ -47,7 +47,7 @@ pub fn get_summary(ftl: State<FtlConnectionType>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestConfig, write_eom};
+    use testing::{TestBuilder, write_eom};
 
     #[test]
     fn test_summary() {
@@ -64,7 +64,7 @@ mod test {
         encode::write_u8(&mut data, 2).unwrap();
         write_eom(&mut data);
 
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/stats/summary")
             .ftl("stats", data)
             .expect_json(

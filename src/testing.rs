@@ -39,7 +39,7 @@ impl TestFile {
 }
 
 /// Represents a test configuration, with all the data needed to carry out the test
-pub struct TestConfig {
+pub struct TestBuilder {
     endpoint: String,
     method: Method,
     body_data: Option<serde_json::Value>,
@@ -48,9 +48,9 @@ pub struct TestConfig {
     expected_json: serde_json::Value
 }
 
-impl TestConfig {
-    pub fn new() -> TestConfig {
-        TestConfig {
+impl TestBuilder {
+    pub fn new() -> TestBuilder {
+        TestBuilder {
             endpoint: "".to_owned(),
             method: Method::Get,
             body_data: None,

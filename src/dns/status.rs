@@ -51,11 +51,11 @@ fn check_for_gravity<'a>(file: File) -> io::Result<&'a str> {
 #[cfg(test)]
 mod test {
     use config::PiholeFile;
-    use testing::TestConfig;
+    use testing::TestBuilder;
 
     #[test]
     fn test_status_enabled() {
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/dns/status")
             .file(PiholeFile::DnsmasqMainConfig, "addn-hosts=/etc/pihole/gravity.list")
             .expect_json(
@@ -71,7 +71,7 @@ mod test {
 
     #[test]
     fn test_status_disabled() {
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/dns/status")
             .file(PiholeFile::DnsmasqMainConfig, "#addn-hosts=/etc/pihole/gravity.list")
             .expect_json(
@@ -87,7 +87,7 @@ mod test {
 
     #[test]
     fn test_status_unknown() {
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/dns/status")
             .file(PiholeFile::DnsmasqMainConfig, "random data...")
             .expect_json(

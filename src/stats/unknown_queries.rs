@@ -70,7 +70,7 @@ pub fn unknown_queries(ftl: State<FtlConnectionType>) -> util::Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestConfig, write_eom};
+    use testing::{TestBuilder, write_eom};
 
     #[test]
     fn test_unknown_queries() {
@@ -91,7 +91,7 @@ mod test {
         encode::write_bool(&mut data, true).unwrap();
         write_eom(&mut data);
 
-        TestConfig::new()
+        TestBuilder::new()
             .endpoint("/admin/api/stats/unknown_queries")
             .ftl("unknown", data)
             .expect_json(
