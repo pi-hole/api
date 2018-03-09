@@ -9,7 +9,6 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use config::{Config, PiholeFile};
-use dns::list::List;
 use regex::Regex;
 use std::io::{self, BufReader};
 use std::io::prelude::*;
@@ -57,7 +56,7 @@ pub fn read_setup_vars(entry: &str, config: &Config) -> io::Result<Option<String
 }
 
 /// Reload Gravity to activate changes in lists
-pub fn reload_gravity(list: List, config: &Config) -> Result<(), util::Error> {
+pub fn reload_gravity(list: PiholeFile, config: &Config) -> Result<(), util::Error> {
     // Don't actually reload Gravity during testing
     if config.is_test() {
         return Ok(());
@@ -69,9 +68,10 @@ pub fn reload_gravity(list: List, config: &Config) -> Result<(), util::Error> {
         .arg("--skip-download")
         // Based on what list we modified, only reload what is necessary
         .arg(match list {
-            List::Whitelist => "--whitelist-only",
-            List::Blacklist => "--blacklist-only",
-            List::Wildlist => "--wildcard-only"
+            PiholeFile::Whitelist => "--whitelist-only",
+            PiholeFile::Blacklist => "--blacklist-only",
+            PiholeFile::Wildlist => "--wildcard-only",
+            _ => return Err(util::Error::Unknown)
         })
         // Ignore stdin, stdout, and stderr
         .stdin(Stdio::null())
