@@ -84,11 +84,8 @@ mod test {
             .ftl("ClientsoverTime", data)
             .expect_json(
                 json!({
-                    "data": {
-                        "1520126228": [7, 3],
-                        "1520126406": [6, 4]
-                    },
-                    "errors": []
+                    "1520126228": [7, 3],
+                    "1520126406": [6, 4]
                 })
             )
             .test();

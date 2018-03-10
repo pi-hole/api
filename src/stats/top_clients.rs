@@ -130,15 +130,12 @@ mod test {
             .ftl("top-clients (10)", data)
             .expect_json(
                 json!({
-                    "data": {
-                        "top_clients": {
-                            "10.1.1.2": 20,
-                            "client1|10.1.1.1": 30,
-                            "client3|10.1.1.3": 10
-                        },
-                        "total_queries": 100
+                    "top_clients": {
+                        "10.1.1.2": 20,
+                        "client1|10.1.1.1": 30,
+                        "client3|10.1.1.3": 10
                     },
-                    "errors": []
+                    "total_queries": 100
                 })
             )
             .test();
@@ -161,14 +158,11 @@ mod test {
             .ftl("top-clients (2)", data)
             .expect_json(
                 json!({
-                    "data": {
-                        "top_clients": {
-                            "10.1.1.2": 20,
-                            "client1|10.1.1.1": 30
-                        },
-                        "total_queries": 100
+                    "top_clients": {
+                        "10.1.1.2": 20,
+                        "client1|10.1.1.1": 30
                     },
-                    "errors": []
+                    "total_queries": 100
                 })
             )
             .test();

@@ -44,11 +44,8 @@ mod test {
             .ftl("querytypes", data)
             .expect_json(
                 json!({
-                    "data": {
-                        "A": 0.699999988079071,
-                        "AAAA": 0.30000001192092898
-                    },
-                    "errors": []
+                    "A": 0.699999988079071,
+                    "AAAA": 0.30000001192092898
                 })
             )
             .test();

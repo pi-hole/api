@@ -102,27 +102,24 @@ mod test {
             .endpoint("/admin/api/stats/history")
             .ftl("getallqueries", data)
             .expect_json(
-                json!({
-                    "data": [
-                        [
-                            1520126228,
-                            "IPv4",
-                            "example.com",
-                            "client1",
-                            2,
-                            1
-                        ],
-                        [
-                            1520126406,
-                            "IPv6",
-                            "doubleclick.com",
-                            "client2",
-                            1,
-                            1
-                        ]
+                json!([
+                    [
+                        1520126228,
+                        "IPv4",
+                        "example.com",
+                        "client1",
+                        2,
+                        1
                     ],
-                    "errors": []
-                })
+                    [
+                        1520126406,
+                        "IPv6",
+                        "doubleclick.com",
+                        "client2",
+                        1,
+                        1
+                    ]
+                ])
             )
             .test();
     }

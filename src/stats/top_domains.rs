@@ -148,14 +148,11 @@ mod test {
             .ftl("top-domains (10)", data)
             .expect_json(
                 json!({
-                    "data": {
-                        "top_domains": {
-                            "example.com": 7,
-                            "example.net": 3
-                        },
-                        "total_queries": 10
+                    "top_domains": {
+                        "example.com": 7,
+                        "example.net": 3
                     },
-                    "errors": []
+                    "total_queries": 10
                 })
             )
             .test();
@@ -174,13 +171,10 @@ mod test {
             .ftl("top-domains (1)", data)
             .expect_json(
                 json!({
-                    "data": {
-                        "top_domains": {
-                            "example.com": 7
-                        },
-                        "total_queries": 10
+                    "top_domains": {
+                        "example.com": 7
                     },
-                    "errors": []
+                    "total_queries": 10
                 })
             )
             .test();

@@ -86,10 +86,7 @@ mod test {
             )
             .expect_json(
                 json!({
-                    "data": {
-                        "status": "success"
-                    },
-                    "errors": []
+                    "status": "success"
                 })
             )
             .test();
@@ -111,10 +108,7 @@ mod test {
             )
             .expect_json(
                 json!({
-                    "data": {
-                        "status": "success"
-                    },
-                    "errors": []
+                    "status": "success"
                 })
             )
             .test();
@@ -139,10 +133,7 @@ mod test {
             )
             .expect_json(
                 json!({
-                    "data": {
-                        "status": "success"
-                    },
-                    "errors": []
+                    "status": "success"
                 })
             )
             .test();
