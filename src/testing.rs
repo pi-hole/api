@@ -8,11 +8,11 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
+extern crate serde_json;
 extern crate tempfile;
 
 use config::PiholeFile;
 use rocket::http::{Method, ContentType};
-use serde_json;
 use setup;
 use std::collections::HashMap;
 use std::fs::File;
