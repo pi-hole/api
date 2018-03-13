@@ -2,7 +2,7 @@ version: 2
 
 .job_template: &job_template
   docker:
-    - image: "japaric/$TARGET:v0.1.14"
+    - image: thepihole/api-build:$ARCH
   steps:
     - checkout
     - restore_cache:
@@ -18,15 +18,15 @@ version: 2
           - cargo-{{ .Branch }}
           # Find the most recent cache used from any branch
           - cargo
-    - run:
-        name: "Setup Rust"
-        command: |
-          apt-get update
-          apt-get install -y --no-install-recommends curl
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2018-03-07
-          export PATH=$HOME/.cargo/bin:$PATH
-          echo 'export PATH=$HOME/.cargo/bin:$PATH' >> $BASH_ENV
-          [[ $SKIP_ADDING_TARGET ]] || rustup target add $TARGET
+#    - run:
+#        name: "Setup Rust"
+#        command: |
+#          apt-get update
+#          apt-get install -y --no-install-recommends curl
+#          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2018-03-07
+#          export PATH=$HOME/.cargo/bin:$PATH
+#          echo 'export PATH=$HOME/.cargo/bin:$PATH' >> $BASH_ENV
+#          [[ $SKIP_ADDING_TARGET ]] || rustup target add $TARGET
     - run:
         name: "Build"
         command: |
@@ -59,18 +59,21 @@ jobs:
     environment:
       BIN_NAME: "pihole-API-arm-linux-gnueabi"
       TARGET: "arm-unknown-linux-gnueabi"
+      ARCH: "arm"
 
   armhf:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-armv7-linux-gnueabihf"
       TARGET: "armv7-unknown-linux-gnueabihf"
+      ARCH: "armhf"
 
   aarch64:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-aarch64-linux-gnu"
       TARGET: "aarch64-unknown-linux-gnu"
+      ARCH: "aarch64"
 
   x86_64:
     <<: *job_template
@@ -78,18 +81,21 @@ jobs:
       BIN_NAME: "pihole-API-linux-x86_64"
       TARGET: "x86_64-unknown-linux-gnu"
       SKIP_ADDING_TARGET: "1" # We're already running on x86_64
+      ARCH: "x86_64"
 
   x86_64-musl:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-musl-linux-x86_64"
       TARGET: "x86_64-unknown-linux-musl"
+      ARCH: "x86_64-musl"
 
   x86_32:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-linux-x86_32"
       TARGET: "i686-unknown-linux-gnu"
+      ARCH: "x86_32"
 
 workflows:
   version: 2
