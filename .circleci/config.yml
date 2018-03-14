@@ -96,3 +96,4 @@ workflows:
       - x86_64
       - x86_64-musl
       - x86_32
+      - ppc64le
