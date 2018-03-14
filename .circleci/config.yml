@@ -2,7 +2,7 @@ version: 2
 
 .job_template: &job_template
   docker:
-    - image: thepihole/api-build:$ARCH
+    - image: thepihole/api-build:$CIRCLE_JOB
   steps:
     - checkout
     - restore_cache:
@@ -59,21 +59,18 @@ jobs:
     environment:
       BIN_NAME: "pihole-API-arm-linux-gnueabi"
       TARGET: "arm-unknown-linux-gnueabi"
-      ARCH: "arm"
 
   armhf:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-armv7-linux-gnueabihf"
       TARGET: "armv7-unknown-linux-gnueabihf"
-      ARCH: "armhf"
 
   aarch64:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-aarch64-linux-gnu"
       TARGET: "aarch64-unknown-linux-gnu"
-      ARCH: "aarch64"
 
   x86_64:
     <<: *job_template
@@ -81,21 +78,24 @@ jobs:
       BIN_NAME: "pihole-API-linux-x86_64"
       TARGET: "x86_64-unknown-linux-gnu"
       SKIP_ADDING_TARGET: "1" # We're already running on x86_64
-      ARCH: "x86_64"
 
   x86_64-musl:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-musl-linux-x86_64"
       TARGET: "x86_64-unknown-linux-musl"
-      ARCH: "x86_64-musl"
 
   x86_32:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-linux-x86_32"
       TARGET: "i686-unknown-linux-gnu"
-      ARCH: "x86_32"
+
+  ppc64le:
+    <<: *job_template
+    environment:
+      BIN_NAME: "pihole-API-powerpc64le-linux-gnu"
+      TARGET: "powerpc64le-unknown-linux-gnu"
 
 workflows:
   version: 2
