@@ -7,7 +7,7 @@ RUN apt-get update && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2018-03-07 && \
     export PATH="/root/.cargo/bin:$PATH" && \
     rustup target add arm-unknown-linux-gnueabihf && \
-    apt-get purge curl -y --autoremove ca-certificates
+    apt-get purge -y --autoremove curl
 
 ENV PATH="/root/.cargo/bin:$PATH" \
     TARGET_CC=arm-linux-gnueabihf-gcc \
