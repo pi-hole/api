@@ -9,15 +9,15 @@ version: 2
         keys:
           # Find a cache corresponding to this specific Cargo.toml checksum and target.
           # When the target is different, this key will fail
-          - cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}
+          - v2-cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}
           # Find a cache corresponding to this specific Cargo.toml checksum.
           # When this file is changed, this key will fail.
-          - cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}
+          - v2-cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}
           # Find a cache corresponding to any build in this branch, regardless of Cargo.toml checksum.
           # The most recent one will be used.
-          - cargo-{{ .Branch }}
+          - v2-cargo-{{ .Branch }}
           # Find the most recent cache used from any branch
-          - cargo
+          - v2-cargo
     - run:
         name: "Build"
         command: |
@@ -38,7 +38,7 @@ version: 2
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}.sha1" "${FTL_SECRET}"
           rm ./FTL-client
     - save_cache:
-        key: cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cargo.lock" }}
+        key: v2-cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cargo.lock" }}
         paths:
           - target
 
