@@ -18,15 +18,6 @@ version: 2
           - cargo-{{ .Branch }}
           # Find the most recent cache used from any branch
           - cargo
-#    - run:
-#        name: "Setup Rust"
-#        command: |
-#          apt-get update
-#          apt-get install -y --no-install-recommends curl
-#          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2018-03-07
-#          export PATH=$HOME/.cargo/bin:$PATH
-#          echo 'export PATH=$HOME/.cargo/bin:$PATH' >> $BASH_ENV
-#          [[ $SKIP_ADDING_TARGET ]] || rustup target add $TARGET
     - run:
         name: "Build"
         command: |
@@ -35,7 +26,7 @@ version: 2
     - run:
         name: "Test"
         command: |
-          [[ "$TARGET" != "x86_64-unknown-linux-gnu" ]] || time cargo test --release --target $TARGET
+          [[ "$CIRCLE_JOB" != "x86_64" ]] || time cargo test --release --target $TARGET
     - run:
         name: "Upload"
         command: |
@@ -50,8 +41,6 @@ version: 2
         key: cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cargo.lock" }}
         paths:
           - target
-          - /root/.cargo
-          - /root/.rustup
 
 jobs:
   arm:
