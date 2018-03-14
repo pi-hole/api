@@ -2,12 +2,12 @@ FROM debian:stretch
 
 # Install Rust
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates gcc libc-dev gcc-aarch64-linux-gnu libc-dev-arm64-cross
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2018-03-07
-ENV PATH "/root/.cargo/bin:$PATH"
-
-# Install target standard library
-RUN rustup target add aarch64-unknown-linux-gnu
+    apt-get install -y --no-install-recommends curl ca-certificates \
+        gcc libc-dev gcc-aarch64-linux-gnu libc-dev-arm64-cross && \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2018-03-07 && \
+    export PATH="/root/.cargo/bin:$PATH" && \
+    rustup target add aarch64-unknown-linux-gnu && \
+    apt-get purge -y --autoremove curl ca-certificates
 
 ENV TARGET_CC=aarch64-linux-gnu-gcc \
     CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
