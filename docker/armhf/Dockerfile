@@ -6,8 +6,7 @@ RUN apt-get update && \
         gcc libc-dev gcc-arm-linux-gnueabihf libc6-dev-armhf-cross && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2018-03-07 && \
     export PATH="/root/.cargo/bin:$PATH" && \
-    rustup target add arm-unknown-linux-gnueabihf && \
-    apt-get purge -y --autoremove curl
+    rustup target add arm-unknown-linux-gnueabihf
 
 ENV PATH="/root/.cargo/bin:$PATH" \
     TARGET_CC=arm-linux-gnueabihf-gcc \

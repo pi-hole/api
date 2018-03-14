@@ -4,7 +4,6 @@ FROM debian:stretch
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates gcc libc-dev && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2018-03-07 && \
-    export PATH="/root/.cargo/bin:$PATH" && \
-    apt-get purge -y --autoremove curl
+    export PATH="/root/.cargo/bin:$PATH"
 
 ENV PATH="/root/.cargo/bin:$PATH"
