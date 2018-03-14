@@ -7,3 +7,5 @@ RUN apt-get update && \
     export PATH="/root/.cargo/bin:$PATH" && \
     rustup target add i686-unknown-linux-gnu && \
     apt-get purge -y --autoremove curl ca-certificates
+
+ENV PATH="/root/.cargo/bin:$PATH"

@@ -9,6 +9,7 @@ RUN apt-get update && \
     rustup target add arm-unknown-linux-gnueabihf && \
     apt-get purge curl -y --autoremove ca-certificates
 
-ENV TARGET_CC=arm-linux-gnueabihf-gcc \
+ENV PATH="/root/.cargo/bin:$PATH" \
+    TARGET_CC=arm-linux-gnueabihf-gcc \
     CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc \
     CC_armv7_unknown_linux_gnueabihf=arm-linux-gnueabihf-gcc

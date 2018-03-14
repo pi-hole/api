@@ -8,6 +8,7 @@ RUN apt-get update && \
     rustup target add x86_64-unknown-linux-musl && \
     apt-get purge -y --autoremove curl ca-certificates
 
-ENV TARGET_CC=musl-gcc \
+ENV PATH="/root/.cargo/bin:$PATH" \
+    TARGET_CC=musl-gcc \
     CARGO_TARGET_POWERPC64LE_UNKNOWN_LINUX_GNU_LINKER=musl-gcc \
     CC_x86_64_unknown_linux_musl=musl-gcc

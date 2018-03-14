@@ -9,6 +9,7 @@ RUN apt-get update && \
     rustup target add powerpc64le-unknown-linux-gnu && \
     apt-get purge -y --autoremove curl ca-certificates
 
-ENV TARGET_CC=powerpc64le-linux-gnu-gcc \
+ENV PATH="/root/.cargo/bin:$PATH" \
+    TARGET_CC=powerpc64le-linux-gnu-gcc \
     CARGO_TARGET_POWERPC64LE_UNKNOWN_LINUX_GNU_LINKER=powerpc64le-linux-gnu-gcc \
     CC_powerpc64le_unknown_linux_gnu=powerpc64le-linux-gnu-gcc
