@@ -12,7 +12,6 @@ use ftl::FtlConnectionType;
 use rmp::decode::DecodeStringError;
 use rmp::Marker;
 use rocket::State;
-use std::collections::HashMap;
 use util;
 
 /// Get the top clients with default parameters
@@ -46,6 +45,13 @@ impl Default for TopClientParams {
     }
 }
 
+#[derive(Serialize)]
+struct Client {
+    name: String,
+    ip: String,
+    count: i32
+}
+
 fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> util::Reply {
     let default_limit: usize = 10;
 
@@ -67,12 +73,12 @@ fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> util::Re
     let mut str_buffer = [0u8; 4096];
 
     // Store the hostname -> number data here
-    let mut top_clients: HashMap<String, i32> = HashMap::new();
+    let mut top_clients = Vec::new();
 
     loop {
         // Get the hostname, unless we are at the end of the list
         let name = match con.read_str(&mut str_buffer) {
-            Ok(name) => name.to_string(),
+            Ok(name) => name.to_owned(),
             Err(e) => {
                 // Check if we received the EOM
                 if let DecodeStringError::TypeMismatch(marker) = e {
@@ -87,16 +93,10 @@ fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> util::Re
             }
         };
 
-        let ip = con.read_str(&mut str_buffer)?;
+        let ip = con.read_str(&mut str_buffer)?.to_owned();
         let count = con.read_i32()?;
 
-        // The key will be `hostname|IP` if the hostname exists, otherwise just the IP address
-        let key = if name.is_empty() { ip.to_owned()
-        } else {
-            format!("{}|{}", name, ip)
-        };
-
-        top_clients.insert(key, count);
+        top_clients.push(Client { name, ip, count });
     }
 
     util::reply_data(json!({
@@ -130,11 +130,23 @@ mod test {
             .ftl("top-clients (10)", data)
             .expect_json(
                 json!({
-                    "top_clients": {
-                        "10.1.1.2": 20,
-                        "client1|10.1.1.1": 30,
-                        "client3|10.1.1.3": 10
-                    },
+                    "top_clients": [
+                        {
+                            "name": "client1",
+                            "ip": "10.1.1.1",
+                            "count": 30
+                        },
+                        {
+                            "name": "",
+                            "ip": "10.1.1.2",
+                            "count": 20
+                        },
+                        {
+                            "name": "client3",
+                            "ip": "10.1.1.3",
+                            "count": 10
+                        }
+                    ],
                     "total_queries": 100
                 })
             )
@@ -158,10 +170,18 @@ mod test {
             .ftl("top-clients (2)", data)
             .expect_json(
                 json!({
-                    "top_clients": {
-                        "10.1.1.2": 20,
-                        "client1|10.1.1.1": 30
-                    },
+                    "top_clients": [
+                        {
+                            "name": "client1",
+                            "ip": "10.1.1.1",
+                            "count": 30
+                        },
+                        {
+                            "name": "",
+                            "ip": "10.1.1.2",
+                            "count": 20
+                        }
+                    ],
                     "total_queries": 100
                 })
             )
