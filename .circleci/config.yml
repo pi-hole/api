@@ -30,8 +30,12 @@ version: 2
     - run:
         name: "Build"
         command: |
-          time cargo build --release --target $TARGET -v
+          time cargo build --release --target $TARGET
           cp target/$TARGET/release/pihole_api ${BIN_NAME}
+    - run:
+        name: "Test"
+        command: |
+          [[ "$TARGET" != "x86_64-unknown-linux-gnu" ]] || time cargo test --release --target $TARGET
     - run:
         name: "Upload"
         command: |

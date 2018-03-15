@@ -11,33 +11,62 @@
 use std::os::unix::net::UnixStream;
 use std::error::Error;
 use std::io::prelude::*;
-use std::io::BufReader;
+use std::io::{BufReader, Cursor};
 use std::collections::HashMap;
 use rmp::decode;
+
 use util;
 
 /// The location of the FTL socket
 const SOCKET_LOCATION: &'static str = "/var/run/pihole/FTL.sock";
 
-/// A wrapper around the FTL socket to easily read in data
-pub struct FtlConnection(BufReader<UnixStream>);
+/// A wrapper around the FTL socket to easily read in data. It takes a Box<Read> so that it can be
+/// tested with fake data from a Vec<u8>
+pub struct FtlConnection<'test>(Box<Read + 'test>);
 
-/// Connect to FTL and run the specified command
-pub fn connect(command: &str) -> Result<FtlConnection, util::Error> {
-    // Try to connect to FTL
-    let mut stream = match UnixStream::connect(SOCKET_LOCATION) {
-        Ok(s) => s,
-        Err(_) => return Err(util::Error::FtlConnectionFail)
-    };
-
-    // Send the command
-    stream.write_all(format!(">{}\n", command).as_bytes())?;
-
-    // Return the connection so the API can read the response
-    Ok(FtlConnection(BufReader::new(stream)))
+/// A marker for the type of FTL connection to make.
+///
+/// - Socket refers to the normal Unix socket connection.
+/// - Test is for testing, so that a test can pass in arbitrary MessagePack data to be processed.
+///   The map in Test maps FTL commands to data.
+pub enum FtlConnectionType {
+    Socket,
+    Test(HashMap<String, Vec<u8>>)
 }
 
-impl FtlConnection {
+impl FtlConnectionType {
+    /// Connect to FTL and run the specified command
+    pub fn connect(&self, command: &str) -> Result<FtlConnection, util::Error> {
+        // Determine the type of connection to create
+        match *self {
+            FtlConnectionType::Socket => {
+                // Try to connect to FTL
+                let mut stream = match UnixStream::connect(SOCKET_LOCATION) {
+                    Ok(s) => s,
+                    Err(_) => return Err(util::Error::FtlConnectionFail)
+                };
+
+                // Send the command
+                stream.write_all(format!(">{}\n", command).as_bytes())?;
+
+                // Return the connection so the API can read the response
+                Ok(FtlConnection(Box::new(BufReader::new(stream))))
+            },
+            FtlConnectionType::Test(ref map) => {
+                // Return a connection reading the testing data
+                Ok(FtlConnection(Box::new(Cursor::new(
+                    // Try to get the testing data for this command
+                    match map.get(command) {
+                        Some(data) => data,
+                        None => return Err(util::Error::FtlConnectionFail)
+                    }
+                ))))
+            }
+        }
+    }
+}
+
+impl<'test> FtlConnection<'test> {
     /// We expect an end of message (EOM) response when FTL has finished sending data
     pub fn expect_eom(&mut self) -> Result<(), String> {
         let mut buffer: [u8; 1] = [0];
