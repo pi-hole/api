@@ -12,7 +12,6 @@ use ftl::FtlConnectionType;
 use rmp::decode::ValueReadError;
 use rmp::Marker;
 use rocket::State;
-use std::collections::HashMap;
 use util;
 
 /// Get the query types usage over time
@@ -20,7 +19,7 @@ use util;
 pub fn over_time_query_types(ftl: State<FtlConnectionType>) -> util::Reply {
     let mut con = ftl.connect("QueryTypesoverTime")?;
 
-    let mut over_time: HashMap<i32, (f32, f32)> = HashMap::new();
+    let mut over_time = Vec::new();
 
     loop {
         // Get the timestamp, unless we are at the end of the list
@@ -43,10 +42,16 @@ pub fn over_time_query_types(ftl: State<FtlConnectionType>) -> util::Reply {
         let ipv4 = con.read_f32()?;
         let ipv6 = con.read_f32()?;
 
-        over_time.insert(timestamp, (ipv4, ipv6));
+        over_time.push(TimeStep { timestamp, data: vec![ipv4, ipv6] });
     }
 
     util::reply_data(over_time)
+}
+
+#[derive(Serialize)]
+struct TimeStep {
+    timestamp: i32,
+    data: Vec<f32>
 }
 
 #[cfg(test)]
@@ -69,16 +74,22 @@ mod test {
             .endpoint("/admin/api/stats/overTime/query_types")
             .ftl("QueryTypesoverTime", data)
             .expect_json(
-                json!({
-                    "1520126228": [
-                        0.699999988079071,
-                        0.30000001192092898
-                    ],
-                    "1520126406": [
-                        0.6000000238418579,
-                        0.4000000059604645
-                    ]
-                })
+                json!([
+                    {
+                        "timestamp": 1520126228,
+                        "data": [
+                            0.699999988079071,
+                            0.30000001192092898
+                        ]
+                    },
+                    {
+                        "timestamp": 1520126406,
+                        "data": [
+                            0.6000000238418579,
+                            0.4000000059604645
+                        ]
+                    }
+                ])
             )
             .test();
     }
