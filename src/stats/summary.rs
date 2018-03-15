@@ -27,7 +27,11 @@ pub fn get_summary(ftl: State<FtlConnectionType>) -> util::Reply {
     let cached_queries = con.read_i32()?;
     let total_clients = con.read_i32()?;
     let unique_clients = con.read_i32()?;
-    let status = con.read_u8()?;
+    let status = match con.read_u8()? {
+        0 => "disabled",
+        1 => "enabled",
+        _ => "unknown"
+    };
     con.expect_eom()?;
 
     util::reply_data(json!({
