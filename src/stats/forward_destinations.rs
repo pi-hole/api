@@ -12,7 +12,6 @@ use ftl::FtlConnectionType;
 use rmp::decode::DecodeStringError;
 use rmp::Marker;
 use rocket::State;
-use std::collections::HashMap;
 use util;
 
 /// Get the forward destinations
@@ -22,7 +21,7 @@ pub fn forward_destinations(ftl: State<FtlConnectionType>) -> util::Reply {
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
-    let mut forward_destinations: HashMap<String, f32> = HashMap::new();
+    let mut forward_destinations = Vec::new();
 
     loop {
         // Read in the hostname, unless we are at the end of the list
@@ -43,7 +42,7 @@ pub fn forward_destinations(ftl: State<FtlConnectionType>) -> util::Reply {
         };
 
         let ip = con.read_str(&mut str_buffer)?;
-        let percentage = con.read_f32()?;
+        let percent = con.read_f32()?;
 
         // The key will be `hostname|IP` if the hostname exists, otherwise just the IP address
         let key = if ip.len() > 0 {
@@ -52,10 +51,16 @@ pub fn forward_destinations(ftl: State<FtlConnectionType>) -> util::Reply {
             name
         };
 
-        forward_destinations.insert(key, percentage);
+        forward_destinations.push(ForwardDestination { name: key, percent });
     }
 
     util::reply_data(forward_destinations)
+}
+
+#[derive(Serialize)]
+struct ForwardDestination {
+    name: String,
+    percent: f32
 }
 
 #[cfg(test)]
@@ -81,11 +86,20 @@ mod test {
             .endpoint("/admin/api/stats/forward_destinations")
             .ftl("forward-dest", data)
             .expect_json(
-                json!({
-                    "google-dns-alt|8.8.4.4": 0.4000000059604645,
-                    "google-dns|8.8.8.8": 0.30000001192092898,
-                    "local|local": 0.30000001192092898
-                })
+                json!([
+                    {
+                        "name": "google-dns-alt|8.8.4.4",
+                        "percent": 0.4000000059604645
+                    },
+                    {
+                        "name": "google-dns|8.8.8.8",
+                        "percent": 0.30000001192092898
+                    },
+                    {
+                        "name": "local|local",
+                        "percent": 0.30000001192092898
+                    }
+                ])
             )
             .test();
     }
