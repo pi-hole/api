@@ -80,12 +80,6 @@ jobs:
       BIN_NAME: "pihole-API-linux-x86_32"
       TARGET: "i686-unknown-linux-gnu"
 
-  ppc64le:
-    <<: *job_template
-    environment:
-      BIN_NAME: "pihole-API-powerpc64le-linux-gnu"
-      TARGET: "powerpc64le-unknown-linux-gnu"
-
 workflows:
   version: 2
   build:
@@ -96,4 +90,3 @@ workflows:
       - x86_64
       - x86_64-musl
       - x86_32
-      - ppc64le
