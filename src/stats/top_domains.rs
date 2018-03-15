@@ -12,7 +12,6 @@ use ftl::FtlConnectionType;
 use rmp::decode::DecodeStringError;
 use rmp::Marker;
 use rocket::State;
-use std::collections::HashMap;
 use util;
 
 /// Return the top domains with default parameters
@@ -58,6 +57,12 @@ impl Default for TopParams {
     }
 }
 
+#[derive(Serialize)]
+struct Domain {
+    domain: String,
+    count: i32
+}
+
 /// Get the top domains (blocked or not)
 fn get_top_domains(ftl: &FtlConnectionType, blocked: bool, params: TopParams) -> util::Reply {
     let default_limit: usize = TopParams::default().limit.unwrap_or(10);
@@ -87,15 +92,13 @@ fn get_top_domains(ftl: &FtlConnectionType, blocked: bool, params: TopParams) ->
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
-
-    // Store the domain -> number data here
-    let mut top: HashMap<String, i32> = HashMap::new();
+    let mut top = Vec::new();
 
     // Read in the data
     loop {
         // Get the domain, unless we are at the end of the list
         let domain = match con.read_str(&mut str_buffer) {
-            Ok(domain) => domain,
+            Ok(domain) => domain.to_owned(),
             Err(e) => {
                 // Check if we received the EOM
                 if let DecodeStringError::TypeMismatch(marker) = e {
@@ -112,7 +115,7 @@ fn get_top_domains(ftl: &FtlConnectionType, blocked: bool, params: TopParams) ->
 
         let count = con.read_i32()?;
 
-        top.insert(domain.to_string(), count);
+        top.push(Domain { domain, count });
     }
 
     // Get the keys to send the data under
@@ -148,10 +151,16 @@ mod test {
             .ftl("top-domains (10)", data)
             .expect_json(
                 json!({
-                    "top_domains": {
-                        "example.com": 7,
-                        "example.net": 3
-                    },
+                    "top_domains": [
+                        {
+                            "domain": "example.com",
+                            "count": 7
+                        },
+                        {
+                            "domain": "example.net",
+                            "count": 3
+                        }
+                    ],
                     "total_queries": 10
                 })
             )
@@ -171,9 +180,12 @@ mod test {
             .ftl("top-domains (1)", data)
             .expect_json(
                 json!({
-                    "top_domains": {
-                        "example.com": 7
-                    },
+                    "top_domains": [
+                        {
+                            "domain": "example.com",
+                            "count": 7
+                        }
+                    ],
                     "total_queries": 10
                 })
             )
