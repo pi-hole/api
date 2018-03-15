@@ -41,6 +41,7 @@ version: 2
         key: v2-cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cargo.lock" }}
         paths:
           - target
+          - /root/.cargo
 
 jobs:
   arm:
