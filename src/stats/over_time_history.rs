@@ -8,22 +8,47 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use ftl::FtlConnectionType;
+use ftl::{FtlConnectionType, FtlConnection};
 use rocket::State;
 use util;
+use rmp::decode;
 
 /// Get the query history over time (separated into blocked and not blocked)
 #[get("/stats/overTime/history")]
 pub fn over_time_history(ftl: State<FtlConnectionType>) -> util::Reply {
     let mut con = ftl.connect("overTime")?;
 
-    let domains_over_time = con.read_int_map()?;
-    let blocked_over_time = con.read_int_map()?;
+    let domains_over_time = get_over_time_data(&mut con)?;
+    let blocked_over_time = get_over_time_data(&mut con)?;
 
     util::reply_data(json!({
         "domains_over_time": domains_over_time,
         "blocked_over_time": blocked_over_time
     }))
+}
+
+/// Read in some time data (represented by FTL as a map of ints to ints)
+fn get_over_time_data(ftl: &mut FtlConnection) -> Result<Vec<TimeStep>, decode::ValueReadError> {
+    // Read in the length of the data to optimize memory usage
+    let map_len = ftl.read_map_len()? as usize;
+
+    // Create the data
+    let mut over_time = Vec::with_capacity(map_len);
+
+    // Read in the data
+    for _ in 0..map_len {
+        let key = ftl.read_i32()?;
+        let value = ftl.read_i32()?;
+        over_time.push(TimeStep { timestamp: key, count: value });
+    }
+
+    Ok(over_time)
+}
+
+#[derive(Serialize)]
+struct TimeStep {
+    timestamp: i32,
+    count: i32
 }
 
 #[cfg(test)]
@@ -51,14 +76,26 @@ mod test {
             .ftl("overTime", data)
             .expect_json(
                 json!({
-                    "blocked_over_time": {
-                        "1520126228": 5,
-                        "1520126406": 5
-                    },
-                    "domains_over_time": {
-                        "1520126228": 10,
-                        "1520126406": 20
-                    }
+                    "domains_over_time": [
+                        {
+                            "timestamp": 1520126228,
+                            "count": 10
+                        },
+                        {
+                            "timestamp": 1520126406,
+                            "count": 20
+                        }
+                    ],
+                    "blocked_over_time": [
+                        {
+                            "timestamp": 1520126228,
+                            "count": 5
+                        },
+                        {
+                            "timestamp": 1520126406,
+                            "count": 5
+                        }
+                    ]
                 })
             )
             .test();

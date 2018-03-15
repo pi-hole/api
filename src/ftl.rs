@@ -115,23 +115,5 @@ impl<'test> FtlConnection<'test> {
     pub fn read_map_len(&mut self) -> Result<u32, decode::ValueReadError> {
         decode::read_map_len(&mut self.0)
     }
-
-    /// Read in a map of i32 -> i32 (signed int)
-    pub fn read_int_map(&mut self) -> Result<HashMap<i32, i32>, decode::ValueReadError> {
-        // Read in the length of the map to optimize memory usage
-        let map_len = self.read_map_len()? as usize;
-
-        // Create the map
-        let mut map: HashMap<i32, i32> = HashMap::with_capacity(map_len);
-
-        // Read in the data
-        for _ in 0..map_len {
-            let key = self.read_i32()?;
-            let value = self.read_i32()?;
-            map.insert(key, value);
-        }
-
-        Ok(map)
-    }
 }
 
