@@ -22,7 +22,7 @@ pub fn clients(ftl: State<FtlConnectionType>) -> util::Reply {
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
-    let mut client_data: Vec<(String, String, i32)> = Vec::new();
+    let mut client_data = Vec::new();
 
     loop {
         // Get the hostname, unless we are at the end of the list
@@ -45,10 +45,17 @@ pub fn clients(ftl: State<FtlConnectionType>) -> util::Reply {
         let ip = con.read_str(&mut str_buffer)?.to_owned();
         let count = con.read_i32()?;
 
-        client_data.push((name, ip, count));
+        client_data.push(Client { name, ip, count });
     }
 
     util::reply_data(client_data)
+}
+
+#[derive(Serialize)]
+struct Client {
+    name: String,
+    ip: String,
+    count: i32
 }
 
 #[cfg(test)]
@@ -75,21 +82,21 @@ mod test {
             .ftl("client-names", data)
             .expect_json(
                 json!([
-                    [
-                        "client1",
-                        "10.1.1.1",
-                        30
-                    ],
-                    [
-                        "",
-                        "10.1.1.2",
-                        20
-                    ],
-                    [
-                        "client3",
-                        "10.1.1.3",
-                        10
-                    ]
+                    {
+                        "name": "client1",
+                        "ip": "10.1.1.1",
+                        "count": 30
+                    },
+                    {
+                        "name": "",
+                        "ip": "10.1.1.2",
+                        "count": 20
+                    },
+                    {
+                        "name": "client3",
+                        "ip": "10.1.1.3",
+                        "count": 10
+                    }
                 ])
             )
             .test();
