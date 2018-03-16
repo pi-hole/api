@@ -2,7 +2,10 @@ use rocket::request::{self, FromRequest, Request, State};
 use rocket::Outcome;
 use util;
 
+/// When used as a request guard, requests must be authenticated
 pub struct Auth;
+
+/// Stores the API key in the server state
 pub struct APIKey(String);
 
 impl<'a, 'r> FromRequest<'a, 'r> for Auth {
@@ -28,6 +31,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for Auth {
 }
 
 impl APIKey {
+    /// Create a new API key
     pub fn new(key: String) -> APIKey {
         APIKey(key)
     }

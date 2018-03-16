@@ -14,10 +14,11 @@ use rmp::Marker;
 use rocket::State;
 use std::collections::HashMap;
 use util;
+use auth::Auth;
 
 /// Get the query types usage over time
 #[get("/stats/overTime/query_types")]
-pub fn over_time_query_types(ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn over_time_query_types(_auth: Auth, ftl: State<FtlConnectionType>) -> util::Reply {
     let mut con = ftl.connect("QueryTypesoverTime")?;
 
     let mut over_time: HashMap<i32, (f32, f32)> = HashMap::new();

@@ -13,16 +13,17 @@ use rmp::decode::ValueReadError;
 use rmp::Marker;
 use rocket::State;
 use util;
+use auth::Auth;
 
 /// Get the entire query history (as stored in FTL)
 #[get("/stats/history")]
-pub fn history(ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn history(_auth: Auth, ftl: State<FtlConnectionType>) -> util::Reply {
     get_history(&ftl, "getallqueries")
 }
 
 /// Get the query history within the specified timespan
 #[get("/stats/history?<timespan>")]
-pub fn history_timespan(ftl: State<FtlConnectionType>, timespan: Timespan) -> util::Reply {
+pub fn history_timespan(_auth: Auth, ftl: State<FtlConnectionType>, timespan: Timespan) -> util::Reply {
     get_history(&ftl, &format!("getallqueries-time {} {}", timespan.from, timespan.to))
 }
 

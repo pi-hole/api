@@ -14,10 +14,11 @@ use rmp::Marker;
 use rocket::State;
 use std::collections::HashMap;
 use util;
+use auth::Auth;
 
 /// Get the forward destinations
 #[get("/stats/forward_destinations")]
-pub fn forward_destinations(ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn forward_destinations(_auth: Auth, ftl: State<FtlConnectionType>) -> util::Reply {
     let mut con = ftl.connect("forward-dest")?;
 
     // Create a 4KiB string buffer
