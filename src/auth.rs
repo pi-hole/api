@@ -42,3 +42,46 @@ impl APIKey {
         self.0 == key
     }
 }
+
+#[cfg(test)]
+mod test {
+    use rocket::http::Status;
+    use testing::{TestBuilder, write_eom};
+
+    #[test]
+    fn test_authenticated() {
+        let mut data = Vec::new();
+        write_eom(&mut data);
+
+        TestBuilder::new()
+            .endpoint("/admin/api/stats/history")
+            .ftl("getallqueries", data)
+            .should_auth(true)
+            .expect_json(json!({
+                "data": [],
+                "errors": []
+            }))
+            .test()
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_unauthenticated() {
+        let mut data = Vec::new();
+        write_eom(&mut data);
+
+        TestBuilder::new()
+            .endpoint("/admin/api/stats/history")
+            .should_auth(false)
+            .ftl("getallqueries", data)
+            .expect_status(Status::Unauthorized)
+            .expect_json(json!({
+                "data": [],
+                "errors": [{
+                    "key": "unauthorized",
+                    "message": "Unauthorized"
+                }]
+            }))
+            .test()
+    }
+}

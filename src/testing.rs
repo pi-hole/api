@@ -13,7 +13,7 @@ extern crate tempfile;
 
 use base64;
 use config::PiholeFile;
-use rocket::http::{Method, ContentType, Header};
+use rocket::http::{Method, ContentType, Header, Status};
 use setup;
 use std::collections::HashMap;
 use std::fs::File;
@@ -43,10 +43,13 @@ impl TestFile {
 pub struct TestBuilder {
     endpoint: String,
     method: Method,
+    headers: Vec<Header<'static>>,
+    should_auth: bool,
     body_data: Option<serde_json::Value>,
     ftl_data: HashMap<String, Vec<u8>>,
     test_files: Vec<TestFile>,
-    expected_json: serde_json::Value
+    expected_json: serde_json::Value,
+    expected_status: Status
 }
 
 impl TestBuilder {
@@ -54,13 +57,16 @@ impl TestBuilder {
         TestBuilder {
             endpoint: "".to_owned(),
             method: Method::Get,
+            headers: Vec::new(),
+            should_auth: true,
             body_data: None,
             ftl_data: HashMap::new(),
             test_files: Vec::new(),
             expected_json: json!({
                 "data": [],
                 "errors": []
-            })
+            }),
+            expected_status: Status::Ok
         }
     }
 
@@ -71,6 +77,17 @@ impl TestBuilder {
 
     pub fn method(mut self, method: Method) -> Self {
         self.method = method;
+        self
+    }
+
+    #[allow(unused)]
+    pub fn header<H: Into<Header<'static>>>(mut self, header: H) -> Self {
+        self.headers.push(header.into());
+        self
+    }
+
+    pub fn should_auth(mut self, should_auth: bool) -> Self {
+        self.should_auth = should_auth;
         self
     }
 
@@ -108,6 +125,11 @@ impl TestBuilder {
         self
     }
 
+    pub fn expect_status(mut self, status: Status) -> Self {
+        self.expected_status = status;
+        self
+    }
+
     pub fn test(mut self) {
         let mut config_data = HashMap::new();
 
@@ -132,9 +154,16 @@ impl TestBuilder {
         let mut request = client.req(self.method, self.endpoint);
 
         // Add the authentication header
-        request.add_header(
-            Header::new("X-Pi-hole-Authenticate", base64::encode("test_key"))
-        );
+        if self.should_auth {
+            request.add_header(
+                Header::new("X-Pi-hole-Authenticate", base64::encode("test_key"))
+            );
+        }
+
+        // Add the rest of the headers
+        for header in self.headers {
+            request.add_header(header);
+        }
 
         // Set the body data if necessary
         if let Some(data) = self.body_data {
@@ -143,7 +172,12 @@ impl TestBuilder {
         }
 
         // Dispatch the request
+        println!("{:#?}", request);
         let mut response = request.dispatch();
+        println!("\nResponse:\n{:?}", response);
+
+        // Check the status
+        assert_eq!(self.expected_status, response.status());
 
         // Check that something was returned
         let body = response.body_string();
