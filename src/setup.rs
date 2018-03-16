@@ -9,9 +9,11 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use auth::APIKey;
+use base64;
 use config::{Config, PiholeFile};
 use dns;
 use ftl;
+use rand::{self, Rng};
 use rocket;
 use rocket::config::{ConfigBuilder, Environment};
 use rocket::local::Client;
@@ -27,12 +29,17 @@ fn not_found() -> util::Reply {
     util::reply_error(util::Error::NotFound)
 }
 
+fn generate_key() -> String {
+    base64::encode(&rand::thread_rng().gen::<u64>().to_string())
+}
+
 /// Run the API normally (connect to FTL over the socket)
 pub fn start() {
     setup(
         rocket::ignite(),
         ftl::FtlConnectionType::Socket,
-        Config::Production
+        Config::Production,
+        generate_key()
     ).launch();
 }
 
@@ -49,7 +56,8 @@ pub fn test(
             false,
         ),
         ftl::FtlConnectionType::Test(ftl_data),
-        Config::Test(config_data)
+        Config::Test(config_data),
+        base64::encode("test_key")
     )).unwrap()
 }
 
@@ -57,7 +65,8 @@ pub fn test(
 fn setup<'a>(
     server: rocket::Rocket,
     connection_type: ftl::FtlConnectionType,
-    config: Config
+    config: Config,
+    api_key: String
 ) -> rocket::Rocket {
     // Start up the server
     server
@@ -66,7 +75,7 @@ fn setup<'a>(
         // Manage the configuration
         .manage(config)
         // Manage the API key
-        .manage(APIKey::new("test_key".to_owned()))
+        .manage(APIKey::new(api_key))
         // Mount the web interface
         .mount("/", routes![
             web::web_interface_index,

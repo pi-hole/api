@@ -11,8 +11,9 @@
 extern crate serde_json;
 extern crate tempfile;
 
+use base64;
 use config::PiholeFile;
-use rocket::http::{Method, ContentType};
+use rocket::http::{Method, ContentType, Header};
 use setup;
 use std::collections::HashMap;
 use std::fs::File;
@@ -129,6 +130,11 @@ impl TestBuilder {
 
         // Make the request
         let mut request = client.req(self.method, self.endpoint);
+
+        // Add the authentication header
+        request.add_header(
+            Header::new("X-Pi-hole-Authenticate", base64::encode("test_key"))
+        );
 
         // Set the body data if necessary
         if let Some(data) = self.body_data {
