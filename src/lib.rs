@@ -23,6 +23,7 @@ extern crate serde_derive;
 pub use setup::*;
 
 mod util;
+mod auth;
 mod ftl;
 mod stats;
 mod dns;

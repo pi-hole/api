@@ -10,7 +10,8 @@
 
 use serde::Serialize;
 use rocket_contrib::{Json, Value};
-use rocket::request::Request;
+use rocket::{Request, Outcome};
+use rocket::request;
 use rocket::response::{self, Response, Responder};
 use rocket::http::Status;
 use std::fmt::Display;
@@ -54,7 +55,7 @@ pub fn reply_success() -> Reply {
 
 /// The `Error` enum represents all the possible errors that the API can return. These errors have
 /// messages, keys, and HTTP statuses.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Error {
     Unknown,
     GravityError,
@@ -62,7 +63,8 @@ pub enum Error {
     FtlConnectionFail,
     NotFound,
     AlreadyExists,
-    InvalidDomain
+    InvalidDomain,
+    Unauthorized
 }
 
 impl Error {
@@ -77,7 +79,8 @@ impl Error {
             Error::FtlConnectionFail => "Failed to connect to FTL",
             Error::NotFound => "Not found",
             Error::AlreadyExists => "Item already exists",
-            Error::InvalidDomain => "Bad request"
+            Error::InvalidDomain => "Bad request",
+            Error::Unauthorized => "Unauthorized"
         }
     }
 
@@ -91,7 +94,8 @@ impl Error {
             Error::FtlConnectionFail => "ftl_connection_fail",
             Error::NotFound => "not_found",
             Error::AlreadyExists => "already_exists",
-            Error::InvalidDomain => "invalid_domain"
+            Error::InvalidDomain => "invalid_domain",
+            Error::Unauthorized => "unauthorized"
         }
     }
 
@@ -104,8 +108,13 @@ impl Error {
             Error::FtlConnectionFail => Status::InternalServerError,
             Error::NotFound => Status::NotFound,
             Error::AlreadyExists => Status::Conflict,
-            Error::InvalidDomain => Status::BadRequest
+            Error::InvalidDomain => Status::BadRequest,
+            Error::Unauthorized => Status::Unauthorized
         }
+    }
+
+    pub fn as_outcome<S>(&self) -> request::Outcome<S, Self> {
+        Outcome::Failure((self.status(), self.clone()))
     }
 }
 

@@ -8,6 +8,7 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
+use auth::APIKey;
 use config::{Config, PiholeFile};
 use dns;
 use ftl;
@@ -64,6 +65,8 @@ fn setup<'a>(
         .manage(connection_type)
         // Manage the configuration
         .manage(config)
+        // Manage the API key
+        .manage(APIKey::new("test_key".to_owned()))
         // Mount the web interface
         .mount("/", routes![
             web::web_interface_index,
