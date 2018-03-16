@@ -82,7 +82,7 @@ mod test {
                     "cached_queries": 2,
                     "total_clients": 3,
                     "unique_clients": 3,
-                    "status": 2
+                    "status": "unknown"
                 })
             )
             .test();
