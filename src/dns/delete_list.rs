@@ -13,11 +13,11 @@ use dns::common::reload_gravity;
 use dns::list::remove_list;
 use rocket::State;
 use util;
-use auth::Auth;
+use auth::User;
 
 /// Delete a domain from the whitelist
 #[delete("/dns/whitelist/<domain>")]
-pub fn delete_whitelist(_auth: Auth, config: State<Config>, domain: String) -> util::Reply {
+pub fn delete_whitelist(_auth: User, config: State<Config>, domain: String) -> util::Reply {
     remove_list(PiholeFile::Whitelist, &domain, &config)?;
     reload_gravity(PiholeFile::Whitelist, &config)?;
 
@@ -27,7 +27,7 @@ pub fn delete_whitelist(_auth: Auth, config: State<Config>, domain: String) -> u
 
 /// Delete a domain from the blacklist
 #[delete("/dns/blacklist/<domain>")]
-pub fn delete_blacklist(_auth: Auth, config: State<Config>, domain: String) -> util::Reply {
+pub fn delete_blacklist(_auth: User, config: State<Config>, domain: String) -> util::Reply {
     remove_list(PiholeFile::Blacklist, &domain, &config)?;
     reload_gravity(PiholeFile::Blacklist, &config)?;
 
@@ -37,7 +37,7 @@ pub fn delete_blacklist(_auth: Auth, config: State<Config>, domain: String) -> u
 
 /// Delete a domain from the wildcard list
 #[delete("/dns/wildlist/<domain>")]
-pub fn delete_wildlist(_auth: Auth, config: State<Config>, domain: String) -> util::Reply {
+pub fn delete_wildlist(_auth: User, config: State<Config>, domain: String) -> util::Reply {
     remove_list(PiholeFile::Wildlist, &domain, &config)?;
     reload_gravity(PiholeFile::Wildlist, &config)?;
 

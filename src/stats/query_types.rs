@@ -11,11 +11,11 @@
 use ftl::FtlConnectionType;
 use rocket::State;
 use util;
-use auth::Auth;
+use auth::User;
 
 /// Get the query types
 #[get("/stats/query_types")]
-pub fn query_types(_auth: Auth, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn query_types(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
     let mut con = ftl.connect("querytypes")?;
 
     let ipv4 = con.read_f32()?;

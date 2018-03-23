@@ -8,7 +8,7 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use auth::APIKey;
+use auth::AuthData;
 use base64;
 use config::{Config, PiholeFile};
 use dns;
@@ -75,7 +75,7 @@ fn setup<'a>(
         // Manage the configuration
         .manage(config)
         // Manage the API key
-        .manage(APIKey::new(api_key))
+        .manage(AuthData::new(api_key))
         // Mount the web interface
         .mount("/", routes![
             web::web_interface_index,

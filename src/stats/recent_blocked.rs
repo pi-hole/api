@@ -13,17 +13,17 @@ use rmp::decode::DecodeStringError;
 use rmp::Marker;
 use rocket::State;
 use util;
-use auth::Auth;
+use auth::User;
 
 /// Get the most recent blocked domain
 #[get("/stats/recent_blocked")]
-pub fn recent_blocked(_auth: Auth, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn recent_blocked(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
     get_recent_blocked(&ftl, 1)
 }
 
 /// Get the `num` most recently blocked domains
 #[get("/stats/recent_blocked?<params>")]
-pub fn recent_blocked_params(_auth: Auth, ftl: State<FtlConnectionType>, params: RecentBlockedParams) -> util::Reply {
+pub fn recent_blocked_params(_auth: User, ftl: State<FtlConnectionType>, params: RecentBlockedParams) -> util::Reply {
     get_recent_blocked(&ftl, params.num)
 }
 

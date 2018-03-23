@@ -13,7 +13,7 @@ use rmp::decode::ValueReadError;
 use rmp::Marker;
 use rocket::State;
 use util;
-use auth::Auth;
+use auth::User;
 
 /// Represents a query returned in `/stats/unknown_queries`
 #[derive(Serialize)]
@@ -21,7 +21,7 @@ struct UnknownQuery(i32, i32, String, String, String, u8, bool);
 
 /// Get all unknown queries
 #[get("/stats/unknown_queries")]
-pub fn unknown_queries(_auth: Auth, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn unknown_queries(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
     let mut con = ftl.connect("unknown")?;
 
     // Create a 4KiB string buffer

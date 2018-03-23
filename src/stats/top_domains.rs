@@ -14,29 +14,29 @@ use rmp::Marker;
 use rocket::State;
 use std::collections::HashMap;
 use util;
-use auth::Auth;
+use auth::User;
 
 /// Return the top domains with default parameters
 #[get("/stats/top_domains")]
-pub fn top_domains(_auth: Auth, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn top_domains(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
     get_top_domains(&ftl, false, TopParams::default())
 }
 
 /// Return the top domains with specified parameters
 #[get("/stats/top_domains?<params>")]
-pub fn top_domains_params(_auth: Auth, ftl: State<FtlConnectionType>, params: TopParams) -> util::Reply {
+pub fn top_domains_params(_auth: User, ftl: State<FtlConnectionType>, params: TopParams) -> util::Reply {
     get_top_domains(&ftl, false, params)
 }
 
 /// Return the top blocked domains with default parameters
 #[get("/stats/top_blocked")]
-pub fn top_blocked(_auth: Auth, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn top_blocked(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
     get_top_domains(&ftl, true, TopParams::default())
 }
 
 /// Return the top blocked domains with specified parameters
 #[get("/stats/top_blocked?<params>")]
-pub fn top_blocked_params(_auth: Auth, ftl: State<FtlConnectionType>, params: TopParams) -> util::Reply {
+pub fn top_blocked_params(_auth: User, ftl: State<FtlConnectionType>, params: TopParams) -> util::Reply {
     get_top_domains(&ftl, true, params)
 }
 

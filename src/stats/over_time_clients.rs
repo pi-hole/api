@@ -14,11 +14,11 @@ use rmp::Marker;
 use rocket::State;
 use std::collections::HashMap;
 use util;
-use auth::Auth;
+use auth::User;
 
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
-pub fn over_time_clients(_auth: Auth, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
     let mut con = ftl.connect("ClientsoverTime")?;
 
     let mut over_time: HashMap<i32, Vec<i32>> = HashMap::new();
