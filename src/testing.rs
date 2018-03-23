@@ -183,8 +183,11 @@ impl TestBuilder {
         let body = response.body_string();
         assert!(body.is_some());
 
+        let body_str = body.unwrap();
+        println!("Body:\n{}", body_str);
+
         // Check that it is correct JSON
-        let parsed: serde_json::Value = serde_json::from_str(&body.unwrap()).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&body_str).unwrap();
 
         // Check that is is the same as the expected JSON
         assert_eq!(self.expected_json, parsed);

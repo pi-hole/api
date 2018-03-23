@@ -100,7 +100,6 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn test_unauthenticated() {
         let mut data = Vec::new();
         write_eom(&mut data);

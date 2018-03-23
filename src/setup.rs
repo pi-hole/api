@@ -25,8 +25,13 @@ use web;
 
 /// This is run when no route could be found and returns a custom 404 message.
 #[error(404)]
-fn not_found() -> util::Reply {
-    util::reply_error(util::Error::NotFound)
+fn not_found() -> util::Error {
+    util::Error::NotFound
+}
+
+#[error(401)]
+fn unauthorized() -> util::Error {
+    util::Error::Unauthorized
 }
 
 fn generate_key() -> String {
@@ -114,5 +119,5 @@ fn setup<'a>(
             dns::delete_wildlist
         ])
         // Add custom error handlers
-        .catch(errors![not_found])
+        .catch(errors![not_found, unauthorized])
 }
