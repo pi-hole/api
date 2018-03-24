@@ -8,7 +8,7 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use auth::AuthData;
+use auth::{self, AuthData};
 use base64;
 use config::{Config, PiholeFile};
 use dns;
@@ -17,6 +17,7 @@ use rand::{self, Rng};
 use rocket;
 use rocket::config::{ConfigBuilder, Environment};
 use rocket::local::Client;
+use rocket_cors::{Cors};
 use stats;
 use std::collections::HashMap;
 use std::fs::File;
@@ -73,8 +74,13 @@ fn setup<'a>(
     config: Config,
     api_key: String
 ) -> rocket::Rocket {
+    // Setup CORS
+    let cors = Cors::default();
+
     // Start up the server
     server
+        // Attach CORS handler
+        .attach(cors)
         // Manage the connection type configuration
         .manage(connection_type)
         // Manage the configuration
@@ -88,6 +94,7 @@ fn setup<'a>(
         ])
         // Mount the API
         .mount("/admin/api", routes![
+            auth::auth_check,
             stats::get_summary,
             stats::top_domains,
             stats::top_domains_params,

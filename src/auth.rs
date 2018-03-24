@@ -6,6 +6,7 @@ use std::sync::atomic::{Ordering, AtomicUsize};
 use util;
 
 /// When used as a request guard, requests must be authenticated
+#[allow(dead_code)]
 pub struct User {
     id: usize
 }
@@ -78,22 +79,26 @@ impl AuthData {
     }
 }
 
+/// Provides an endpoint to authenticate or check if already authenticated
+#[get("/auth")]
+pub fn auth_check(_user: User) -> util::Reply {
+    util::reply_success()
+}
+
 #[cfg(test)]
 mod test {
     use rocket::http::Status;
-    use testing::{TestBuilder, write_eom};
+    use testing::TestBuilder;
 
     #[test]
     fn test_authenticated() {
-        let mut data = Vec::new();
-        write_eom(&mut data);
-
         TestBuilder::new()
-            .endpoint("/admin/api/stats/history")
-            .ftl("getallqueries", data)
+            .endpoint("/admin/api/auth")
             .should_auth(true)
             .expect_json(json!({
-                "data": [],
+                "data": {
+                    "status": "success"
+                },
                 "errors": []
             }))
             .test()
@@ -101,13 +106,9 @@ mod test {
 
     #[test]
     fn test_unauthenticated() {
-        let mut data = Vec::new();
-        write_eom(&mut data);
-
         TestBuilder::new()
-            .endpoint("/admin/api/stats/history")
+            .endpoint("/admin/api/auth")
             .should_auth(false)
-            .ftl("getallqueries", data)
             .expect_status(Status::Unauthorized)
             .expect_json(json!({
                 "data": [],

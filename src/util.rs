@@ -17,12 +17,12 @@ use rocket::http::Status;
 use std::fmt::Display;
 
 /// Type alias for the most common return type of the API methods
-pub type Reply = Result<CORS<SetStatus<Json<Value>>>, Error>;
+pub type Reply = Result<SetStatus<Json<Value>>, Error>;
 
 /// The most general reply builder. It takes in data, errors, and status and constructs the JSON
 /// reply.
 pub fn reply<D: Serialize>(data: D, errors: &[Error], status: Status) -> Reply {
-    Ok(CORS(SetStatus(Json(json!({
+    Ok(SetStatus(Json(json!({
         "data": data,
         "errors": errors.iter()
                         .map(|error| json!({
@@ -30,7 +30,7 @@ pub fn reply<D: Serialize>(data: D, errors: &[Error], status: Status) -> Reply {
                             "message": error.message()
                         }))
                         .collect::<Vec<Value>>()
-    })), status)))
+    })), status))
 }
 
 /// Create a reply from some serializable data. The reply will contain no errors and will have a
@@ -129,19 +129,6 @@ impl<'r> Responder<'r> for Error {
     fn respond_to(self, request: &Request) -> response::Result<'r> {
         // This allows us to automatically use `reply_error` when we return an Error in the API
         reply_error(self).unwrap().respond_to(request)
-    }
-}
-
-/// This wraps another Responder and adds the correct CORS HTTP header.
-#[derive(Debug)]
-pub struct CORS<R>(R);
-
-impl<'r, R: Responder<'r>> Responder<'r> for CORS<R> {
-    fn respond_to(self, request: &Request) -> response::Result<'r> {
-        // Add the correct CORS header to the response
-        Ok(Response::build_from(self.0.respond_to(request)?)
-            .raw_header("Access-Control-Allow-Origin", "*")
-            .finalize())
     }
 }
 
