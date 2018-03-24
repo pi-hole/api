@@ -2,31 +2,22 @@ version: 2
 
 .job_template: &job_template
   docker:
-    - image: "japaric/$TARGET:v0.1.14"
+    - image: thepihole/api-build:$CIRCLE_JOB
   steps:
     - checkout
     - restore_cache:
         keys:
           # Find a cache corresponding to this specific Cargo.toml checksum and target.
           # When the target is different, this key will fail
-          - cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}
+          - v2-cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}
           # Find a cache corresponding to this specific Cargo.toml checksum.
           # When this file is changed, this key will fail.
-          - cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}
+          - v2-cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}
           # Find a cache corresponding to any build in this branch, regardless of Cargo.toml checksum.
           # The most recent one will be used.
-          - cargo-{{ .Branch }}
+          - v2-cargo-{{ .Branch }}
           # Find the most recent cache used from any branch
-          - cargo
-    - run:
-        name: "Setup Rust"
-        command: |
-          apt-get update
-          apt-get install -y --no-install-recommends curl
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2018-01-02
-          export PATH=$HOME/.cargo/bin:$PATH
-          echo 'export PATH=$HOME/.cargo/bin:$PATH' >> $BASH_ENV
-          [[ $SKIP_ADDING_TARGET ]] || rustup target add $TARGET
+          - v2-cargo
     - run:
         name: "Build"
         command: |
@@ -35,7 +26,7 @@ version: 2
     - run:
         name: "Test"
         command: |
-          [[ "$TARGET" != "x86_64-unknown-linux-gnu" ]] || time cargo test --release --target $TARGET
+          [[ "$CIRCLE_JOB" != "x86_64" ]] || time cargo test --release --target $TARGET
     - run:
         name: "Upload"
         command: |
@@ -47,11 +38,10 @@ version: 2
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}.sha1" "${FTL_SECRET}"
           rm ./FTL-client
     - save_cache:
-        key: cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cargo.lock" }}
+        key: v2-cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cargo.lock" }}
         paths:
           - target
           - /root/.cargo
-          - /root/.rustup
 
 jobs:
   arm:
@@ -63,8 +53,8 @@ jobs:
   armhf:
     <<: *job_template
     environment:
-      BIN_NAME: "pihole-API-armv7-linux-gnueabihf"
-      TARGET: "armv7-unknown-linux-gnueabihf"
+      BIN_NAME: "pihole-API-arm-linux-gnueabihf"
+      TARGET: "arm-unknown-linux-gnueabihf"
 
   aarch64:
     <<: *job_template
