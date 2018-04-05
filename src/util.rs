@@ -65,7 +65,8 @@ pub enum Error {
     FtlConnectionFail,
     NotFound,
     AlreadyExists,
-    InvalidDomain
+    InvalidDomain,
+    BadRequest
 }
 
 impl Error {
@@ -80,7 +81,8 @@ impl Error {
             Error::FtlConnectionFail => "Failed to connect to FTL",
             Error::NotFound => "Not found",
             Error::AlreadyExists => "Item already exists",
-            Error::InvalidDomain => "Bad request"
+            Error::InvalidDomain => "Invalid domain",
+            Error::BadRequest => "Bad request"
         }
     }
 
@@ -94,7 +96,8 @@ impl Error {
             Error::FtlConnectionFail => "ftl_connection_fail",
             Error::NotFound => "not_found",
             Error::AlreadyExists => "already_exists",
-            Error::InvalidDomain => "invalid_domain"
+            Error::InvalidDomain => "invalid_domain",
+            Error::BadRequest => "bad_request"
         }
     }
 
@@ -107,7 +110,8 @@ impl Error {
             Error::FtlConnectionFail => Status::InternalServerError,
             Error::NotFound => Status::NotFound,
             Error::AlreadyExists => Status::Conflict,
-            Error::InvalidDomain => Status::BadRequest
+            Error::InvalidDomain => Status::BadRequest,
+            Error::BadRequest => Status::BadRequest
         }
     }
 }
