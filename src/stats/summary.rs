@@ -27,7 +27,11 @@ pub fn get_summary(ftl: State<FtlConnectionType>) -> util::Reply {
     let cached_queries = con.read_i32()?;
     let total_clients = con.read_i32()?;
     let unique_clients = con.read_i32()?;
-    let status = con.read_u8()?;
+    let status = match con.read_u8()? {
+        0 => "disabled",
+        1 => "enabled",
+        _ => "unknown"
+    };
     con.expect_eom()?;
 
     util::reply_data(json!({
@@ -69,19 +73,16 @@ mod test {
             .ftl("stats", data)
             .expect_json(
                 json!({
-                    "data": {
-                        "domains_blocked": -1,
-                        "total_queries": 7,
-                        "blocked_queries": 2,
-                        "percent_blocked": 28.571428298950197,
-                        "unique_domains": 6,
-                        "forwarded_queries": 3,
-                        "cached_queries": 2,
-                        "total_clients": 3,
-                        "unique_clients": 3,
-                        "status": 2
-                    },
-                    "errors": []
+                    "domains_blocked": -1,
+                    "total_queries": 7,
+                    "blocked_queries": 2,
+                    "percent_blocked": 28.571428298950197,
+                    "unique_domains": 6,
+                    "forwarded_queries": 3,
+                    "cached_queries": 2,
+                    "total_clients": 3,
+                    "unique_clients": 3,
+                    "status": "unknown"
                 })
             )
             .test();

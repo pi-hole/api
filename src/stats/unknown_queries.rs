@@ -95,29 +95,26 @@ mod test {
             .endpoint("/admin/api/stats/unknown_queries")
             .ftl("unknown", data)
             .expect_json(
-                json!({
-                    "data": [
-                        [
-                            1520126228,
-                            0,
-                            "IPv4",
-                            "example.com",
-                            "client1",
-                            2,
-                            false
-                        ],
-                        [
-                            1520126406,
-                            1,
-                            "IPv6",
-                            "doubleclick.com",
-                            "client2",
-                            1,
-                            true
-                        ]
+                json!([
+                    [
+                        1520126228,
+                        0,
+                        "IPv4",
+                        "example.com",
+                        "client1",
+                        2,
+                        false
                     ],
-                    "errors": []
-                })
+                    [
+                        1520126406,
+                        1,
+                        "IPv6",
+                        "doubleclick.com",
+                        "client2",
+                        1,
+                        true
+                    ]
+                ])
             )
             .test();
     }

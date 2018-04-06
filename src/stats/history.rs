@@ -154,27 +154,24 @@ mod test {
             .endpoint("/admin/api/stats/history")
             .ftl("getallqueries", data)
             .expect_json(
-                json!({
-                    "data": [
-                        [
-                            1520126228,
-                            "IPv4",
-                            "example.com",
-                            "client1",
-                            2,
-                            1
-                        ],
-                        [
-                            1520126406,
-                            "IPv6",
-                            "doubleclick.com",
-                            "client2",
-                            1,
-                            1
-                        ]
+                json!([
+                    [
+                        1520126228,
+                        "IPv4",
+                        "example.com",
+                        "client1",
+                        2,
+                        1
                     ],
-                    "errors": []
-                })
+                    [
+                        1520126406,
+                        "IPv6",
+                        "doubleclick.com",
+                        "client2",
+                        1,
+                        1
+                    ]
+                ])
             )
             .test();
     }
@@ -200,27 +197,24 @@ mod test {
             .endpoint("/admin/api/stats/history?from=1520126228&until=1520126406")
             .ftl("getallqueries-time 1520126228 1520126406", data)
             .expect_json(
-                json!({
-                    "data": [
-                        [
-                            1520126228,
-                            "IPv4",
-                            "example.com",
-                            "client1",
-                            2,
-                            1
-                        ],
-                        [
-                            1520126406,
-                            "IPv6",
-                            "doubleclick.com",
-                            "client2",
-                            1,
-                            1
-                        ]
+                json!([
+                    [
+                        1520126228,
+                        "IPv4",
+                        "example.com",
+                        "client1",
+                        2,
+                        1
                     ],
-                    "errors": []
-                })
+                    [
+                        1520126406,
+                        "IPv6",
+                        "doubleclick.com",
+                        "client2",
+                        1,
+                        1
+                    ]
+                ])
             )
             .test();
     }
@@ -240,19 +234,16 @@ mod test {
             .endpoint("/admin/api/stats/history?domain=example.com")
             .ftl("getallqueries-domain example.com", data)
             .expect_json(
-                json!({
-                    "data": [
-                        [
-                            1520126228,
-                            "IPv4",
-                            "example.com",
-                            "client1",
-                            2,
-                            1
-                        ]
-                    ],
-                    "errors": []
-                })
+                json!([
+                    [
+                        1520126228,
+                        "IPv4",
+                        "example.com",
+                        "client1",
+                        2,
+                        1
+                    ]
+                ])
             )
             .test();
     }
@@ -272,19 +263,16 @@ mod test {
             .endpoint("/admin/api/stats/history?client=client1")
             .ftl("getallqueries-client client1", data)
             .expect_json(
-                json!({
-                    "data": [
-                        [
-                            1520126228,
-                            "IPv4",
-                            "example.com",
-                            "client1",
-                            2,
-                            1
-                        ]
-                    ],
-                    "errors": []
-                })
+                json!([
+                    [
+                        1520126228,
+                        "IPv4",
+                        "example.com",
+                        "client1",
+                        2,
+                        1
+                    ]
+                ])
             )
             .test();
     }

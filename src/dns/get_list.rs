@@ -43,13 +43,10 @@ mod test {
             .file(PiholeFile::Whitelist, "example.com\nexample.net\n")
             .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
             .expect_json(
-                json!({
-                    "data": [
-                        "example.com",
-                        "example.net"
-                    ],
-                    "errors": []
-                })
+                json!([
+                    "example.com",
+                    "example.net"
+                ])
             )
             .test();
     }
@@ -61,13 +58,10 @@ mod test {
             .file(PiholeFile::Blacklist, "example.com\nexample.net\n")
             .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
             .expect_json(
-                json!({
-                    "data": [
-                        "example.com",
-                        "example.net"
-                    ],
-                    "errors": []
-                })
+                json!([
+                    "example.com",
+                    "example.net"
+                ])
             )
             .test();
     }
@@ -82,13 +76,10 @@ mod test {
             )
             .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
             .expect_json(
-                json!({
-                    "data": [
-                        "example.com",
-                        "example.net"
-                    ],
-                    "errors": []
-                })
+                json!([
+                    "example.com",
+                    "example.net"
+                ])
             )
             .test();
     }
