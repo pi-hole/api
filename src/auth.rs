@@ -1,14 +1,17 @@
 use rocket::request::{self, FromRequest, Request, State};
 use rocket::Outcome;
 use rocket::outcome::IntoOutcome;
-use rocket::http::Cookies;
+use rocket::http::{Cookie, Cookies};
 use std::sync::atomic::{Ordering, AtomicUsize};
 use util;
+
+const USER_ATTR: &str = "user_id";
+const AUTH_HEADER: &str = "X-Pi-hole-Authenticate";
 
 /// When used as a request guard, requests must be authenticated
 #[allow(dead_code)]
 pub struct User {
-    id: usize
+    pub id: usize
 }
 
 /// Stores the API key in the server state
@@ -25,7 +28,10 @@ impl User {
         };
 
         if auth_data.key_matches(input_key) {
-            Outcome::Success(auth_data.add_user())
+            let user = auth_data.create_user();
+            request.cookies().add_private(Cookie::new(USER_ATTR, user.id.to_string()));
+
+            Outcome::Success(user)
         } else {
             util::Error::Unauthorized.as_outcome()
         }
@@ -33,7 +39,7 @@ impl User {
 
     fn check_cookies(mut cookies: Cookies) -> request::Outcome<Self, util::Error> {
         cookies
-            .get_private("user_id")
+            .get_private(USER_ATTR)
             .and_then(|cookie| cookie.value().parse().ok())
             .map(|id| User { id })
             .into_outcome((util::Error::Unauthorized.status(), util::Error::Unauthorized))
@@ -44,7 +50,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for User {
     type Error = util::Error;
 
     fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
-        match request.headers().get_one("X-Pi-hole-Authenticate") {
+        match request.headers().get_one(AUTH_HEADER) {
             // Try to authenticate, and if that fails check cookies
             Some(key) => {
                 let auth_result = User::authenticate(request, key);
@@ -74,7 +80,7 @@ impl AuthData {
     }
 
     /// Create a new user and increment `next_id`
-    fn add_user(&self) -> User {
+    fn create_user(&self) -> User {
         User { id: self.next_id.fetch_add(1, Ordering::Relaxed) }
     }
 }
