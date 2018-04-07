@@ -93,7 +93,7 @@ pub fn auth_check(_user: User) -> util::Reply {
 
 #[cfg(test)]
 mod test {
-    use rocket::http::Status;
+    use rocket::http::{Status, Header};
     use testing::TestBuilder;
 
     #[test]
@@ -124,5 +124,22 @@ mod test {
                 }]
             }))
             .test()
+    }
+
+    #[test]
+    fn test_wrong_password() {
+        TestBuilder::new()
+            .endpoint("/admin/api/auth")
+            .should_auth(false)
+            .header(Header::new("X-Pi-hole-Authenticate", "obviously_not_correct"))
+            .expect_status(Status::Unauthorized)
+            .expect_json(json!({
+                "data": [],
+                "errors": [{
+                    "key": "unauthorized",
+                    "message": "Unauthorized"
+                }]
+            }))
+            .test();
     }
 }
