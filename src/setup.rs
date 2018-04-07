@@ -9,15 +9,14 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use auth::{self, AuthData};
-use base64;
 use config::{Config, PiholeFile};
 use dns;
 use ftl;
-use rand::{self, Rng};
 use rocket;
 use rocket::config::{ConfigBuilder, Environment};
 use rocket::local::Client;
 use rocket_cors::{Cors};
+use setup_vars::read_setup_vars;
 use stats;
 use std::collections::HashMap;
 use std::fs::File;
@@ -35,17 +34,18 @@ fn unauthorized() -> util::Error {
     util::Error::Unauthorized
 }
 
-fn generate_key() -> String {
-    base64::encode(&rand::thread_rng().gen::<u64>().to_string())
-}
-
 /// Run the API normally (connect to FTL over the socket)
 pub fn start() {
+    let config = Config::Production;
+    let key = read_setup_vars("WEBPASSWORD", &config)
+        .expect(&format!("Failed to open {}", PiholeFile::SetupVars.default_location()))
+        .unwrap_or_default();
+
     setup(
         rocket::ignite(),
         ftl::FtlConnectionType::Socket,
-        Config::Production,
-        generate_key()
+        config,
+        key
     ).launch();
 }
 
@@ -63,7 +63,7 @@ pub fn test(
         ),
         ftl::FtlConnectionType::Test(ftl_data),
         Config::Test(config_data),
-        base64::encode("test_key")
+        "test_key".to_owned()
     )).unwrap()
 }
 

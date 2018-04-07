@@ -11,7 +11,6 @@
 extern crate serde_json;
 extern crate tempfile;
 
-use base64;
 use config::PiholeFile;
 use rocket::http::{Method, ContentType, Header, Status};
 use setup;
@@ -156,7 +155,7 @@ impl TestBuilder {
         // Add the authentication header
         if self.should_auth {
             request.add_header(
-                Header::new("X-Pi-hole-Authenticate", base64::encode("test_key"))
+                Header::new("X-Pi-hole-Authenticate", "test_key")
             );
         }
 

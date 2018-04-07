@@ -11,8 +11,6 @@
 #![feature(plugin, custom_derive)]
 #![plugin(rocket_codegen)]
 
-extern crate base64;
-extern crate rand;
 extern crate regex;
 extern crate rmp;
 extern crate rocket;
