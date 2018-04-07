@@ -33,6 +33,7 @@ mod dns;
 mod web;
 mod setup;
 mod config;
+mod setup_vars;
 
 #[cfg(test)]
 mod testing;
