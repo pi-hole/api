@@ -75,7 +75,8 @@ fn setup<'a>(
     api_key: String
 ) -> rocket::Rocket {
     // Setup CORS
-    let cors = Cors::default();
+    let mut cors = Cors::default();
+    cors.allow_credentials = true;
 
     // Start up the server
     server
