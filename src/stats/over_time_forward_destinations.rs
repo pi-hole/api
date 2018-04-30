@@ -12,7 +12,6 @@ use ftl::FtlConnectionType;
 use rmp::decode::ValueReadError;
 use rmp::Marker;
 use rocket::State;
-use std::collections::HashMap;
 use util;
 use auth::User;
 
@@ -29,7 +28,7 @@ pub fn over_time_forward_destinations(_auth: User, ftl: State<FtlConnectionType>
 
     // Create the data structures to store the data in
     let mut forward_data: Vec<String> = Vec::with_capacity(forward_dest_num);
-    let mut over_time: HashMap<i32, Vec<f32>> = HashMap::new();
+    let mut over_time = Vec::new();
 
     // Read in forward destination names and IPs
     for _ in 0..forward_dest_num {
@@ -73,13 +72,19 @@ pub fn over_time_forward_destinations(_auth: User, ftl: State<FtlConnectionType>
             step.push(con.read_f32()?);
         }
 
-        over_time.insert(timestamp, step);
+        over_time.push(TimeStep { timestamp, data: step });
     }
 
     util::reply_data(json!({
         "forward_destinations": forward_data,
         "over_time": over_time
     }))
+}
+
+#[derive(Serialize)]
+struct TimeStep {
+    timestamp: i32,
+    data: Vec<f32>
 }
 
 #[cfg(test)]
@@ -112,26 +117,29 @@ mod test {
             .ftl("ForwardedoverTime", data)
             .expect_json(
                 json!({
-                    "data": {
-                        "forward_destinations": [
-                            "google-dns-alt|8.8.4.4",
-                            "google-dns|8.8.8.8",
-                            "local|local"
-                        ],
-                        "over_time": {
-                            "1520126228": [
+                    "forward_destinations": [
+                        "google-dns-alt|8.8.4.4",
+                        "google-dns|8.8.8.8",
+                        "local|local"
+                    ],
+                    "over_time": [
+                        {
+                            "timestamp": 1520126228,
+                            "data": [
                                 0.30000001192092898,
                                 0.30000001192092898,
                                 0.4000000059604645
-                            ],
-                            "1520126406": [
+                            ]
+                        },
+                        {
+                            "timestamp": 1520126406,
+                            "data": [
                                 0.5,
                                 0.20000000298023225,
                                 0.30000001192092898
                             ]
                         }
-                    },
-                    "errors": []
+                    ]
                 })
             )
             .test();

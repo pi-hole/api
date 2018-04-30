@@ -18,13 +18,57 @@ use auth::User;
 /// Get the entire query history (as stored in FTL)
 #[get("/stats/history")]
 pub fn history(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
-    get_history(&ftl, "getallqueries")
+    get_history(&ftl, "getallqueries", None)
 }
 
-/// Get the query history within the specified timespan
-#[get("/stats/history?<timespan>")]
-pub fn history_timespan(_auth: User, ftl: State<FtlConnectionType>, timespan: Timespan) -> util::Reply {
-    get_history(&ftl, &format!("getallqueries-time {} {}", timespan.from, timespan.to))
+/// Get the query history according to the specified parameters
+#[get("/stats/history?<params>")]
+pub fn history_params(
+    _auth: User,
+    ftl: State<FtlConnectionType>,
+    params: HistoryParams
+) -> util::Reply {
+    let limit = params.limit;
+    let command = match params {
+        // Get the query history within the specified timespan
+        HistoryParams {
+            from: Some(from),
+            until: Some(until),
+            domain: None,
+            client: None,
+            ..
+        } => {
+            format!("getallqueries-time {} {}", from, until)
+        },
+        // Get the query history for the specified domain
+        HistoryParams {
+            from: None,
+            until: None,
+            domain: Some(domain),
+            client: None,
+            ..
+        } => {
+            format!("getallqueries-domain {}", domain)
+        },
+        // Get the query history for the specified client
+        HistoryParams {
+            from: None,
+            until: None,
+            domain: None,
+            client: Some(client),
+            ..
+        } => {
+            format!("getallqueries-client {}", client)
+        },
+        // FTL can't handle mixed input
+        _ => return util::reply_error(util::Error::BadRequest)
+    };
+
+    get_history(
+        &ftl,
+        &command,
+        limit
+    )
 }
 
 /// Represents a query returned in `/stats/history`
@@ -33,14 +77,23 @@ struct Query(i32, String, String, String, u8, u8);
 
 /// Represents the possible GET parameters on `/stats/history`
 #[derive(FromForm)]
-pub struct Timespan {
-    from: u64,
-    to: u64
+pub struct HistoryParams {
+    from: Option<u64>,
+    until: Option<u64>,
+    domain: Option<String>,
+    client: Option<String>,
+    limit: Option<usize>
 }
 
 /// Get the query history according to the specified command
-fn get_history(ftl: &FtlConnectionType, command: &str) -> util::Reply {
-    let mut con = ftl.connect(command)?;
+fn get_history(ftl: &FtlConnectionType, command: &str, limit: Option<usize>) -> util::Reply {
+    let full_command = if let Some(num) = limit {
+        format!("{} ({})", command, num)
+    } else {
+        command.to_owned()
+    };
+
+    let mut con = ftl.connect(&full_command)?;
 
     // Create a 4KiB string buffer
     let mut str_buffer = [0u8; 4096];
@@ -103,27 +156,125 @@ mod test {
             .endpoint("/admin/api/stats/history")
             .ftl("getallqueries", data)
             .expect_json(
-                json!({
-                    "data": [
-                        [
-                            1520126228,
-                            "IPv4",
-                            "example.com",
-                            "client1",
-                            2,
-                            1
-                        ],
-                        [
-                            1520126406,
-                            "IPv6",
-                            "doubleclick.com",
-                            "client2",
-                            1,
-                            1
-                        ]
+                json!([
+                    [
+                        1520126228,
+                        "IPv4",
+                        "example.com",
+                        "client1",
+                        2,
+                        1
                     ],
-                    "errors": []
-                })
+                    [
+                        1520126406,
+                        "IPv6",
+                        "doubleclick.com",
+                        "client2",
+                        1,
+                        1
+                    ]
+                ])
+            )
+            .test();
+    }
+
+    #[test]
+    fn test_history_timespan() {
+        let mut data = Vec::new();
+        encode::write_i32(&mut data, 1520126228).unwrap();
+        encode::write_str(&mut data, "IPv4").unwrap();
+        encode::write_str(&mut data, "example.com").unwrap();
+        encode::write_str(&mut data, "client1").unwrap();
+        encode::write_u8(&mut data, 2).unwrap();
+        encode::write_u8(&mut data, 1).unwrap();
+        encode::write_i32(&mut data, 1520126406).unwrap();
+        encode::write_str(&mut data, "IPv6").unwrap();
+        encode::write_str(&mut data, "doubleclick.com").unwrap();
+        encode::write_str(&mut data, "client2").unwrap();
+        encode::write_u8(&mut data, 1).unwrap();
+        encode::write_u8(&mut data, 1).unwrap();
+        write_eom(&mut data);
+
+        TestBuilder::new()
+            .endpoint("/admin/api/stats/history?from=1520126228&until=1520126406")
+            .ftl("getallqueries-time 1520126228 1520126406", data)
+            .expect_json(
+                json!([
+                    [
+                        1520126228,
+                        "IPv4",
+                        "example.com",
+                        "client1",
+                        2,
+                        1
+                    ],
+                    [
+                        1520126406,
+                        "IPv6",
+                        "doubleclick.com",
+                        "client2",
+                        1,
+                        1
+                    ]
+                ])
+            )
+            .test();
+    }
+
+    #[test]
+    fn test_history_domain() {
+        let mut data = Vec::new();
+        encode::write_i32(&mut data, 1520126228).unwrap();
+        encode::write_str(&mut data, "IPv4").unwrap();
+        encode::write_str(&mut data, "example.com").unwrap();
+        encode::write_str(&mut data, "client1").unwrap();
+        encode::write_u8(&mut data, 2).unwrap();
+        encode::write_u8(&mut data, 1).unwrap();
+        write_eom(&mut data);
+
+        TestBuilder::new()
+            .endpoint("/admin/api/stats/history?domain=example.com")
+            .ftl("getallqueries-domain example.com", data)
+            .expect_json(
+                json!([
+                    [
+                        1520126228,
+                        "IPv4",
+                        "example.com",
+                        "client1",
+                        2,
+                        1
+                    ]
+                ])
+            )
+            .test();
+    }
+
+    #[test]
+    fn test_history_client() {
+        let mut data = Vec::new();
+        encode::write_i32(&mut data, 1520126228).unwrap();
+        encode::write_str(&mut data, "IPv4").unwrap();
+        encode::write_str(&mut data, "example.com").unwrap();
+        encode::write_str(&mut data, "client1").unwrap();
+        encode::write_u8(&mut data, 2).unwrap();
+        encode::write_u8(&mut data, 1).unwrap();
+        write_eom(&mut data);
+
+        TestBuilder::new()
+            .endpoint("/admin/api/stats/history?client=client1")
+            .ftl("getallqueries-client client1", data)
+            .expect_json(
+                json!([
+                    [
+                        1520126228,
+                        "IPv4",
+                        "example.com",
+                        "client1",
+                        2,
+                        1
+                    ]
+                ])
             )
             .test();
     }

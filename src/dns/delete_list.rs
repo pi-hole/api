@@ -60,10 +60,7 @@ mod test {
             .file(PiholeFile::SetupVars, "")
             .expect_json(
                 json!({
-                    "data": {
-                        "status": "success"
-                    },
-                    "errors": []
+                    "status": "success"
                 })
             )
             .test();
@@ -78,10 +75,7 @@ mod test {
             .file(PiholeFile::SetupVars, "")
             .expect_json(
                 json!({
-                    "data": {
-                        "status": "success"
-                    },
-                    "errors": []
+                    "status": "success"
                 })
             )
             .test();
@@ -96,10 +90,7 @@ mod test {
             .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
             .expect_json(
                 json!({
-                    "data": {
-                        "status": "success"
-                    },
-                    "errors": []
+                    "status": "success"
                 })
             )
             .test();

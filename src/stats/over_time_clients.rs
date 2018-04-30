@@ -12,7 +12,6 @@ use ftl::FtlConnectionType;
 use rmp::decode::ValueReadError;
 use rmp::Marker;
 use rocket::State;
-use std::collections::HashMap;
 use util;
 use auth::User;
 
@@ -21,7 +20,7 @@ use auth::User;
 pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
     let mut con = ftl.connect("ClientsoverTime")?;
 
-    let mut over_time: HashMap<i32, Vec<i32>> = HashMap::new();
+    let mut over_time = Vec::new();
 
     loop {
         // Get the timestamp, unless we are at the end of the list
@@ -56,10 +55,16 @@ pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Re
             step.push(client);
         }
 
-        over_time.insert(timestamp, step);
+        over_time.push(TimeStep { timestamp, data: step });
     }
 
     util::reply_data(over_time)
+}
+
+#[derive(Serialize)]
+struct TimeStep {
+    timestamp: i32,
+    data: Vec<i32>
 }
 
 #[cfg(test)]
@@ -84,13 +89,16 @@ mod test {
             .endpoint("/admin/api/stats/overTime/clients")
             .ftl("ClientsoverTime", data)
             .expect_json(
-                json!({
-                    "data": {
-                        "1520126228": [7, 3],
-                        "1520126406": [6, 4]
+                json!([
+                    {
+                        "timestamp": 1520126228,
+                        "data": [7, 3]
                     },
-                    "errors": []
-                })
+                    {
+                        "timestamp": 1520126406,
+                        "data": [6, 4]
+                    }
+                ])
             )
             .test();
     }

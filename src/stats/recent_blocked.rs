@@ -88,12 +88,9 @@ mod test {
             .endpoint("/admin/api/stats/recent_blocked")
             .ftl("recentBlocked (1)", data)
             .expect_json(
-                json!({
-                    "data": [
-                        "example.com"
-                    ],
-                    "errors": []
-                })
+                json!([
+                    "example.com"
+                ])
             )
             .test();
     }
@@ -111,15 +108,12 @@ mod test {
             .endpoint("/admin/api/stats/recent_blocked?num=4")
             .ftl("recentBlocked (4)", data)
             .expect_json(
-                json!({
-                    "data": [
-                        "example.com",
-                        "doubleclick.com",
-                        "google.com",
-                        "ads.net"
-                    ],
-                    "errors": []
-                })
+                json!([
+                    "example.com",
+                    "doubleclick.com",
+                    "google.com",
+                    "ads.net"
+                ])
             )
             .test();
     }

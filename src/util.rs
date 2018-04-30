@@ -19,38 +19,41 @@ use std::fmt::Display;
 /// Type alias for the most common return type of the API methods
 pub type Reply = Result<SetStatus<Json<Value>>, Error>;
 
-/// The most general reply builder. It takes in data, errors, and status and constructs the JSON
-/// reply.
-pub fn reply<D: Serialize>(data: D, errors: &[Error], status: Status) -> Reply {
-    Ok(SetStatus(Json(json!({
-        "data": data,
-        "errors": errors.iter()
-                        .map(|error| json!({
-                            "key": error.key(),
-                            "message": error.message()
-                        }))
-                        .collect::<Vec<Value>>()
-    })), status))
+/// The most general reply builder. It takes in data/errors and status to construct the JSON reply.
+pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
+    let json_data = match data {
+        ReplyType::Data(d) => json!(d),
+        ReplyType::Error(e) => json!({
+            "error": {
+                "key": e.key(),
+                "message": e.message()
+            }
+        })
+    };
+
+    Ok(SetStatus(Json(json_data), status))
 }
 
 /// Create a reply from some serializable data. The reply will contain no errors and will have a
 /// status code of 200.
 pub fn reply_data<D: Serialize>(data: D) -> Reply {
-    reply(data, &[], Status::Ok)
+    reply(ReplyType::Data(data), Status::Ok)
 }
 
 /// Create a reply with an error. The data will be an empty array and the status will taken from
 /// `error.status()`.
 pub fn reply_error(error: Error) -> Reply {
     let status = error.status();
-    reply([0; 0], &[error], status)
+    reply::<()>(ReplyType::Error(error), status)
 }
 
 /// Create a reply with a successful status. There are no errors and the status is 200.
 pub fn reply_success() -> Reply {
-    reply(json!({
-        "status": "success"
-    }), &[], Status::Ok)
+    reply(ReplyType::Data(json!({ "status": "success" })), Status::Ok)
+}
+
+pub enum ReplyType<D: Serialize> {
+    Data(D), Error(Error)
 }
 
 /// The `Error` enum represents all the possible errors that the API can return. These errors have
@@ -64,6 +67,7 @@ pub enum Error {
     NotFound,
     AlreadyExists,
     InvalidDomain,
+    BadRequest,
     Unauthorized
 }
 
@@ -79,7 +83,8 @@ impl Error {
             Error::FtlConnectionFail => "Failed to connect to FTL",
             Error::NotFound => "Not found",
             Error::AlreadyExists => "Item already exists",
-            Error::InvalidDomain => "Bad request",
+            Error::InvalidDomain => "Invalid domain",
+            Error::BadRequest => "Bad request",
             Error::Unauthorized => "Unauthorized"
         }
     }
@@ -95,6 +100,7 @@ impl Error {
             Error::NotFound => "not_found",
             Error::AlreadyExists => "already_exists",
             Error::InvalidDomain => "invalid_domain",
+            Error::BadRequest => "bad_request",
             Error::Unauthorized => "unauthorized"
         }
     }
@@ -109,6 +115,7 @@ impl Error {
             Error::NotFound => Status::NotFound,
             Error::AlreadyExists => Status::Conflict,
             Error::InvalidDomain => Status::BadRequest,
+            Error::BadRequest => Status::BadRequest,
             Error::Unauthorized => Status::Unauthorized
         }
     }
