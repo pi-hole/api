@@ -95,7 +95,8 @@ fn setup<'a>(
         ])
         // Mount the API
         .mount("/admin/api", routes![
-            auth::auth_check,
+            auth::check,
+            auth::logout,
             stats::get_summary,
             stats::top_domains,
             stats::top_domains_params,

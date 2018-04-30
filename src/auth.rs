@@ -44,6 +44,10 @@ impl User {
             .map(|id| User { id })
             .into_outcome((util::Error::Unauthorized.status(), util::Error::Unauthorized))
     }
+
+    fn logout(&self, mut cookies: Cookies) {
+        cookies.remove_private(Cookie::named(USER_ATTR));
+    }
 }
 
 impl<'a, 'r> FromRequest<'a, 'r> for User {
@@ -75,7 +79,6 @@ impl AuthData {
 
     /// Check if the key matches the server's key
     fn key_matches(&self, key: &str) -> bool {
-        // TODO: harden this
         self.key == key
     }
 
@@ -87,7 +90,14 @@ impl AuthData {
 
 /// Provides an endpoint to authenticate or check if already authenticated
 #[get("/auth")]
-pub fn auth_check(_user: User) -> util::Reply {
+pub fn check(_user: User) -> util::Reply {
+    util::reply_success()
+}
+
+/// Clears the user's authentication
+#[delete("/auth")]
+pub fn logout(user: User, cookies: Cookies) -> util::Reply {
+    user.logout(cookies);
     util::reply_success()
 }
 
