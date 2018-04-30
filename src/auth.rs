@@ -111,10 +111,7 @@ mod test {
             .endpoint("/admin/api/auth")
             .should_auth(true)
             .expect_json(json!({
-                "data": {
-                    "status": "success"
-                },
-                "errors": []
+                "status": "success"
             }))
             .test()
     }
@@ -126,11 +123,10 @@ mod test {
             .should_auth(false)
             .expect_status(Status::Unauthorized)
             .expect_json(json!({
-                "data": [],
-                "errors": [{
+                "error": {
                     "key": "unauthorized",
                     "message": "Unauthorized"
-                }]
+                }
             }))
             .test()
     }
@@ -143,11 +139,10 @@ mod test {
             .header(Header::new("X-Pi-hole-Authenticate", "obviously_not_correct"))
             .expect_status(Status::Unauthorized)
             .expect_json(json!({
-                "data": [],
-                "errors": [{
+                "error": {
                     "key": "unauthorized",
                     "message": "Unauthorized"
-                }]
+                }
             }))
             .test();
     }
