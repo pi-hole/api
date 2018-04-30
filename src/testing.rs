@@ -79,7 +79,6 @@ impl TestBuilder {
         self
     }
 
-    #[allow(unused)]
     pub fn header<H: Into<Header<'static>>>(mut self, header: H) -> Self {
         self.headers.push(header.into());
         self

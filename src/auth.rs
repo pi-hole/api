@@ -9,7 +9,6 @@ const USER_ATTR: &str = "user_id";
 const AUTH_HEADER: &str = "X-Pi-hole-Authenticate";
 
 /// When used as a request guard, requests must be authenticated
-#[allow(dead_code)]
 pub struct User {
     pub id: usize
 }
