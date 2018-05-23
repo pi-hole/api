@@ -8,20 +8,47 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use rocket::response::NamedFile;
-use std::path::{Path, PathBuf};
+use rocket::response::{self, Response};
+use rocket::http::{ContentType, Status};
+use std::path::PathBuf;
+use std::io::Cursor;
+
+#[derive(RustEmbed)]
+#[folder("web/")]
+struct WebAssets;
+
+/// Get a file from the embedded web assets
+fn get_file<'r>(filename: &str) -> response::Result<'r> {
+    let not_found = Err(Status::NotFound);
+
+    let content_type = if filename.contains(".") {
+        match ContentType::from_extension(filename.rsplit(".").next().unwrap()) {
+            Some(value) => value,
+            None => return not_found
+        }
+    } else {
+        ContentType::Binary
+    };
+
+    WebAssets::get(filename)
+        .map_or_else(
+            || not_found,
+            |data| {
+                Response::build()
+                    .header(content_type)
+                    .sized_body(Cursor::new(data))
+                    .ok()
+            })
+}
 
 /// Return the index page of the web interface
 #[get("/admin")]
-pub fn web_interface_index() -> Option<NamedFile> {
-    NamedFile::open("static/index.html").ok()
+pub fn web_interface_index<'r>() -> response::Result<'r> {
+    get_file("index.html")
 }
 
-/// Return the requested page/file, if it exists. This automatically handles preventing path
-/// traversal attacks.
-/// See https://rocket.rs/guide/requests/#multiple-segments
-/// or https://api.rocket.rs/rocket/request/trait.FromSegments.html#provided-implementations
+/// Return the requested page/file, if it exists.
 #[get("/admin/<path..>")]
-pub fn web_interface(path: PathBuf) -> Option<NamedFile> {
-    NamedFile::open(Path::new("static/").join(path)).ok()
+pub fn web_interface<'r>(path: PathBuf) -> response::Result<'r> {
+    get_file(&path.display().to_string())
 }

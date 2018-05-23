@@ -8,7 +8,7 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-#![feature(plugin, custom_derive)]
+#![feature(plugin, custom_derive, attr_literals)]
 #![plugin(rocket_codegen)]
 
 extern crate regex;
@@ -19,6 +19,8 @@ extern crate rocket_contrib;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate rust_embed;
 
 pub use setup::*;
 
