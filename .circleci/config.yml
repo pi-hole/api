@@ -19,6 +19,30 @@ version: 2
           # Find the most recent cache used from any branch
           - v2-cargo
     - run:
+        name: "Download Web"
+        command: |
+          root="https://ftl.pi-hole.net"
+          file="pihole-web.tar.gz"
+
+          # Try the branch of the same name, then dev, then master, and if none exist then fail
+          if curl --output /dev/null --silent --head --fail "$root/$CIRCLE_BRANCH/$file"; then
+            branch="$CIRCLE_BRANCH"
+          elif curl --output /dev/null --silent --head --fail "$root/development/$file"; then
+            branch="development"
+          elif curl --output /dev/null --silent --head --fail "$root/master/$file"; then
+            branch="master"
+          else
+            echo "Could not find any web builds. Luckily they are not required for this CI yet."
+            exit 0
+          fi
+
+          echo "Using the $branch branch"
+
+          # Uncompress the files to the "web" folder
+          curl "$root/$branch/$file" -o web.tar.gz
+          mkdir web
+          tar -xzf web.tar.gz -C web
+    - run:
         name: "Build"
         command: |
           time cargo build --release --target $TARGET
