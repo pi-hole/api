@@ -13,10 +13,11 @@ use rmp::decode::ValueReadError;
 use rmp::Marker;
 use rocket::State;
 use util;
+use auth::User;
 
 /// Get the forward destination usage over time
 #[get("/stats/overTime/forward_destinations")]
-pub fn over_time_forward_destinations(ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn over_time_forward_destinations(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
     let mut con = ftl.connect("ForwardedoverTime")?;
 
     // Create a 4KiB string buffer

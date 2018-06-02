@@ -8,12 +8,15 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
+use auth::{self, AuthData};
 use config::{Config, PiholeFile};
 use dns;
 use ftl;
 use rocket;
 use rocket::config::{ConfigBuilder, Environment};
 use rocket::local::Client;
+use rocket_cors::{Cors};
+use setup_vars::read_setup_vars;
 use stats;
 use std::collections::HashMap;
 use std::fs::File;
@@ -22,16 +25,27 @@ use web;
 
 /// This is run when no route could be found and returns a custom 404 message.
 #[error(404)]
-fn not_found() -> util::Reply {
-    util::reply_error(util::Error::NotFound)
+fn not_found() -> util::Error {
+    util::Error::NotFound
+}
+
+#[error(401)]
+fn unauthorized() -> util::Error {
+    util::Error::Unauthorized
 }
 
 /// Run the API normally (connect to FTL over the socket)
 pub fn start() {
+    let config = Config::Production;
+    let key = read_setup_vars("WEBPASSWORD", &config)
+        .expect(&format!("Failed to open {}", PiholeFile::SetupVars.default_location()))
+        .unwrap_or_default();
+
     setup(
         rocket::ignite(),
         ftl::FtlConnectionType::Socket,
-        Config::Production
+        config,
+        key
     ).launch();
 }
 
@@ -48,7 +62,8 @@ pub fn test(
             false,
         ),
         ftl::FtlConnectionType::Test(ftl_data),
-        Config::Test(config_data)
+        Config::Test(config_data),
+        "test_key".to_owned()
     )).unwrap()
 }
 
@@ -56,14 +71,23 @@ pub fn test(
 fn setup<'a>(
     server: rocket::Rocket,
     connection_type: ftl::FtlConnectionType,
-    config: Config
+    config: Config,
+    api_key: String
 ) -> rocket::Rocket {
+    // Setup CORS
+    let mut cors = Cors::default();
+    cors.allow_credentials = true;
+
     // Start up the server
     server
+        // Attach CORS handler
+        .attach(cors)
         // Manage the connection type configuration
         .manage(connection_type)
         // Manage the configuration
         .manage(config)
+        // Manage the API key
+        .manage(AuthData::new(api_key))
         // Mount the web interface
         .mount("/", routes![
             web::web_interface_index,
@@ -71,6 +95,8 @@ fn setup<'a>(
         ])
         // Mount the API
         .mount("/admin/api", routes![
+            auth::check,
+            auth::logout,
             stats::get_summary,
             stats::top_domains,
             stats::top_domains_params,
@@ -102,5 +128,5 @@ fn setup<'a>(
             dns::delete_wildlist
         ])
         // Add custom error handlers
-        .catch(errors![not_found])
+        .catch(errors![not_found, unauthorized])
 }

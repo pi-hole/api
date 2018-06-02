@@ -13,10 +13,11 @@ use rmp::decode::ValueReadError;
 use rmp::Marker;
 use rocket::State;
 use util;
+use auth::User;
 
 /// Get the query types usage over time
 #[get("/stats/overTime/query_types")]
-pub fn over_time_query_types(ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn over_time_query_types(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
     let mut con = ftl.connect("QueryTypesoverTime")?;
 
     let mut over_time = Vec::new();

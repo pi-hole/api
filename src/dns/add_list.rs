@@ -14,6 +14,7 @@ use dns::list::{add_list, try_remove_list};
 use rocket::State;
 use rocket_contrib::Json;
 use util;
+use auth::User;
 
 /// Represents an API input containing a domain
 #[derive(Deserialize)]
@@ -23,7 +24,7 @@ pub struct DomainInput {
 
 /// Add a domain to the whitelist
 #[post("/dns/whitelist", data = "<domain_input>")]
-pub fn add_whitelist(config: State<Config>, domain_input: Json<DomainInput>) -> util::Reply {
+pub fn add_whitelist(_auth: User, config: State<Config>, domain_input: Json<DomainInput>) -> util::Reply {
     let domain = &domain_input.0.domain;
 
     // We need to add it to the whitelist and remove it from the other lists
@@ -38,7 +39,7 @@ pub fn add_whitelist(config: State<Config>, domain_input: Json<DomainInput>) -> 
 
 /// Add a domain to the blacklist
 #[post("/dns/blacklist", data = "<domain_input>")]
-pub fn add_blacklist(config: State<Config>, domain_input: Json<DomainInput>) -> util::Reply {
+pub fn add_blacklist(_auth: User, config: State<Config>, domain_input: Json<DomainInput>) -> util::Reply {
     let domain = &domain_input.0.domain;
 
     // We need to add it to the blacklist and remove it from the other lists
@@ -53,7 +54,7 @@ pub fn add_blacklist(config: State<Config>, domain_input: Json<DomainInput>) -> 
 
 /// Add a domain to the wildcard list
 #[post("/dns/wildlist", data = "<domain_input>")]
-pub fn add_wildlist(config: State<Config>, domain_input: Json<DomainInput>) -> util::Reply {
+pub fn add_wildlist(_auth: User, config: State<Config>, domain_input: Json<DomainInput>) -> util::Reply {
     let domain = &domain_input.0.domain;
 
     // We only need to add it to the wildcard list (this is the same functionality as list.sh)
