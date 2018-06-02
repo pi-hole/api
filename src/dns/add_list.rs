@@ -61,7 +61,7 @@ pub fn add_regexlist(config: State<Config>, ftl: State<FtlConnectionType>, domai
     add_list(PiholeFile::Regexlist, domain, &config)?;
 
     // At this point, since we haven't hit an error yet, tell FTL to recompile regex
-    ftl.connect(">recompile-regex")?.expect_eom()?;
+    ftl.connect("recompile-regex")?.expect_eom()?;
     util::reply_success()
 }
 
@@ -123,7 +123,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/dns/regexlist")
             .method(Method::Post)
-            .ftl(">recompile-regex", data)
+            .ftl("recompile-regex", data)
             .file_expect(
                 PiholeFile::Regexlist,
                 "",

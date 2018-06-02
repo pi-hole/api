@@ -35,7 +35,7 @@ pub fn delete_blacklist(config: State<Config>, domain: String) -> util::Reply {
 #[delete("/dns/regexlist/<domain>")]
 pub fn delete_regexlist(config: State<Config>, ftl: State<FtlConnectionType>, domain: String) -> util::Reply {
     remove_list(PiholeFile::Regexlist, &domain, &config)?;
-    ftl.connect(">recompile-regex")?.expect_eom()?;
+    ftl.connect("recompile-regex")?.expect_eom()?;
     util::reply_success()
 }
 
@@ -83,7 +83,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/dns/regexlist/^.*example.com$")
             .method(Method::Delete)
-            .ftl(">recompile-regex", data)
+            .ftl("recompile-regex", data)
             .file_expect(PiholeFile::Regexlist, "^.*example.com$\n", "")
             .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
             .expect_json(
