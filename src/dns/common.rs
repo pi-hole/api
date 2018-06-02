@@ -76,7 +76,6 @@ pub fn reload_gravity(list: PiholeFile, config: &Config) -> Result<(), util::Err
         .arg(match list {
             PiholeFile::Whitelist => "--whitelist-only",
             PiholeFile::Blacklist => "--blacklist-only",
-            PiholeFile::Regexlist => "--wildcard-only",
             _ => return Err(util::Error::Unknown)
         })
         // Ignore stdin, stdout, and stderr
