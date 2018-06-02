@@ -13,11 +13,12 @@ use dns::common::reload_gravity;
 use dns::list::remove_list;
 use rocket::State;
 use util;
+use auth::User;
 use ftl::FtlConnectionType;
 
 /// Delete a domain from the whitelist
 #[delete("/dns/whitelist/<domain>")]
-pub fn delete_whitelist(config: State<Config>, domain: String) -> util::Reply {
+pub fn delete_whitelist(_auth: User, config: State<Config>, domain: String) -> util::Reply {
     remove_list(PiholeFile::Whitelist, &domain, &config)?;
     reload_gravity(PiholeFile::Whitelist, &config)?;
     util::reply_success()
@@ -25,7 +26,7 @@ pub fn delete_whitelist(config: State<Config>, domain: String) -> util::Reply {
 
 /// Delete a domain from the blacklist
 #[delete("/dns/blacklist/<domain>")]
-pub fn delete_blacklist(config: State<Config>, domain: String) -> util::Reply {
+pub fn delete_blacklist(_auth: User, config: State<Config>, domain: String) -> util::Reply {
     remove_list(PiholeFile::Blacklist, &domain, &config)?;
     reload_gravity(PiholeFile::Blacklist, &config)?;
     util::reply_success()
@@ -33,7 +34,7 @@ pub fn delete_blacklist(config: State<Config>, domain: String) -> util::Reply {
 
 /// Delete a domain from the regex list
 #[delete("/dns/regexlist/<domain>")]
-pub fn delete_regexlist(config: State<Config>, ftl: State<FtlConnectionType>, domain: String) -> util::Reply {
+pub fn delete_regexlist(_auth: User, config: State<Config>, ftl: State<FtlConnectionType>, domain: String) -> util::Reply {
     remove_list(PiholeFile::Regexlist, &domain, &config)?;
     ftl.connect("recompile-regex")?.expect_eom()?;
     util::reply_success()

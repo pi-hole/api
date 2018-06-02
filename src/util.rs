@@ -10,13 +10,14 @@
 
 use serde::Serialize;
 use rocket_contrib::{Json, Value};
-use rocket::request::Request;
+use rocket::{Request, Outcome};
+use rocket::request;
 use rocket::response::{self, Response, Responder};
 use rocket::http::Status;
 use std::fmt::Display;
 
 /// Type alias for the most common return type of the API methods
-pub type Reply = Result<CORS<SetStatus<Json<Value>>>, Error>;
+pub type Reply = Result<SetStatus<Json<Value>>, Error>;
 
 /// The most general reply builder. It takes in data/errors and status to construct the JSON reply.
 pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
@@ -30,7 +31,7 @@ pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
         })
     };
 
-    Ok(CORS(SetStatus(Json(json_data), status)))
+    Ok(SetStatus(Json(json_data), status))
 }
 
 /// Create a reply from some serializable data. The reply will contain no errors and will have a
@@ -57,7 +58,7 @@ pub enum ReplyType<D: Serialize> {
 
 /// The `Error` enum represents all the possible errors that the API can return. These errors have
 /// messages, keys, and HTTP statuses.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Error {
     Unknown,
     GravityError,
@@ -66,7 +67,8 @@ pub enum Error {
     NotFound,
     AlreadyExists,
     InvalidDomain,
-    BadRequest
+    BadRequest,
+    Unauthorized
 }
 
 impl Error {
@@ -82,7 +84,8 @@ impl Error {
             Error::NotFound => "Not found",
             Error::AlreadyExists => "Item already exists",
             Error::InvalidDomain => "Invalid domain",
-            Error::BadRequest => "Bad request"
+            Error::BadRequest => "Bad request",
+            Error::Unauthorized => "Unauthorized"
         }
     }
 
@@ -97,7 +100,8 @@ impl Error {
             Error::NotFound => "not_found",
             Error::AlreadyExists => "already_exists",
             Error::InvalidDomain => "invalid_domain",
-            Error::BadRequest => "bad_request"
+            Error::BadRequest => "bad_request",
+            Error::Unauthorized => "unauthorized"
         }
     }
 
@@ -111,8 +115,13 @@ impl Error {
             Error::NotFound => Status::NotFound,
             Error::AlreadyExists => Status::Conflict,
             Error::InvalidDomain => Status::BadRequest,
-            Error::BadRequest => Status::BadRequest
+            Error::BadRequest => Status::BadRequest,
+            Error::Unauthorized => Status::Unauthorized
         }
+    }
+
+    pub fn as_outcome<S>(&self) -> request::Outcome<S, Self> {
+        Outcome::Failure((self.status(), self.clone()))
     }
 }
 
@@ -127,19 +136,6 @@ impl<'r> Responder<'r> for Error {
     fn respond_to(self, request: &Request) -> response::Result<'r> {
         // This allows us to automatically use `reply_error` when we return an Error in the API
         reply_error(self).unwrap().respond_to(request)
-    }
-}
-
-/// This wraps another Responder and adds the correct CORS HTTP header.
-#[derive(Debug)]
-pub struct CORS<R>(R);
-
-impl<'r, R: Responder<'r>> Responder<'r> for CORS<R> {
-    fn respond_to(self, request: &Request) -> response::Result<'r> {
-        // Add the correct CORS header to the response
-        Ok(Response::build_from(self.0.respond_to(request)?)
-            .raw_header("Access-Control-Allow-Origin", "*")
-            .finalize())
     }
 }
 

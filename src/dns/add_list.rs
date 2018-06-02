@@ -14,6 +14,7 @@ use dns::list::{add_list, try_remove_list};
 use rocket::State;
 use rocket_contrib::Json;
 use util;
+use auth::User;
 use ftl::FtlConnectionType;
 
 /// Represents an API input containing a domain
@@ -24,7 +25,7 @@ pub struct DomainInput {
 
 /// Add a domain to the whitelist
 #[post("/dns/whitelist", data = "<domain_input>")]
-pub fn add_whitelist(config: State<Config>, domain_input: Json<DomainInput>) -> util::Reply {
+pub fn add_whitelist(_auth: User, config: State<Config>, domain_input: Json<DomainInput>) -> util::Reply {
     let domain = &domain_input.0.domain;
 
     // We need to add it to the whitelist and remove it from the other lists
@@ -39,7 +40,7 @@ pub fn add_whitelist(config: State<Config>, domain_input: Json<DomainInput>) -> 
 
 /// Add a domain to the blacklist
 #[post("/dns/blacklist", data = "<domain_input>")]
-pub fn add_blacklist(config: State<Config>, domain_input: Json<DomainInput>) -> util::Reply {
+pub fn add_blacklist(_auth: User, config: State<Config>, domain_input: Json<DomainInput>) -> util::Reply {
     let domain = &domain_input.0.domain;
 
     // We need to add it to the blacklist and remove it from the other lists
@@ -54,7 +55,7 @@ pub fn add_blacklist(config: State<Config>, domain_input: Json<DomainInput>) -> 
 
 /// Add a domain to the regex list
 #[post("/dns/regexlist", data = "<domain_input>")]
-pub fn add_regexlist(config: State<Config>, ftl: State<FtlConnectionType>, domain_input: Json<DomainInput>) -> util::Reply {
+pub fn add_regexlist(_auth: User, config: State<Config>, ftl: State<FtlConnectionType>, domain_input: Json<DomainInput>) -> util::Reply {
     let domain = &domain_input.0.domain;
 
     // We only need to add it to the regex list

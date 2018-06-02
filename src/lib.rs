@@ -16,6 +16,7 @@ extern crate rmp;
 extern crate rocket;
 #[macro_use]
 extern crate rocket_contrib;
+extern crate rocket_cors;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -23,12 +24,14 @@ extern crate serde_derive;
 pub use setup::*;
 
 mod util;
+mod auth;
 mod ftl;
 mod stats;
 mod dns;
 mod web;
 mod setup;
 mod config;
+mod setup_vars;
 
 #[cfg(test)]
 mod testing;

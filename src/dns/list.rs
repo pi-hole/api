@@ -13,6 +13,7 @@ use std::io::{self, BufReader, BufWriter};
 
 use util;
 use dns::common::{is_valid_domain, is_valid_regex};
+use setup_vars::read_setup_vars;
 use config::{Config, PiholeFile};
 
 /// Check that the file is a domain list, and return `Error::Unknown` otherwise
