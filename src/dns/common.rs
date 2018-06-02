@@ -26,7 +26,13 @@ pub fn is_valid_domain(domain: &str) -> bool {
         && label_length_regex.is_match(domain)
 }
 
+/// Check if a regex is valid
+pub fn is_valid_regex(regex_str: &str) -> bool {
+    Regex::new(regex_str).is_ok()
+}
+
 /// Read in a value from setupVars.conf
+#[allow(unused)]
 pub fn read_setup_vars(entry: &str, config: &Config) -> io::Result<Option<String>> {
     // Open setupVars.conf
     let reader = BufReader::new(config.read_file(PiholeFile::SetupVars)?);
@@ -70,7 +76,7 @@ pub fn reload_gravity(list: PiholeFile, config: &Config) -> Result<(), util::Err
         .arg(match list {
             PiholeFile::Whitelist => "--whitelist-only",
             PiholeFile::Blacklist => "--blacklist-only",
-            PiholeFile::Wildlist => "--wildcard-only",
+            PiholeFile::Regexlist => "--wildcard-only",
             _ => return Err(util::Error::Unknown)
         })
         // Ignore stdin, stdout, and stderr

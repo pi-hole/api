@@ -34,11 +34,11 @@ pub fn delete_blacklist(config: State<Config>, domain: String) -> util::Reply {
     util::reply_success()
 }
 
-/// Delete a domain from the wildcard list
-#[delete("/dns/wildlist/<domain>")]
-pub fn delete_wildlist(config: State<Config>, domain: String) -> util::Reply {
-    remove_list(PiholeFile::Wildlist, &domain, &config)?;
-    reload_gravity(PiholeFile::Wildlist, &config)?;
+/// Delete a domain from the regex list
+#[delete("/dns/regexlist/<domain>")]
+pub fn delete_regexlist(config: State<Config>, domain: String) -> util::Reply {
+    remove_list(PiholeFile::Regexlist, &domain, &config)?;
+    reload_gravity(PiholeFile::Regexlist, &config)?;
 
     // At this point, since we haven't hit an error yet, reload gravity and return success
     util::reply_success()
@@ -81,11 +81,11 @@ mod test {
     }
 
     #[test]
-    fn test_delete_wildlist() {
+    fn test_delete_regexlist() {
         TestBuilder::new()
-            .endpoint("/admin/api/dns/wildlist/example.com")
+            .endpoint("/admin/api/dns/regexlist/^.*example.com$")
             .method(Method::Delete)
-            .file_expect(PiholeFile::Wildlist, "address=/example.com/10.1.1.1\n", "")
+            .file_expect(PiholeFile::Regexlist, "^.*example.com$\n", "")
             .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
             .expect_json(
                 json!({

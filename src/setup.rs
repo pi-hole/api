@@ -92,14 +92,14 @@ fn setup<'a>(
             stats::over_time_clients,
             dns::get_whitelist,
             dns::get_blacklist,
-            dns::get_wildlist,
+            dns::get_regexlist,
             dns::status,
             dns::add_whitelist,
             dns::add_blacklist,
-            dns::add_wildlist,
+            dns::add_regexlist,
             dns::delete_whitelist,
             dns::delete_blacklist,
-            dns::delete_wildlist
+            dns::delete_regexlist
         ])
         // Add custom error handlers
         .catch(errors![not_found])
