@@ -12,13 +12,13 @@ use std::io::prelude::*;
 use std::io::{self, BufReader, BufWriter};
 
 use util;
-use dns::common::{is_valid_domain, read_setup_vars};
+use dns::common::{is_valid_domain, is_valid_regex};
 use config::{Config, PiholeFile};
 
 /// Check that the file is a domain list, and return `Error::Unknown` otherwise
 fn verify_list(file: PiholeFile) -> Result<(), util::Error> {
     match file {
-        PiholeFile::Whitelist | PiholeFile::Blacklist | PiholeFile::Wildlist => Ok(()),
+        PiholeFile::Whitelist | PiholeFile::Blacklist | PiholeFile::Regexlist => Ok(()),
         _ => Err(util::Error::Unknown)
     }
 }
@@ -39,53 +39,13 @@ pub fn get_list(list: PiholeFile, config: &Config) -> Result<Vec<String>, util::
             }
         }
     };
+
     let reader = BufReader::new(file);
-
-    // Used for the wildcard list to skip IPv6 lines
-    let mut skip_lines = false;
-    let is_wildcard = list == PiholeFile::Wildlist;
-
-    if is_wildcard {
-        // Check if both IPv4 and IPv6 are used.
-        // If so, skip every other line if we're getting wildcard domains.
-        let ipv4 = read_setup_vars("IPV4_ADDRESS", config)?;
-        let ipv6 = read_setup_vars("IPV6_ADDRESS", config)?;
-
-        skip_lines = ipv4.is_some() && ipv6.is_some();
-    }
-
-    let mut skip = true;
-    let mut lines = Vec::new();
-
-    // Read in the domains
-    for line in reader.lines().filter_map(|item| item.ok()) {
-        // Skip empty lines
-        if line.len() == 0 {
-            continue;
-        }
-
-        // The wildcard list sometimes skips every other, see above
-        if skip_lines {
-            skip = !skip;
-
-            if skip {
-                continue;
-            }
-        }
-
-        // Parse the line
-        let mut parsed_line = if is_wildcard {
-            // If we're reading wildcards, the domain is between two forward slashes
-            match line.split("/").nth(1) {
-                Some(s) => s.to_owned(),
-                None => continue
-            }
-        } else {
-            line
-        };
-
-        lines.push(parsed_line);
-    }
+    let lines: Vec<String> = reader
+        .lines()
+        .filter_map(|line| line.ok())
+        .filter(|line| line.len() != 0)
+        .collect();
 
     Ok(lines)
 }
@@ -96,24 +56,17 @@ pub fn add_list(list: PiholeFile, domain: &str, config: &Config) -> Result<(), u
     verify_list(list)?;
 
     // Check if it's a valid domain before doing anything
-    if !is_valid_domain(domain) {
+    let valid_domain = match list {
+        PiholeFile::Regexlist => is_valid_regex(domain),
+        _ => is_valid_domain(domain)
+    };
+
+    if !valid_domain {
         return Err(util::Error::InvalidDomain);
     }
 
-    let mut domains = Vec::new();
-
-    // Read list domains (if the list exists, otherwise the list is empty)
-    if config.file_exists(list) {
-        let reader = BufReader::new(config.read_file(list)?);
-
-        // Add domains
-        domains.extend(reader
-            .lines()
-            .filter_map(|line| line.ok())
-            // Only get valid domains
-            .filter(|domain| is_valid_domain(domain))
-        );
-    }
+    // Read list domains
+    let domains = get_list(list, config)?;
 
     // Check if the domain is already in the list
     if domains.contains(&domain.to_owned()) {
@@ -123,18 +76,8 @@ pub fn add_list(list: PiholeFile, domain: &str, config: &Config) -> Result<(), u
     // Open the list file in append mode (and create it if it doesn't exist)
     let mut list_file = config.write_file(list, true)?;
 
-    // Add the domain to the list (account for wildlist format)
-    if list == PiholeFile::Wildlist {
-        if let Some(ipv4) = read_setup_vars("IPV4_ADDRESS", config)? {
-            writeln!(list_file, "address=/{}/{}", domain, ipv4)?;
-        }
-
-        if let Some(ipv6) = read_setup_vars("IPV6_ADDRESS", config)? {
-            writeln!(list_file, "address=/{}/{}", domain, ipv6)?;
-        }
-    } else {
-        writeln!(list_file, "{}", domain)?;
-    }
+    // Add the domain to the list
+    writeln!(list_file, "{}", domain)?;
 
     Ok(())
 }
@@ -161,13 +104,18 @@ pub fn remove_list(list: PiholeFile, domain: &str, config: &Config) -> Result<()
     verify_list(list)?;
 
     // Check if it's a valid domain before doing anything
-    if !is_valid_domain(domain) {
+    let valid_domain = match list {
+        PiholeFile::Regexlist => is_valid_regex(domain),
+        _ => is_valid_domain(domain)
+    };
+
+    if !valid_domain {
         return Err(util::Error::InvalidDomain);
     }
 
     let domains = get_list(list, config)?;
 
-    // Check if the domain is already in the list
+    // Check if the domain is not in the list
     if !domains.contains(&domain.to_owned()) {
         return Err(util::Error::NotFound);
     }
@@ -178,25 +126,8 @@ pub fn remove_list(list: PiholeFile, domain: &str, config: &Config) -> Result<()
     let mut writer = BufWriter::new(list_file);
 
     // Write all domains except the one we're deleting
-    let domain_iter = domains.into_iter().filter(|item| item != domain);
-    if list == PiholeFile::Wildlist {
-        // Get the address information in case we're removing from the wildlist
-        let ipv4 = read_setup_vars("IPV4_ADDRESS", config)?;
-        let ipv6 = read_setup_vars("IPV6_ADDRESS", config)?;
-
-        for domain in domain_iter {
-            if let Some(ref address) = ipv4 {
-                writeln!(writer, "address=/{}/{}", domain, address)?;
-            }
-
-            if let Some(ref address) = ipv6 {
-                writeln!(writer, "address=/{}/{}", domain, address)?;
-            }
-        }
-    } else {
-        for domain in domain_iter {
-            writeln!(writer, "{}", domain)?;
-        }
+    for domain in domains.into_iter().filter(|item| item != domain) {
+        writeln!(writer, "{}", domain)?;
     }
 
     Ok(())

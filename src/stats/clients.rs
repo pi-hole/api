@@ -13,11 +13,12 @@ use rmp::decode::DecodeStringError;
 use rmp::Marker;
 use rocket::State;
 use util;
+use auth::User;
 
 /// Get the names of clients
 // TODO: return only the names and IP addresses
 #[get("/stats/clients")]
-pub fn clients(ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
     let mut con = ftl.connect("client-names")?;
 
     // Create a 4KiB string buffer

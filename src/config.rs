@@ -20,17 +20,17 @@ pub enum PiholeFile {
     DnsmasqMainConfig,
     Whitelist,
     Blacklist,
-    Wildlist,
+    Regexlist,
     SetupVars
 }
 
 impl PiholeFile {
-    fn default_location(&self) -> &'static str {
+    pub fn default_location(&self) -> &'static str {
         match *self {
             PiholeFile::DnsmasqMainConfig => "/etc/dnsmasq.d/01-pihole.conf",
             PiholeFile::Whitelist => "/etc/pihole/whitelist.txt",
             PiholeFile::Blacklist => "/etc/pihole/blacklist.txt",
-            PiholeFile::Wildlist => "/etc/dnsmasq.d/03-pihole-wildcard.conf",
+            PiholeFile::Regexlist => "/etc/pihole/regex.list",
             PiholeFile::SetupVars => "/etc/pihole/setupVars.conf"
         }
     }
@@ -63,6 +63,7 @@ impl Config {
         }
     }
 
+    /// Open a file for writing. If `append` is false, the file will be truncated.
     pub fn write_file(
         &self,
         file: PiholeFile,
@@ -100,6 +101,7 @@ impl Config {
     }
 
     /// Check if a file exists
+    #[allow(unused)]
     pub fn file_exists(&self, file: PiholeFile) -> bool {
         match *self {
             Config::Production => {

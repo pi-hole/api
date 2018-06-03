@@ -13,16 +13,17 @@ use rmp::decode::DecodeStringError;
 use rmp::Marker;
 use rocket::State;
 use util;
+use auth::User;
 
 /// Get the top clients with default parameters
 #[get("/stats/top_clients")]
-pub fn top_clients(ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn top_clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
     get_top_clients(&ftl, TopClientParams::default())
 }
 
 /// Get the top clients with specified parameters
 #[get("/stats/top_clients?<params>")]
-pub fn top_clients_params(ftl: State<FtlConnectionType>, params: TopClientParams) -> util::Reply {
+pub fn top_clients_params(_auth: User, ftl: State<FtlConnectionType>, params: TopClientParams) -> util::Reply {
     get_top_clients(&ftl, params)
 }
 

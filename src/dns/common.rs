@@ -10,8 +10,6 @@
 
 use config::{Config, PiholeFile};
 use regex::Regex;
-use std::io::{self, BufReader};
-use std::io::prelude::*;
 use std::process::{Command, Stdio};
 use util;
 
@@ -26,33 +24,9 @@ pub fn is_valid_domain(domain: &str) -> bool {
         && label_length_regex.is_match(domain)
 }
 
-/// Read in a value from setupVars.conf
-pub fn read_setup_vars(entry: &str, config: &Config) -> io::Result<Option<String>> {
-    // Open setupVars.conf
-    let reader = BufReader::new(config.read_file(PiholeFile::SetupVars)?);
-
-    // Check every line for the key (filter out lines which could not be read)
-    for line in reader.lines().filter_map(|item| item.ok()) {
-        // Ignore lines without the entry as a substring
-        if !line.contains(entry) {
-            continue;
-        }
-
-        let mut split = line.split("=");
-
-        // Check if we found the key by checking if the line starts with `entry=`
-        if split.next().map_or(false, |section| section == entry) {
-            return Ok(
-                // Get the right hand side if it exists and is not empty
-                split
-                    .next()
-                    .and_then(|item| if item.len() == 0 { None } else { Some(item) })
-                    .map(|item| item.to_owned())
-            )
-        }
-    }
-
-    Ok(None)
+/// Check if a regex is valid
+pub fn is_valid_regex(regex_str: &str) -> bool {
+    Regex::new(regex_str).is_ok()
 }
 
 /// Reload Gravity to activate changes in lists
@@ -70,7 +44,6 @@ pub fn reload_gravity(list: PiholeFile, config: &Config) -> Result<(), util::Err
         .arg(match list {
             PiholeFile::Whitelist => "--whitelist-only",
             PiholeFile::Blacklist => "--blacklist-only",
-            PiholeFile::Wildlist => "--wildcard-only",
             _ => return Err(util::Error::Unknown)
         })
         // Ignore stdin, stdout, and stderr

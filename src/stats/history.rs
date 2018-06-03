@@ -13,16 +13,18 @@ use rmp::decode::ValueReadError;
 use rmp::Marker;
 use rocket::State;
 use util;
+use auth::User;
 
 /// Get the entire query history (as stored in FTL)
 #[get("/stats/history")]
-pub fn history(ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn history(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
     get_history(&ftl, "getallqueries", None)
 }
 
 /// Get the query history according to the specified parameters
 #[get("/stats/history?<params>")]
 pub fn history_params(
+    _auth: User,
     ftl: State<FtlConnectionType>,
     params: HistoryParams
 ) -> util::Reply {
