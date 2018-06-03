@@ -16,7 +16,6 @@ use util;
 use auth::User;
 
 /// Get the names of clients
-// TODO: return only the names and IP addresses
 #[get("/stats/clients")]
 pub fn clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
     let mut con = ftl.connect("client-names")?;
@@ -44,9 +43,8 @@ pub fn clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
         };
 
         let ip = con.read_str(&mut str_buffer)?.to_owned();
-        let count = con.read_i32()?;
 
-        client_data.push(Client { name, ip, count });
+        client_data.push(Client { name, ip });
     }
 
     util::reply_data(client_data)
@@ -55,8 +53,7 @@ pub fn clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
 #[derive(Serialize)]
 struct Client {
     name: String,
-    ip: String,
-    count: i32
+    ip: String
 }
 
 #[cfg(test)]
@@ -69,13 +66,10 @@ mod test {
         let mut data = Vec::new();
         encode::write_str(&mut data, "client1").unwrap();
         encode::write_str(&mut data, "10.1.1.1").unwrap();
-        encode::write_i32(&mut data, 30).unwrap();
         encode::write_str(&mut data, "").unwrap();
         encode::write_str(&mut data, "10.1.1.2").unwrap();
-        encode::write_i32(&mut data, 20).unwrap();
         encode::write_str(&mut data, "client3").unwrap();
         encode::write_str(&mut data, "10.1.1.3").unwrap();
-        encode::write_i32(&mut data, 10).unwrap();
         write_eom(&mut data);
 
         TestBuilder::new()
@@ -85,18 +79,15 @@ mod test {
                 json!([
                     {
                         "name": "client1",
-                        "ip": "10.1.1.1",
-                        "count": 30
+                        "ip": "10.1.1.1"
                     },
                     {
                         "name": "",
-                        "ip": "10.1.1.2",
-                        "count": 20
+                        "ip": "10.1.1.2"
                     },
                     {
                         "name": "client3",
-                        "ip": "10.1.1.3",
-                        "count": 10
+                        "ip": "10.1.1.3"
                     }
                 ])
             )
