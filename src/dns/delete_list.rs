@@ -10,7 +10,7 @@
 
 use config::{Config, PiholeFile};
 use dns::common::reload_gravity;
-use dns::list::remove_list;
+use dns::list::List;
 use rocket::State;
 use util;
 use auth::User;
@@ -19,7 +19,7 @@ use ftl::FtlConnectionType;
 /// Delete a domain from the whitelist
 #[delete("/dns/whitelist/<domain>")]
 pub fn delete_whitelist(_auth: User, config: State<Config>, domain: String) -> util::Reply {
-    remove_list(PiholeFile::Whitelist, &domain, &config)?;
+    List::White.remove(&domain, &config)?;
     reload_gravity(PiholeFile::Whitelist, &config)?;
     util::reply_success()
 }
@@ -27,15 +27,20 @@ pub fn delete_whitelist(_auth: User, config: State<Config>, domain: String) -> u
 /// Delete a domain from the blacklist
 #[delete("/dns/blacklist/<domain>")]
 pub fn delete_blacklist(_auth: User, config: State<Config>, domain: String) -> util::Reply {
-    remove_list(PiholeFile::Blacklist, &domain, &config)?;
+    List::Black.remove(&domain, &config)?;
     reload_gravity(PiholeFile::Blacklist, &config)?;
     util::reply_success()
 }
 
 /// Delete a domain from the regex list
 #[delete("/dns/regexlist/<domain>")]
-pub fn delete_regexlist(_auth: User, config: State<Config>, ftl: State<FtlConnectionType>, domain: String) -> util::Reply {
-    remove_list(PiholeFile::Regexlist, &domain, &config)?;
+pub fn delete_regexlist(
+    _auth: User,
+    config: State<Config>,
+    ftl: State<FtlConnectionType>,
+    domain: String
+) -> util::Reply {
+    List::Regex.remove(&domain, &config)?;
     ftl.connect("recompile-regex")?.expect_eom()?;
     util::reply_success()
 }
@@ -52,7 +57,6 @@ mod test {
             .endpoint("/admin/api/dns/whitelist/example.com")
             .method(Method::Delete)
             .file_expect(PiholeFile::Whitelist, "example.com\n", "")
-            .file(PiholeFile::SetupVars, "")
             .expect_json(
                 json!({
                     "status": "success"
@@ -67,7 +71,6 @@ mod test {
             .endpoint("/admin/api/dns/blacklist/example.com")
             .method(Method::Delete)
             .file_expect(PiholeFile::Blacklist, "example.com\n", "")
-            .file(PiholeFile::SetupVars, "")
             .expect_json(
                 json!({
                     "status": "success"
@@ -86,7 +89,6 @@ mod test {
             .method(Method::Delete)
             .ftl("recompile-regex", data)
             .file_expect(PiholeFile::Regexlist, "^.*example.com$\n", "")
-            .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
             .expect_json(
                 json!({
                     "status": "success"

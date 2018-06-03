@@ -8,27 +8,27 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use config::{Config, PiholeFile};
-use dns::list::get_list;
+use config::Config;
+use dns::list::List;
 use rocket::State;
 use util;
 
 /// Get the Whitelist domains
 #[get("/dns/whitelist")]
 pub fn get_whitelist(config: State<Config>) -> util::Reply {
-    util::reply_data(get_list(PiholeFile::Whitelist, &config)?)
+    util::reply_data(List::White.get(&config)?)
 }
 
 /// Get the Blacklist domains
 #[get("/dns/blacklist")]
 pub fn get_blacklist(config: State<Config>) -> util::Reply {
-    util::reply_data(get_list(PiholeFile::Blacklist, &config)?)
+    util::reply_data(List::Black.get(&config)?)
 }
 
 /// Get the Regex list domains
 #[get("/dns/regexlist")]
 pub fn get_regexlist(config: State<Config>) -> util::Reply {
-    util::reply_data(get_list(PiholeFile::Regexlist, &config)?)
+    util::reply_data(List::Regex.get(&config)?)
 }
 
 #[cfg(test)]
@@ -41,7 +41,6 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/dns/whitelist")
             .file(PiholeFile::Whitelist, "example.com\nexample.net\n")
-            .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
             .expect_json(
                 json!([
                     "example.com",
@@ -56,7 +55,6 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/dns/blacklist")
             .file(PiholeFile::Blacklist, "example.com\nexample.net\n")
-            .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
             .expect_json(
                 json!([
                     "example.com",
@@ -71,7 +69,6 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/dns/regexlist")
             .file(PiholeFile::Regexlist, "^.*example.com$\nexample.net\n")
-            .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
             .expect_json(
                 json!([
                     "^.*example.com$",
