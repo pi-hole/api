@@ -76,7 +76,12 @@ pub fn add_list(list: PiholeFile, domain: &str, config: &Config) -> Result<(), u
             .lines()
             .filter_map(|line| line.ok())
             // Only get valid domains
-            .filter(|domain| is_valid_domain(domain))
+            .filter(|domain| {
+                match list {
+                    PiholeFile::Regexlist => is_valid_regex(domain),
+                    _ => is_valid_domain(domain)
+                }
+            })
         );
     }
 
