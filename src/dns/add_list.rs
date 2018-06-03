@@ -15,6 +15,7 @@ use rocket::State;
 use rocket_contrib::Json;
 use util;
 use auth::User;
+use ftl::FtlConnectionType;
 
 /// Represents an API input containing a domain
 #[derive(Deserialize)]
@@ -30,9 +31,9 @@ pub fn add_whitelist(_auth: User, config: State<Config>, domain_input: Json<Doma
     // We need to add it to the whitelist and remove it from the other lists
     add_list(PiholeFile::Whitelist, domain, &config)?;
     try_remove_list(PiholeFile::Blacklist, domain, &config)?;
-    try_remove_list(PiholeFile::Wildlist, domain, &config)?;
+    try_remove_list(PiholeFile::Regexlist, domain, &config)?;
 
-    // At this point, since we haven't hit an error yet, reload gravity and return success
+    // At this point, since we haven't hit an error yet, reload gravity
     reload_gravity(PiholeFile::Whitelist, &config)?;
     util::reply_success()
 }
@@ -45,30 +46,30 @@ pub fn add_blacklist(_auth: User, config: State<Config>, domain_input: Json<Doma
     // We need to add it to the blacklist and remove it from the other lists
     add_list(PiholeFile::Blacklist, domain, &config)?;
     try_remove_list(PiholeFile::Whitelist, domain, &config)?;
-    try_remove_list(PiholeFile::Wildlist, domain, &config)?;
+    try_remove_list(PiholeFile::Regexlist, domain, &config)?;
 
-    // At this point, since we haven't hit an error yet, reload gravity and return success
+    // At this point, since we haven't hit an error yet, reload gravity
     reload_gravity(PiholeFile::Blacklist, &config)?;
     util::reply_success()
 }
 
-/// Add a domain to the wildcard list
-#[post("/dns/wildlist", data = "<domain_input>")]
-pub fn add_wildlist(_auth: User, config: State<Config>, domain_input: Json<DomainInput>) -> util::Reply {
+/// Add a domain to the regex list
+#[post("/dns/regexlist", data = "<domain_input>")]
+pub fn add_regexlist(_auth: User, config: State<Config>, ftl: State<FtlConnectionType>, domain_input: Json<DomainInput>) -> util::Reply {
     let domain = &domain_input.0.domain;
 
-    // We only need to add it to the wildcard list (this is the same functionality as list.sh)
-    add_list(PiholeFile::Wildlist, domain, &config)?;
+    // We only need to add it to the regex list
+    add_list(PiholeFile::Regexlist, domain, &config)?;
 
-    // At this point, since we haven't hit an error yet, reload gravity and return success
-    reload_gravity(PiholeFile::Wildlist, &config)?;
+    // At this point, since we haven't hit an error yet, tell FTL to recompile regex
+    ftl.connect("recompile-regex")?.expect_eom()?;
     util::reply_success()
 }
 
 #[cfg(test)]
 mod test {
     use rocket::http::Method;
-    use testing::TestBuilder;
+    use testing::{TestBuilder, write_eom};
     use config::PiholeFile;
 
     #[test]
@@ -78,7 +79,7 @@ mod test {
             .method(Method::Post)
             .file_expect(PiholeFile::Whitelist, "", "example.com\n")
             .file(PiholeFile::Blacklist, "")
-            .file(PiholeFile::Wildlist, "")
+            .file(PiholeFile::Regexlist, "")
             .file(PiholeFile::SetupVars, "")
             .body(
                 json!({
@@ -100,7 +101,7 @@ mod test {
             .method(Method::Post)
             .file_expect(PiholeFile::Blacklist, "", "example.com\n")
             .file(PiholeFile::Whitelist, "")
-            .file(PiholeFile::Wildlist, "")
+            .file(PiholeFile::Regexlist, "")
             .file(PiholeFile::SetupVars, "")
             .body(
                 json!({
@@ -116,20 +117,25 @@ mod test {
     }
 
     #[test]
-    fn test_add_wildlist() {
+    fn test_add_regexlist() {
+        let mut data = Vec::new();
+        write_eom(&mut data);
+
         TestBuilder::new()
-            .endpoint("/admin/api/dns/wildlist")
+            .endpoint("/admin/api/dns/regexlist")
             .method(Method::Post)
+            .ftl("recompile-regex", data)
             .file_expect(
-                PiholeFile::Wildlist,
+                PiholeFile::Regexlist,
                 "",
-                "address=/example.com/10.1.1.1\n")
+                "^.*example.com$\n"
+            )
             .file(PiholeFile::Whitelist, "")
             .file(PiholeFile::Blacklist, "")
             .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
             .body(
                 json!({
-                    "domain": "example.com"
+                    "domain": "^.*example.com$"
                 })
             )
             .expect_json(

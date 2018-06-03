@@ -25,10 +25,10 @@ pub fn get_blacklist(config: State<Config>) -> util::Reply {
     util::reply_data(get_list(PiholeFile::Blacklist, &config)?)
 }
 
-/// Get the Wildcard list domains
-#[get("/dns/wildlist")]
-pub fn get_wildlist(config: State<Config>) -> util::Reply {
-    util::reply_data(get_list(PiholeFile::Wildlist, &config)?)
+/// Get the Regex list domains
+#[get("/dns/regexlist")]
+pub fn get_regexlist(config: State<Config>) -> util::Reply {
+    util::reply_data(get_list(PiholeFile::Regexlist, &config)?)
 }
 
 #[cfg(test)]
@@ -67,17 +67,14 @@ mod test {
     }
 
     #[test]
-    fn test_get_wildlist() {
+    fn test_get_regexlist() {
         TestBuilder::new()
-            .endpoint("/admin/api/dns/wildlist")
-            .file(
-                PiholeFile::Wildlist,
-                "address=/example.com/10.1.1.1\naddress=/example.net/10.1.1.1\n"
-            )
+            .endpoint("/admin/api/dns/regexlist")
+            .file(PiholeFile::Regexlist, "^.*example.com$\nexample.net\n")
             .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
             .expect_json(
                 json!([
-                    "example.com",
+                    "^.*example.com$",
                     "example.net"
                 ])
             )

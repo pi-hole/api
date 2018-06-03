@@ -24,6 +24,11 @@ pub fn is_valid_domain(domain: &str) -> bool {
         && label_length_regex.is_match(domain)
 }
 
+/// Check if a regex is valid
+pub fn is_valid_regex(regex_str: &str) -> bool {
+    Regex::new(regex_str).is_ok()
+}
+
 /// Reload Gravity to activate changes in lists
 pub fn reload_gravity(list: PiholeFile, config: &Config) -> Result<(), util::Error> {
     // Don't actually reload Gravity during testing
@@ -39,7 +44,6 @@ pub fn reload_gravity(list: PiholeFile, config: &Config) -> Result<(), util::Err
         .arg(match list {
             PiholeFile::Whitelist => "--whitelist-only",
             PiholeFile::Blacklist => "--blacklist-only",
-            PiholeFile::Wildlist => "--wildcard-only",
             _ => return Err(util::Error::Unknown)
         })
         // Ignore stdin, stdout, and stderr
