@@ -101,6 +101,7 @@ impl Config {
     }
 
     /// Check if a file exists
+    #[allow(unused)]
     pub fn file_exists(&self, file: PiholeFile) -> bool {
         match *self {
             Config::Production => {

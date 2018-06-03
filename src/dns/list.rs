@@ -65,25 +65,8 @@ pub fn add_list(list: PiholeFile, domain: &str, config: &Config) -> Result<(), u
         return Err(util::Error::InvalidDomain);
     }
 
-    let mut domains = Vec::new();
-
-    // Read list domains (if the list exists, otherwise the list is empty)
-    if config.file_exists(list) {
-        let reader = BufReader::new(config.read_file(list)?);
-
-        // Add domains
-        domains.extend(reader
-            .lines()
-            .filter_map(|line| line.ok())
-            // Only get valid domains
-            .filter(|domain| {
-                match list {
-                    PiholeFile::Regexlist => is_valid_regex(domain),
-                    _ => is_valid_domain(domain)
-                }
-            })
-        );
-    }
+    // Read list domains
+    let domains = get_list(list, config)?;
 
     // Check if the domain is already in the list
     if domains.contains(&domain.to_owned()) {
@@ -132,7 +115,7 @@ pub fn remove_list(list: PiholeFile, domain: &str, config: &Config) -> Result<()
 
     let domains = get_list(list, config)?;
 
-    // Check if the domain is already in the list
+    // Check if the domain is not in the list
     if !domains.contains(&domain.to_owned()) {
         return Err(util::Error::NotFound);
     }
