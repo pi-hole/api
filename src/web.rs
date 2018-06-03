@@ -14,7 +14,7 @@ use std::path::PathBuf;
 use std::io::Cursor;
 
 #[derive(RustEmbed)]
-#[folder("web/")]
+#[folder = "web/"]
 struct WebAssets;
 
 /// Get a file from the embedded web assets
