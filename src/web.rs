@@ -8,8 +8,8 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use rocket::response::{self, Response};
-use rocket::http::{ContentType, Status};
+use rocket::response::Response;
+use rocket::http::ContentType;
 use std::path::PathBuf;
 use std::io::Cursor;
 
@@ -18,13 +18,11 @@ use std::io::Cursor;
 struct WebAssets;
 
 /// Get a file from the embedded web assets
-fn get_file<'r>(filename: &str) -> response::Result<'r> {
-    let not_found = Err(Status::NotFound);
-
+fn get_file<'r>(filename: &str) -> Option<Response<'r>> {
     let content_type = if filename.contains(".") {
         match ContentType::from_extension(filename.rsplit(".").next().unwrap()) {
             Some(value) => value,
-            None => return not_found
+            None => return None
         }
     } else {
         ContentType::Binary
@@ -32,23 +30,25 @@ fn get_file<'r>(filename: &str) -> response::Result<'r> {
 
     WebAssets::get(filename)
         .map_or_else(
-            || not_found,
+            || None,
             |data| {
-                Response::build()
-                    .header(content_type)
-                    .sized_body(Cursor::new(data))
-                    .ok()
+                Some(
+                    Response::build()
+                        .header(content_type)
+                        .sized_body(Cursor::new(data))
+                        .finalize()
+                )
             })
 }
 
 /// Return the index page of the web interface
 #[get("/admin")]
-pub fn web_interface_index<'r>() -> response::Result<'r> {
+pub fn web_interface_index<'r>() -> Option<Response<'r>> {
     get_file("index.html")
 }
 
 /// Return the requested page/file, if it exists.
 #[get("/admin/<path..>")]
-pub fn web_interface<'r>(path: PathBuf) -> response::Result<'r> {
+pub fn web_interface<'r>(path: PathBuf) -> Option<Response<'r>> {
     get_file(&path.display().to_string())
 }
