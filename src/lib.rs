@@ -20,6 +20,8 @@ extern crate rocket_cors;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate rust_embed;
 
 pub use setup::*;
 
