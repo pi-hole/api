@@ -15,7 +15,9 @@ use util;
 
 /// Check if a domain is valid
 pub fn is_valid_domain(domain: &str) -> bool {
-    let valid_chars_regex = Regex::new("^((-|_)*[a-z0-9]((-|_)*[a-z0-9])*(-|_)*)(\\.(-|_)*([a-z0-9]((-|_)*[a-z0-9])*))*$").unwrap();
+    let valid_chars_regex = Regex::new(
+        "^((-|_)*[a-z0-9]((-|_)*[a-z0-9])*(-|_)*)(\\.(-|_)*([a-z0-9]((-|_)*[a-z0-9])*))*$"
+    ).unwrap();
     let total_length_regex = Regex::new("^.{1,253}$").unwrap();
     let label_length_regex = Regex::new("^[^\\.]{1,63}(\\.[^\\.]{1,63})*$").unwrap();
 

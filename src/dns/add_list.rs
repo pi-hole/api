@@ -10,7 +10,7 @@
 
 use config::{Config, PiholeFile};
 use dns::common::reload_gravity;
-use dns::list::{add_list, try_remove_list};
+use dns::list::List;
 use rocket::State;
 use rocket_contrib::Json;
 use util;
@@ -25,13 +25,16 @@ pub struct DomainInput {
 
 /// Add a domain to the whitelist
 #[post("/dns/whitelist", data = "<domain_input>")]
-pub fn add_whitelist(_auth: User, config: State<Config>, domain_input: Json<DomainInput>) -> util::Reply {
+pub fn add_whitelist(
+    _auth: User,
+    config: State<Config>,
+    domain_input: Json<DomainInput>
+) -> util::Reply {
     let domain = &domain_input.0.domain;
 
-    // We need to add it to the whitelist and remove it from the other lists
-    add_list(PiholeFile::Whitelist, domain, &config)?;
-    try_remove_list(PiholeFile::Blacklist, domain, &config)?;
-    try_remove_list(PiholeFile::Regexlist, domain, &config)?;
+    // We need to add it to the whitelist and remove it from the blacklist
+    List::White.add(domain, &config)?;
+    List::Black.try_remove(domain, &config)?;
 
     // At this point, since we haven't hit an error yet, reload gravity
     reload_gravity(PiholeFile::Whitelist, &config)?;
@@ -40,13 +43,16 @@ pub fn add_whitelist(_auth: User, config: State<Config>, domain_input: Json<Doma
 
 /// Add a domain to the blacklist
 #[post("/dns/blacklist", data = "<domain_input>")]
-pub fn add_blacklist(_auth: User, config: State<Config>, domain_input: Json<DomainInput>) -> util::Reply {
+pub fn add_blacklist(
+    _auth: User,
+    config: State<Config>,
+    domain_input: Json<DomainInput>
+) -> util::Reply {
     let domain = &domain_input.0.domain;
 
-    // We need to add it to the blacklist and remove it from the other lists
-    add_list(PiholeFile::Blacklist, domain, &config)?;
-    try_remove_list(PiholeFile::Whitelist, domain, &config)?;
-    try_remove_list(PiholeFile::Regexlist, domain, &config)?;
+    // We need to add it to the blacklist and remove it from the whitelist
+    List::Black.add(domain, &config)?;
+    List::White.try_remove(domain, &config)?;
 
     // At this point, since we haven't hit an error yet, reload gravity
     reload_gravity(PiholeFile::Blacklist, &config)?;
@@ -55,11 +61,16 @@ pub fn add_blacklist(_auth: User, config: State<Config>, domain_input: Json<Doma
 
 /// Add a domain to the regex list
 #[post("/dns/regexlist", data = "<domain_input>")]
-pub fn add_regexlist(_auth: User, config: State<Config>, ftl: State<FtlConnectionType>, domain_input: Json<DomainInput>) -> util::Reply {
+pub fn add_regexlist(
+    _auth: User,
+    config: State<Config>,
+    ftl: State<FtlConnectionType>,
+    domain_input: Json<DomainInput>
+) -> util::Reply {
     let domain = &domain_input.0.domain;
 
     // We only need to add it to the regex list
-    add_list(PiholeFile::Regexlist, domain, &config)?;
+    List::Regex.add(domain, &config)?;
 
     // At this point, since we haven't hit an error yet, tell FTL to recompile regex
     ftl.connect("recompile-regex")?.expect_eom()?;

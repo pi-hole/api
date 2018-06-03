@@ -9,7 +9,7 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use config::{Config, PiholeFile};
-use std::io::{self, BufRead, BufReader};
+use std::io::{BufRead, BufReader};
 use std::fs::File;
 use rocket::State;
 use util;
@@ -17,10 +17,8 @@ use util;
 /// Get the DNS blocking status
 #[get("/dns/status")]
 pub fn status(config: State<Config>) -> util::Reply {
-    let file = config.read_file(PiholeFile::DnsmasqMainConfig);
-
-    let status = match file {
-        Ok(f) => check_for_gravity(f)?,
+    let status = match config.read_file(PiholeFile::DnsmasqMainConfig) {
+        Ok(file) => check_for_gravity(file),
 
         // If we failed to open the file, then the status is unknown
         Err(_) => "unknown"
@@ -32,20 +30,20 @@ pub fn status(config: State<Config>) -> util::Reply {
 }
 
 /// Check a file for the `addn-hosts=/.../gravity.list` line and return the blocking status
-fn check_for_gravity<'a>(file: File) -> io::Result<&'a str> {
-    // Read the file to a buffer
+fn check_for_gravity(file: File) -> &'static str {
+    // Read the file through a buffer
     let reader = BufReader::new(file);
 
     // Check for the gravity.list line
     for line in reader.lines().filter_map(|item| item.ok()) {
         if line == "#addn-hosts=/etc/pihole/gravity.list" {
-            return Ok("disabled");
+            return "disabled";
         } else if line == "addn-hosts=/etc/pihole/gravity.list" {
-            return Ok("enabled");
+            return "enabled";
         }
     }
 
-    Ok("unknown")
+    "unknown"
 }
 
 #[cfg(test)]
