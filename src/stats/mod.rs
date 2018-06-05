@@ -18,7 +18,6 @@ mod recent_blocked;
 mod clients;
 mod unknown_queries;
 mod over_time_history;
-mod over_time_forward_destinations;
 mod over_time_query_types;
 mod over_time_clients;
 
@@ -32,6 +31,5 @@ pub use self::recent_blocked::*;
 pub use self::clients::*;
 pub use self::unknown_queries::*;
 pub use self::over_time_history::*;
-pub use self::over_time_forward_destinations::*;
 pub use self::over_time_query_types::*;
 pub use self::over_time_clients::*;
