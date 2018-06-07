@@ -113,7 +113,6 @@ fn setup<'a>(
             stats::clients,
             stats::unknown_queries,
             stats::over_time_history,
-            stats::over_time_query_types,
             stats::over_time_clients,
             dns::get_whitelist,
             dns::get_blacklist,
