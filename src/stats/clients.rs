@@ -18,6 +18,13 @@ use auth::User;
 /// Get the names of clients
 #[get("/stats/clients")]
 pub fn clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
+    match get_clients(&ftl) {
+        Ok(data) => util::reply_data(data),
+        Err(err) => util::reply_error(err)
+    }
+}
+
+pub fn get_clients(ftl: &FtlConnectionType) -> Result<Vec<Client>, util::Error> {
     let mut con = ftl.connect("client-names")?;
 
     // Create a 4KiB string buffer
@@ -38,7 +45,7 @@ pub fn clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
                 }
 
                 // Unknown read error
-                return util::reply_error(util::Error::Unknown);
+                return Err(util::Error::Unknown);
             }
         };
 
@@ -47,11 +54,11 @@ pub fn clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
         client_data.push(Client { name, ip });
     }
 
-    util::reply_data(client_data)
+    Ok(client_data)
 }
 
 #[derive(Serialize)]
-struct Client {
+pub struct Client {
     name: String,
     ip: String
 }
