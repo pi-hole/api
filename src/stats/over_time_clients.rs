@@ -14,6 +14,7 @@ use rmp::Marker;
 use rocket::State;
 use util;
 use auth::User;
+use stats::clients::{Client, get_clients};
 
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
@@ -21,6 +22,7 @@ pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Re
     let mut con = ftl.connect("ClientsoverTime")?;
 
     let mut over_time = Vec::new();
+    let clients = get_clients(&ftl)?;
 
     loop {
         // Get the timestamp, unless we are at the end of the list
@@ -58,13 +60,19 @@ pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Re
         over_time.push(TimeStep { timestamp, data: step });
     }
 
-    util::reply_data(over_time)
+    util::reply_data(ClientsOverTime { over_time, clients })
 }
 
 #[derive(Serialize)]
 struct TimeStep {
     timestamp: i32,
     data: Vec<i32>
+}
+
+#[derive(Serialize)]
+struct ClientsOverTime {
+    over_time: Vec<TimeStep>,
+    clients: Vec<Client>
 }
 
 #[cfg(test)]
@@ -74,31 +82,51 @@ mod test {
 
     #[test]
     fn test_over_time_clients() {
-        let mut data = Vec::new();
-        encode::write_i32(&mut data, 1520126228).unwrap();
-        encode::write_i32(&mut data, 7).unwrap();
-        encode::write_i32(&mut data, 3).unwrap();
-        encode::write_i32(&mut data, -1).unwrap();
-        encode::write_i32(&mut data, 1520126406).unwrap();
-        encode::write_i32(&mut data, 6).unwrap();
-        encode::write_i32(&mut data, 4).unwrap();
-        encode::write_i32(&mut data, -1).unwrap();
-        write_eom(&mut data);
+        let mut over_time = Vec::new();
+        encode::write_i32(&mut over_time, 1520126228).unwrap();
+        encode::write_i32(&mut over_time, 7).unwrap();
+        encode::write_i32(&mut over_time, 3).unwrap();
+        encode::write_i32(&mut over_time, -1).unwrap();
+        encode::write_i32(&mut over_time, 1520126406).unwrap();
+        encode::write_i32(&mut over_time, 6).unwrap();
+        encode::write_i32(&mut over_time, 4).unwrap();
+        encode::write_i32(&mut over_time, -1).unwrap();
+        write_eom(&mut over_time);
+
+        let mut clients = Vec::new();
+        encode::write_str(&mut clients, "client1").unwrap();
+        encode::write_str(&mut clients , "10.1.1.1").unwrap();
+        encode::write_str(&mut clients , "").unwrap();
+        encode::write_str(&mut clients , "10.1.1.2").unwrap();
+        write_eom(&mut clients);
 
         TestBuilder::new()
             .endpoint("/admin/api/stats/overTime/clients")
-            .ftl("ClientsoverTime", data)
+            .ftl("ClientsoverTime", over_time)
+            .ftl("client-names", clients)
             .expect_json(
-                json!([
-                    {
-                        "timestamp": 1520126228,
-                        "data": [7, 3]
-                    },
-                    {
-                        "timestamp": 1520126406,
-                        "data": [6, 4]
-                    }
-                ])
+                json!({
+                    "over_time": [
+                        {
+                            "timestamp": 1520126228,
+                            "data": [7, 3]
+                        },
+                        {
+                            "timestamp": 1520126406,
+                            "data": [6, 4]
+                        }
+                    ],
+                    "clients": [
+                        {
+                            "name": "client1",
+                            "ip": "10.1.1.1"
+                        },
+                        {
+                            "name": "",
+                            "ip": "10.1.1.2"
+                        }
+                    ]
+                })
             )
             .test();
     }
