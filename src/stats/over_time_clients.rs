@@ -14,7 +14,7 @@ use rmp::Marker;
 use rocket::State;
 use util;
 use auth::User;
-use stats::clients::{Client, get_clients};
+use stats::clients::get_clients;
 
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
@@ -60,19 +60,16 @@ pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Re
         over_time.push(TimeStep { timestamp, data: step });
     }
 
-    util::reply_data(ClientsOverTime { over_time, clients })
+    util::reply_data(json!({
+        "over_time": over_time,
+        "clients": clients
+    }))
 }
 
 #[derive(Serialize)]
 struct TimeStep {
     timestamp: i32,
     data: Vec<i32>
-}
-
-#[derive(Serialize)]
-struct ClientsOverTime {
-    over_time: Vec<TimeStep>,
-    clients: Vec<Client>
 }
 
 #[cfg(test)]
