@@ -21,7 +21,9 @@ pub enum PiholeFile {
     Whitelist,
     Blacklist,
     Regexlist,
-    SetupVars
+    SetupVars,
+    LocalVersions,
+    LocalBranches
 }
 
 impl PiholeFile {
@@ -31,7 +33,9 @@ impl PiholeFile {
             PiholeFile::Whitelist => "/etc/pihole/whitelist.txt",
             PiholeFile::Blacklist => "/etc/pihole/blacklist.txt",
             PiholeFile::Regexlist => "/etc/pihole/regex.list",
-            PiholeFile::SetupVars => "/etc/pihole/setupVars.conf"
+            PiholeFile::SetupVars => "/etc/pihole/setupVars.conf",
+            PiholeFile::LocalVersions => "/etc/pihole/localversions",
+            PiholeFile::LocalBranches => "/etc/pihole/localbranches"
         }
     }
 }

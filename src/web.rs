@@ -15,7 +15,7 @@ use std::io::Cursor;
 
 #[derive(RustEmbed)]
 #[folder = "web/"]
-struct WebAssets;
+pub struct WebAssets;
 
 /// Get a file from the embedded web assets
 fn get_file<'r>(filename: &str) -> Option<Response<'r>> {

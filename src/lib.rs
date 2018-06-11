@@ -34,6 +34,7 @@ mod web;
 mod setup;
 mod config;
 mod setup_vars;
+mod version;
 
 #[cfg(test)]
 mod testing;

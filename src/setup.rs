@@ -22,6 +22,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use util;
 use web;
+use version;
 
 /// This is run when no route could be found and returns a custom 404 message.
 #[error(404)]
@@ -95,6 +96,7 @@ fn setup<'a>(
         ])
         // Mount the API
         .mount("/admin/api", routes![
+            version::version,
             auth::check,
             auth::logout,
             stats::get_summary,
