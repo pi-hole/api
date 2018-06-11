@@ -19,10 +19,12 @@ use stats::clients::get_clients;
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
 pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
-    let mut con = ftl.connect("ClientsoverTime")?;
-
     let mut over_time = Vec::new();
     let clients = get_clients(&ftl)?;
+
+    // Don't open another FTL connection until the connection from `get_clients` is done!
+    // Otherwise FTL's global lock mechanism will cause a deadlock.
+    let mut con = ftl.connect("ClientsoverTime")?;
 
     loop {
         // Get the timestamp, unless we are at the end of the list
