@@ -27,12 +27,23 @@ pub fn version(config: State<Config>, ftl: State<FtlConnectionType>) -> util::Re
     let core_version = read_core_version(&config).unwrap_or_default();
     let web_version = read_web_version().unwrap_or_default();
     let ftl_version = read_ftl_version(&ftl).unwrap_or_default();
+    let api_version = read_api_version();
 
     util::reply_data(json!({
         "core": core_version,
         "web": web_version,
-        "ftl": ftl_version
+        "ftl": ftl_version,
+        "api": api_version
     }))
+}
+
+/// Read API version information from the compile-time environment variables
+fn read_api_version() -> Version {
+    Version {
+        tag: env!("GIT_TAG").to_owned(),
+        branch: env!("GIT_BRANCH").to_owned(),
+        hash: env!("GIT_HASH").to_owned()
+    }
 }
 
 /// Read FTL version information from FTL's API
