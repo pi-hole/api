@@ -20,10 +20,6 @@ use std::str;
 /// Get the versions of all Pi-hole systems
 #[get("/version")]
 pub fn version(config: State<Config>, ftl: State<FtlConnectionType>) -> util::Reply {
-    // Core
-    // Web
-    // FTL
-    // API
     let core_version = read_core_version(&config).unwrap_or_default();
     let web_version = read_web_version().unwrap_or_default();
     let ftl_version = read_ftl_version(&ftl).unwrap_or_default();
