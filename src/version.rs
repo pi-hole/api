@@ -80,11 +80,12 @@ fn read_core_version(config: &Config) -> Result<Version, util::Error> {
 }
 
 /// Parse version data from the output of `git describe` (stored in `PiholeFile::LocalVersions`).
-/// The string is in the form "TAG-NUMBER-COMMIT".
+/// The string is in the form "TAG-NUMBER-COMMIT", though it could also have "-dirty" at the end.
 fn parse_git_version(git_version: &str, branch: &str) -> Result<Version, util::Error> {
     let split: Vec<&str> = git_version.split("-").collect();
 
-    if split.len() != 3 {
+    // Could include "-dirty", which would make the length equal 4
+    if split.len() < 3 {
         return Err(util::Error::Unknown);
     }
 
@@ -228,6 +229,18 @@ mod tests {
         assert_eq!(
             parse_git_version("invalid data", "branch"),
             Err(util::Error::Unknown)
+        );
+    }
+
+    #[test]
+    fn test_parse_git_version_dirty() {
+        assert_eq!(
+            parse_git_version("v3.3.1-222-gd9c924b-dirty", "development"),
+            Ok(Version {
+                tag: "".to_owned(),
+                branch: "development".to_owned(),
+                hash: "d9c924b".to_owned()
+            })
         );
     }
 }
