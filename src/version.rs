@@ -26,11 +26,33 @@ pub fn version(config: State<Config>, ftl: State<FtlConnectionType>) -> util::Re
     // API
     let core_version = read_core_version(&config).unwrap_or_default();
     let web_version = read_web_version().unwrap_or_default();
+    let ftl_version = read_ftl_version(&ftl).unwrap_or_default();
 
     util::reply_data(json!({
         "core": core_version,
-        "web": web_version
+        "web": web_version,
+        "ftl": ftl_version
     }))
+}
+
+/// Read FTL version information from FTL's API
+fn read_ftl_version(ftl: &FtlConnectionType) -> Result<Version, util::Error> {
+    let mut con = ftl.connect("version")?;
+    let mut str_buffer = [0u8; 4096];
+
+    // Ignore the version and date strings
+    let _hash_tag = con.read_str(&mut str_buffer)?.to_owned();
+    let tag = con.read_str(&mut str_buffer)?.to_owned();
+    let branch = con.read_str(&mut str_buffer)?.to_owned();
+    let hash = con.read_str(&mut str_buffer)?.to_owned();
+    let _date = con.read_str(&mut str_buffer)?.to_owned();
+    con.expect_eom()?;
+
+    Ok(Version {
+        tag,
+        branch,
+        hash
+    })
 }
 
 /// Read Web version information from the `VERSION` file in the web assets.
@@ -109,12 +131,65 @@ struct Version {
 
 #[cfg(test)]
 mod tests {
-    use super::{Version, parse_git_version, parse_web_version};
-    use testing::TestConfigBuilder;
+    use super::{Version, parse_git_version, parse_web_version, read_ftl_version};
+    use testing::{TestConfigBuilder, write_eom};
     use config::PiholeFile;
     use config::Config;
     use version::read_core_version;
     use util;
+    use rmp::encode;
+    use ftl::FtlConnectionType;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_read_ftl_version_dev() {
+        let mut data = Vec::new();
+        encode::write_str(&mut data, "vDev-4d5da59").unwrap();
+        encode::write_str(&mut data, "").unwrap();
+        encode::write_str(&mut data, "tweak/version-api").unwrap();
+        encode::write_str(&mut data, "4d5da59").unwrap();
+        encode::write_str(&mut data, "2018-06-11 21:25:02 -0400").unwrap();
+        write_eom(&mut data);
+
+        let mut map = HashMap::new();
+        map.insert("version".to_owned(), data);
+
+        let ftl = FtlConnectionType::Test(map);
+
+        assert_eq!(
+            read_ftl_version(&ftl),
+            Ok(Version {
+                tag: "".to_owned(),
+                branch: "tweak/version-api".to_owned(),
+                hash: "4d5da59".to_owned()
+            })
+        )
+    }
+
+    #[test]
+    fn test_read_ftl_version_release() {
+        let mut data = Vec::new();
+        encode::write_str(&mut data, "v4.0").unwrap();
+        encode::write_str(&mut data, "v4.0").unwrap();
+        encode::write_str(&mut data, "master").unwrap();
+        encode::write_str(&mut data, "abcdefg").unwrap();
+        encode::write_str(&mut data, "2018-06-11 21:25:02 -0400").unwrap();
+        write_eom(&mut data);
+
+        let mut map = HashMap::new();
+        map.insert("version".to_owned(), data);
+
+        let ftl = FtlConnectionType::Test(map);
+
+        assert_eq!(
+            read_ftl_version(&ftl),
+            Ok(Version {
+                tag: "v4.0".to_owned(),
+                branch: "master".to_owned(),
+                hash: "abcdefg".to_owned()
+            })
+        )
+    }
 
     #[test]
     fn test_parse_web_version_dev() {
