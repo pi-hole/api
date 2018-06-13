@@ -19,19 +19,97 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 
+/// Add the end of message byte to the data
+pub fn write_eom(data: &mut Vec<u8>) {
+    data.push(0xc1);
+}
+
+/// Builds the data needed to create a `Config::Test`
+pub struct TestConfigBuilder {
+    test_files: Vec<TestFile>
+}
+
+impl TestConfigBuilder {
+    /// Create a new `TestConfigBuilder`
+    pub fn new() -> TestConfigBuilder {
+        TestConfigBuilder { test_files: Vec::new() }
+    }
+
+    /// Add a file and verify that it does not change
+    pub fn file(self, pihole_file: PiholeFile, initial_data: &str) -> Self {
+        self.file_expect(pihole_file, initial_data, initial_data)
+    }
+
+    /// Add a file and verify that it ends up in a certain state
+    pub fn file_expect(
+        mut self,
+        pihole_file: PiholeFile,
+        initial_data: &str,
+        expected_data: &str
+    ) -> Self {
+        let test_file = TestFile::new(
+            pihole_file,
+            tempfile::tempfile().unwrap(),
+            initial_data.to_owned(),
+            expected_data.to_owned()
+        );
+        self.test_files.push(test_file);
+        self
+    }
+
+    /// Build the config data. This can be used to create a `Config::Test`
+    pub fn build(self) -> HashMap<PiholeFile, File> {
+        let mut config_data = HashMap::new();
+
+        // Create temporary mock files
+        for mut test_file in self.test_files {
+            // Write the initial data to the file
+            write!(test_file.temp_file, "{}", test_file.initial_data).unwrap();
+            test_file.temp_file.seek(SeekFrom::Start(0)).unwrap();
+
+            // Save the file for the test
+            config_data.insert(test_file.pihole_file, test_file.temp_file);
+        }
+
+        config_data
+    }
+
+    /// Get a copy of the inner test files for later verification
+    fn get_test_files(&self) -> Vec<TestFile> {
+        let mut test_files = Vec::new();
+
+        for test_file in &self.test_files {
+            test_files.push(TestFile {
+                pihole_file: test_file.pihole_file,
+                temp_file: test_file.temp_file.try_clone().unwrap(),
+                initial_data: test_file.initial_data.clone(),
+                expected_data: test_file.expected_data.clone()
+            })
+        }
+
+        test_files
+    }
+}
+
 /// Represents a mocked file along with the initial and expected data
 struct TestFile {
     pihole_file: PiholeFile,
-    temp_file: Option<File>,
+    temp_file: File,
     initial_data: String,
     expected_data: String
 }
 
 impl TestFile {
-    fn new(pihole_file: PiholeFile, initial_data: String, expected_data: String) -> TestFile {
+    /// Create a new `TestFile`
+    fn new(
+        pihole_file: PiholeFile,
+        temp_file: File,
+        initial_data: String,
+        expected_data: String
+    ) -> TestFile {
         TestFile {
             pihole_file,
-            temp_file: None,
+            temp_file,
             initial_data,
             expected_data
         }
@@ -46,7 +124,7 @@ pub struct TestBuilder {
     should_auth: bool,
     body_data: Option<serde_json::Value>,
     ftl_data: HashMap<String, Vec<u8>>,
-    test_files: Vec<TestFile>,
+    test_config_builder: TestConfigBuilder,
     expected_json: serde_json::Value,
     expected_status: Status
 }
@@ -60,7 +138,7 @@ impl TestBuilder {
             should_auth: true,
             body_data: None,
             ftl_data: HashMap::new(),
-            test_files: Vec::new(),
+            test_config_builder: TestConfigBuilder::new(),
             expected_json: json!({
                 "data": [],
                 "errors": []
@@ -99,8 +177,9 @@ impl TestBuilder {
         self
     }
 
-    pub fn file(self, pihole_file: PiholeFile, initial_data: &str) -> Self {
-        self.file_expect(pihole_file, initial_data, initial_data)
+    pub fn file(mut self, pihole_file: PiholeFile, initial_data: &str) -> Self {
+        self.test_config_builder = self.test_config_builder.file(pihole_file, initial_data);
+        self
     }
 
     pub fn file_expect(
@@ -109,12 +188,8 @@ impl TestBuilder {
         initial_data: &str,
         expected_data: &str
     ) -> Self {
-        let test_file = TestFile::new(
-            pihole_file,
-            initial_data.to_owned(),
-            expected_data.to_owned()
-        );
-        self.test_files.push(test_file);
+        self.test_config_builder = self.test_config_builder
+            .file_expect(pihole_file, initial_data, expected_data);
         self
     }
 
@@ -128,27 +203,15 @@ impl TestBuilder {
         self
     }
 
-    pub fn test(mut self) {
-        let mut config_data = HashMap::new();
-
-        // Create temporary mock files
-        for test_file in self.test_files.iter_mut() {
-            // Create the file handle
-            let mut file = tempfile::tempfile().unwrap();
-
-            // Write the initial data to the file
-            write!(file, "{}", test_file.initial_data).unwrap();
-            file.seek(SeekFrom::Start(0)).unwrap();
-
-            // Save the file for the test and verification
-            config_data.insert(test_file.pihole_file, file.try_clone().unwrap());
-            test_file.temp_file = Some(file);
-        }
+    pub fn test(self) {
+        // Save the files for verification
+        let test_files = self.test_config_builder.get_test_files();
 
         // Start the test client
+        let config_data = self.test_config_builder.build();
         let client = setup::test(self.ftl_data, config_data);
 
-        // Make the request
+        // Create the request
         let mut request = client.req(self.method, self.endpoint);
 
         // Add the authentication header
@@ -194,13 +257,8 @@ impl TestBuilder {
         let mut buffer = String::new();
 
         // Get the file handles and expected data
-        let expected_data: Vec<(File, String)> = self.test_files.into_iter()
-            .map(|test_file| {
-                let expected = test_file.expected_data;
-                let file = test_file.temp_file.unwrap();
-
-                (file, expected)
-            })
+        let expected_data: Vec<(File, String)> = test_files.into_iter()
+            .map(|test_file| (test_file.temp_file, test_file.expected_data))
             .collect();
 
         // Check the files against the expected data
@@ -212,9 +270,4 @@ impl TestBuilder {
             buffer.clear();
         }
     }
-}
-
-/// Add the end of message byte to the data
-pub fn write_eom(data: &mut Vec<u8>) {
-    data.push(0xc1);
 }
