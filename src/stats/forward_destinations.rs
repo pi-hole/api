@@ -27,7 +27,7 @@ pub fn forward_destinations(_auth: User, ftl: State<FtlConnectionType>) -> util:
     loop {
         // Read in the hostname, unless we are at the end of the list
         let name = match con.read_str(&mut str_buffer) {
-            Ok(name) => name.to_string(),
+            Ok(name) => name.to_owned(),
             Err(e) => {
                 // Check if we received the EOM
                 if let DecodeStringError::TypeMismatch(marker) = e {
@@ -42,17 +42,10 @@ pub fn forward_destinations(_auth: User, ftl: State<FtlConnectionType>) -> util:
             }
         };
 
-        let ip = con.read_str(&mut str_buffer)?;
+        let ip = con.read_str(&mut str_buffer)?.to_owned();
         let percent = con.read_f32()?;
 
-        // The key will be `hostname|IP` if the hostname exists, otherwise just the IP address
-        let key = if ip.len() > 0 {
-            format!("{}|{}", name, ip)
-        } else {
-            name
-        };
-
-        forward_destinations.push(ForwardDestination { name: key, percent });
+        forward_destinations.push(ForwardDestination { name, ip, percent });
     }
 
     util::reply_data(forward_destinations)
@@ -61,6 +54,7 @@ pub fn forward_destinations(_auth: User, ftl: State<FtlConnectionType>) -> util:
 #[derive(Serialize)]
 struct ForwardDestination {
     name: String,
+    ip: String,
     percent: f32
 }
 
@@ -78,8 +72,8 @@ mod test {
         encode::write_str(&mut data, "google-dns").unwrap();
         encode::write_str(&mut data, "8.8.8.8").unwrap();
         encode::write_f32(&mut data, 0.3).unwrap();
-        encode::write_str(&mut data, "local").unwrap();
-        encode::write_str(&mut data, "local").unwrap();
+        encode::write_str(&mut data, "cache").unwrap();
+        encode::write_str(&mut data, "cache").unwrap();
         encode::write_f32(&mut data, 0.3).unwrap();
         write_eom(&mut data);
 
@@ -89,15 +83,18 @@ mod test {
             .expect_json(
                 json!([
                     {
-                        "name": "google-dns-alt|8.8.4.4",
+                        "name": "google-dns-alt",
+                        "ip": "8.8.4.4",
                         "percent": 0.4000000059604645
                     },
                     {
-                        "name": "google-dns|8.8.8.8",
+                        "name": "google-dns",
+                        "ip": "8.8.8.8",
                         "percent": 0.30000001192092898
                     },
                     {
-                        "name": "local|local",
+                        "name": "cache",
+                        "ip": "cache",
                         "percent": 0.30000001192092898
                     }
                 ])
