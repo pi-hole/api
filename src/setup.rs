@@ -9,7 +9,7 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use auth::{self, AuthData};
-use config::{Env, PiholeFile};
+use config::{Env, PiholeFile, Config};
 use dns;
 use ftl::FtlConnectionType;
 use rocket;
@@ -25,7 +25,6 @@ use util;
 use web;
 use version;
 
-/// This is run when no route could be found and returns a custom 404 message.
 #[error(404)]
 fn not_found() -> util::Error {
     util::Error::NotFound
@@ -38,7 +37,9 @@ fn unauthorized() -> util::Error {
 
 /// Run the API normally (connect to FTL over the socket)
 pub fn start() {
-    let env = Env::Production(toml::from_str("").unwrap());
+    let config_location = "/etc/pihole/api-config.toml";
+    let config = Config::parse(config_location).unwrap();
+    let env = Env::Production(config);
     let key = read_setup_vars("WEBPASSWORD", &env)
         .expect(&format!("Failed to open {}", PiholeFile::SetupVars.default_location()))
         .unwrap_or_default();

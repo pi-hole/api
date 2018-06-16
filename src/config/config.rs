@@ -9,6 +9,10 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use config::PiholeFile;
+use toml;
+use std::io::{self, prelude::*};
+use std::fs::File;
+use std::error::Error;
 
 /// The API config options
 #[derive(Deserialize, Default)]
@@ -18,6 +22,26 @@ pub struct Config {
 }
 
 impl Config {
+    /// Parse the config from the file located at `config_location`
+    pub fn parse(config_location: &str) -> Result<Config, String> {
+        let mut buffer = String::new();
+
+        // Read the file to a string, but return the default config if the file doesn't exist
+        let mut file = match File::open(config_location) {
+            Ok(f) => f,
+            Err(e) => {
+                match e.kind() {
+                    io::ErrorKind::NotFound => return Ok(Self::default()),
+                    _ => return Err(e.description().to_owned())
+                }
+            }
+        };
+
+        file.read_to_string(&mut buffer).map_err(|e| e.description().to_owned())?;
+
+        toml::from_str(&buffer).map_err(|e| e.description().to_owned())
+    }
+
     /// Get the configured location of a file
     pub fn file_location(&self, file: PiholeFile) -> &str {
         match file {
