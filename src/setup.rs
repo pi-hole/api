@@ -9,9 +9,9 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use auth::{self, AuthData};
-use config::{Config, PiholeFile};
+use config::{Env, PiholeFile};
 use dns;
-use ftl;
+use ftl::FtlConnectionType;
 use rocket;
 use rocket::config::{ConfigBuilder, Environment};
 use rocket::local::Client;
@@ -38,15 +38,15 @@ fn unauthorized() -> util::Error {
 
 /// Run the API normally (connect to FTL over the socket)
 pub fn start() {
-    let config = Config::Production(toml::from_str("").unwrap());
-    let key = read_setup_vars("WEBPASSWORD", &config)
+    let env = Env::Production(toml::from_str("").unwrap());
+    let key = read_setup_vars("WEBPASSWORD", &env)
         .expect(&format!("Failed to open {}", PiholeFile::SetupVars.default_location()))
         .unwrap_or_default();
 
     setup(
         rocket::ignite(),
-        ftl::FtlConnectionType::Socket,
-        config,
+        FtlConnectionType::Socket,
+        env,
         key
     ).launch();
 }
@@ -54,7 +54,7 @@ pub fn start() {
 /// Setup the API with the testing data and return a Client to test with
 pub fn test(
     ftl_data: HashMap<String, Vec<u8>>,
-    config_data: HashMap<PiholeFile, File>
+    env_data: HashMap<PiholeFile, File>
 ) -> Client {
     Client::new(setup(
         rocket::custom(
@@ -63,8 +63,8 @@ pub fn test(
                 .unwrap(),
             false,
         ),
-        ftl::FtlConnectionType::Test(ftl_data),
-        Config::Test(toml::from_str("").unwrap(), config_data),
+        FtlConnectionType::Test(ftl_data),
+        Env::Test(toml::from_str("").unwrap(), env_data),
         "test_key".to_owned()
     )).unwrap()
 }
@@ -72,8 +72,8 @@ pub fn test(
 /// General server setup
 fn setup<'a>(
     server: rocket::Rocket,
-    connection_type: ftl::FtlConnectionType,
-    config: Config,
+    connection_type: FtlConnectionType,
+    env: Env,
     api_key: String
 ) -> rocket::Rocket {
     // Setup CORS
@@ -86,8 +86,8 @@ fn setup<'a>(
         .attach(cors)
         // Manage the connection type configuration
         .manage(connection_type)
-        // Manage the configuration
-        .manage(config)
+        // Manage the environment
+        .manage(env)
         // Manage the API key
         .manage(AuthData::new(api_key))
         // Mount the web interface

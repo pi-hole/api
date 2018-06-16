@@ -13,7 +13,7 @@ use std::io::{self, BufReader, BufWriter};
 
 use util;
 use dns::common::{is_valid_domain, is_valid_regex};
-use config::{Config, PiholeFile};
+use config::{Env, PiholeFile};
 
 pub enum List {
     White, Black, Regex
@@ -38,8 +38,8 @@ impl List {
     }
 
     /// Read in the domains from the list
-    pub fn get(&self, config: &Config) -> Result<Vec<String>, util::Error> {
-        let file = match config.read_file(self.file()) {
+    pub fn get(&self, env: &Env) -> Result<Vec<String>, util::Error> {
+        let file = match env.read_file(self.file()) {
             Ok(f) => f,
             Err(e) => {
                 if e.kind() == io::ErrorKind::NotFound {
@@ -61,19 +61,19 @@ impl List {
     }
 
     /// Add a domain to the list
-    pub fn add(&self, domain: &str, config: &Config) -> Result<(), util::Error> {
+    pub fn add(&self, domain: &str, env: &Env) -> Result<(), util::Error> {
         // Check if it's a valid domain before doing anything
         if !self.accepts(domain) {
             return Err(util::Error::InvalidDomain);
         }
 
         // Check if the domain is already in the list
-        if self.get(config)?.contains(&domain.to_owned()) {
+        if self.get(env)?.contains(&domain.to_owned()) {
             return Err(util::Error::AlreadyExists);
         }
 
         // Open the list file in append mode (and create it if it doesn't exist)
-        let mut file = config.write_file(self.file(), true)?;
+        let mut file = env.write_file(self.file(), true)?;
 
         // Add the domain to the list
         writeln!(file, "{}", domain)?;
@@ -82,8 +82,8 @@ impl List {
     }
 
     /// Try to remove a domain from the list, but it is not an error if the domain does not exist
-    pub fn try_remove(&self, domain: &str, config: &Config) -> Result<(), util::Error> {
-        match self.remove(domain, config) {
+    pub fn try_remove(&self, domain: &str, env: &Env) -> Result<(), util::Error> {
+        match self.remove(domain, env) {
             // Pass through successful results
             Ok(ok) => Ok(ok),
             Err(e) => {
@@ -98,21 +98,21 @@ impl List {
     }
 
     /// Remove a domain from the list
-    pub fn remove(&self, domain: &str, config: &Config) -> Result<(), util::Error> {
+    pub fn remove(&self, domain: &str, env: &Env) -> Result<(), util::Error> {
         // Check if it's a valid domain before doing anything
         if !self.accepts(domain) {
             return Err(util::Error::InvalidDomain);
         }
 
         // Check if the domain is not in the list
-        let domains = self.get(config)?;
+        let domains = self.get(env)?;
         if !domains.contains(&domain.to_owned()) {
             return Err(util::Error::NotFound);
         }
 
         // Open the list file (and create it if it doesn't exist). This will truncate the list so
         // we can add all the domains except the one we are deleting
-        let file = config.write_file(self.file(), false)?;
+        let file = env.write_file(self.file(), false)?;
         let mut writer = BufWriter::new(file);
 
         // Write all domains except the one we're deleting

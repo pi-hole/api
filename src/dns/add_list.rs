@@ -8,7 +8,7 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use config::{Config, PiholeFile};
+use config::{Env, PiholeFile};
 use dns::common::reload_gravity;
 use dns::list::List;
 use rocket::State;
@@ -27,17 +27,17 @@ pub struct DomainInput {
 #[post("/dns/whitelist", data = "<domain_input>")]
 pub fn add_whitelist(
     _auth: User,
-    config: State<Config>,
+    env: State<Env>,
     domain_input: Json<DomainInput>
 ) -> util::Reply {
     let domain = &domain_input.0.domain;
 
     // We need to add it to the whitelist and remove it from the blacklist
-    List::White.add(domain, &config)?;
-    List::Black.try_remove(domain, &config)?;
+    List::White.add(domain, &env)?;
+    List::Black.try_remove(domain, &env)?;
 
     // At this point, since we haven't hit an error yet, reload gravity
-    reload_gravity(PiholeFile::Whitelist, &config)?;
+    reload_gravity(PiholeFile::Whitelist, &env)?;
     util::reply_success()
 }
 
@@ -45,17 +45,17 @@ pub fn add_whitelist(
 #[post("/dns/blacklist", data = "<domain_input>")]
 pub fn add_blacklist(
     _auth: User,
-    config: State<Config>,
+    env: State<Env>,
     domain_input: Json<DomainInput>
 ) -> util::Reply {
     let domain = &domain_input.0.domain;
 
     // We need to add it to the blacklist and remove it from the whitelist
-    List::Black.add(domain, &config)?;
-    List::White.try_remove(domain, &config)?;
+    List::Black.add(domain, &env)?;
+    List::White.try_remove(domain, &env)?;
 
     // At this point, since we haven't hit an error yet, reload gravity
-    reload_gravity(PiholeFile::Blacklist, &config)?;
+    reload_gravity(PiholeFile::Blacklist, &env)?;
     util::reply_success()
 }
 
@@ -63,14 +63,14 @@ pub fn add_blacklist(
 #[post("/dns/regexlist", data = "<domain_input>")]
 pub fn add_regexlist(
     _auth: User,
-    config: State<Config>,
+    env: State<Env>,
     ftl: State<FtlConnectionType>,
     domain_input: Json<DomainInput>
 ) -> util::Reply {
     let domain = &domain_input.0.domain;
 
     // We only need to add it to the regex list
-    List::Regex.add(domain, &config)?;
+    List::Regex.add(domain, &env)?;
 
     // At this point, since we haven't hit an error yet, tell FTL to recompile regex
     ftl.connect("recompile-regex")?.expect_eom()?;

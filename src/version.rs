@@ -9,8 +9,7 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use rocket::State;
-use config::Config;
-use config::PiholeFile;
+use config::{Env, PiholeFile};
 use ftl::FtlConnectionType;
 use util;
 use std::io::Read;
@@ -19,8 +18,8 @@ use std::str;
 
 /// Get the versions of all Pi-hole systems
 #[get("/version")]
-pub fn version(config: State<Config>, ftl: State<FtlConnectionType>) -> util::Reply {
-    let core_version = read_core_version(&config).unwrap_or_default();
+pub fn version(env: State<Env>, ftl: State<FtlConnectionType>) -> util::Reply {
+    let core_version = read_core_version(&env).unwrap_or_default();
     let web_version = read_web_version().unwrap_or_default();
     let ftl_version = read_ftl_version(&ftl).unwrap_or_default();
     let api_version = read_api_version();
@@ -91,13 +90,13 @@ fn parse_web_version(version_str: &str) -> Result<Version, util::Error> {
 }
 
 /// Read Core version information from the file system
-fn read_core_version(config: &Config) -> Result<Version, util::Error> {
+fn read_core_version(env: &Env) -> Result<Version, util::Error> {
     // Read the version files
     let mut local_versions = String::new();
     let mut local_branches = String::new();
-    config.read_file(PiholeFile::LocalVersions)?
+    env.read_file(PiholeFile::LocalVersions)?
         .read_to_string(&mut local_versions)?;
-    config.read_file(PiholeFile::LocalBranches)?
+    env.read_file(PiholeFile::LocalBranches)?
         .read_to_string(&mut local_branches)?;
 
     // These files are structured as "CORE WEB FTL", but we only want Core's data
@@ -139,8 +138,8 @@ struct Version {
 #[cfg(test)]
 mod tests {
     use super::{Version, parse_git_version, parse_web_version, read_ftl_version};
-    use testing::{TestConfigBuilder, write_eom};
-    use config::{PiholeFile, Config, ConfigOptions};
+    use testing::{TestEnvBuilder, write_eom};
+    use config::{PiholeFile, Env, Config};
     use version::read_core_version;
     use util;
     use rmp::encode;
@@ -240,9 +239,9 @@ mod tests {
 
     #[test]
     fn test_read_core_version_valid() {
-        let test_config = Config::Test(
-            ConfigOptions::default(),
-            TestConfigBuilder::new()
+        let test_env = Env::Test(
+            Config::default(),
+            TestEnvBuilder::new()
                 .file(
                     PiholeFile::LocalVersions,
                     "v3.3.1-219-g6689e00 v3.3-190-gf7e1a28 vDev-d06deca"
@@ -255,7 +254,7 @@ mod tests {
         );
 
         assert_eq!(
-            read_core_version(&test_config),
+            read_core_version(&test_env),
             Ok(Version {
                 tag: "".to_owned(),
                 branch: "development".to_owned(),
@@ -266,9 +265,9 @@ mod tests {
 
     #[test]
     fn test_read_core_version_invalid() {
-        let test_config = Config::Test(
-            ConfigOptions::default(),
-            TestConfigBuilder::new()
+        let test_env = Env::Test(
+            Config::default(),
+            TestEnvBuilder::new()
                 .file(
                     PiholeFile::LocalVersions,
                     "invalid v3.3-190-gf7e1a28 vDev-d06deca"
@@ -280,7 +279,7 @@ mod tests {
                 .build()
         );
 
-        assert_eq!(read_core_version(&test_config), Err(util::Error::Unknown));
+        assert_eq!(read_core_version(&test_env), Err(util::Error::Unknown));
     }
 
     #[test]

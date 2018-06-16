@@ -8,27 +8,27 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use config::Config;
+use config::Env;
 use dns::list::List;
 use rocket::State;
 use util;
 
 /// Get the Whitelist domains
 #[get("/dns/whitelist")]
-pub fn get_whitelist(config: State<Config>) -> util::Reply {
-    util::reply_data(List::White.get(&config)?)
+pub fn get_whitelist(env: State<Env>) -> util::Reply {
+    util::reply_data(List::White.get(&env)?)
 }
 
 /// Get the Blacklist domains
 #[get("/dns/blacklist")]
-pub fn get_blacklist(config: State<Config>) -> util::Reply {
-    util::reply_data(List::Black.get(&config)?)
+pub fn get_blacklist(env: State<Env>) -> util::Reply {
+    util::reply_data(List::Black.get(&env)?)
 }
 
 /// Get the Regex list domains
 #[get("/dns/regexlist")]
-pub fn get_regexlist(config: State<Config>) -> util::Reply {
-    util::reply_data(List::Regex.get(&config)?)
+pub fn get_regexlist(env: State<Env>) -> util::Reply {
+    util::reply_data(List::Regex.get(&env)?)
 }
 
 #[cfg(test)]

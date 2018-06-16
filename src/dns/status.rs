@@ -8,7 +8,7 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use config::{Config, PiholeFile};
+use config::{Env, PiholeFile};
 use std::io::{BufRead, BufReader};
 use std::fs::File;
 use rocket::State;
@@ -16,8 +16,8 @@ use util;
 
 /// Get the DNS blocking status
 #[get("/dns/status")]
-pub fn status(config: State<Config>) -> util::Reply {
-    let status = match config.read_file(PiholeFile::DnsmasqMainConfig) {
+pub fn status(env: State<Env>) -> util::Reply {
+    let status = match env.read_file(PiholeFile::DnsmasqMainConfig) {
         Ok(file) => check_for_gravity(file),
 
         // If we failed to open the file, then the status is unknown
