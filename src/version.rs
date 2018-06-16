@@ -140,8 +140,7 @@ struct Version {
 mod tests {
     use super::{Version, parse_git_version, parse_web_version, read_ftl_version};
     use testing::{TestConfigBuilder, write_eom};
-    use config::PiholeFile;
-    use config::Config;
+    use config::{PiholeFile, Config, ConfigOptions};
     use version::read_core_version;
     use util;
     use rmp::encode;
@@ -242,6 +241,7 @@ mod tests {
     #[test]
     fn test_read_core_version_valid() {
         let test_config = Config::Test(
+            ConfigOptions::default(),
             TestConfigBuilder::new()
                 .file(
                     PiholeFile::LocalVersions,
@@ -267,6 +267,7 @@ mod tests {
     #[test]
     fn test_read_core_version_invalid() {
         let test_config = Config::Test(
+            ConfigOptions::default(),
             TestConfigBuilder::new()
                 .file(
                     PiholeFile::LocalVersions,

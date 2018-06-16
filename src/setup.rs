@@ -20,6 +20,7 @@ use setup_vars::read_setup_vars;
 use stats;
 use std::collections::HashMap;
 use std::fs::File;
+use toml;
 use util;
 use web;
 use version;
@@ -37,7 +38,7 @@ fn unauthorized() -> util::Error {
 
 /// Run the API normally (connect to FTL over the socket)
 pub fn start() {
-    let config = Config::Production;
+    let config = Config::Production(toml::from_str("").unwrap());
     let key = read_setup_vars("WEBPASSWORD", &config)
         .expect(&format!("Failed to open {}", PiholeFile::SetupVars.default_location()))
         .unwrap_or_default();
@@ -63,7 +64,7 @@ pub fn test(
             false,
         ),
         ftl::FtlConnectionType::Test(ftl_data),
-        Config::Test(config_data),
+        Config::Test(toml::from_str("").unwrap(), config_data),
         "test_key".to_owned()
     )).unwrap()
 }
