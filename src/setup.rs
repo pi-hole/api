@@ -45,7 +45,15 @@ pub fn start() {
         .unwrap_or_default();
 
     setup(
-        rocket::ignite(),
+        rocket::custom(
+            ConfigBuilder::new(Environment::Production)
+                .address(env.config().address())
+                .port(env.config().port() as u16)
+                .log_level(env.config().log_level())
+                .finalize().unwrap(),
+            // TODO: Add option to turn off logs
+            true
+        ),
         FtlConnectionType::Socket,
         env,
         key

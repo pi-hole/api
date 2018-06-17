@@ -13,10 +13,13 @@ use toml;
 use std::io::{self, prelude::*};
 use std::fs::File;
 use std::error::Error;
+use rocket::config::LoggingLevel;
 
 /// The API config options
 #[derive(Deserialize, Default)]
 pub struct Config {
+    #[serde(default)]
+    general: General,
     #[serde(default)]
     file_locations: Files
 }
@@ -52,6 +55,24 @@ impl Config {
             PiholeFile::SetupVars => &self.file_locations.setup_vars,
             PiholeFile::LocalVersions => &self.file_locations.local_versions,
             PiholeFile::LocalBranches => &self.file_locations.local_branches
+        }
+    }
+
+    pub fn address(&self) -> &str {
+        &self.general.address
+    }
+
+    pub fn port(&self) -> usize {
+        self.general.port
+    }
+
+    pub fn log_level(&self) -> LoggingLevel {
+        match self.general.log_level.as_str() {
+            "critical" => LoggingLevel::Critical,
+            "normal" => LoggingLevel::Normal,
+            "debug" => LoggingLevel::Debug,
+            // TODO: validate config on startup
+            _ => LoggingLevel::Critical
         }
     }
 }
@@ -106,3 +127,36 @@ default!(default_regexlist, Regexlist);
 default!(default_setup_vars, SetupVars);
 default!(default_local_versions, LocalVersions);
 default!(default_local_branches, LocalBranches);
+
+/// General config settings
+#[derive(Deserialize)]
+struct General {
+    #[serde(default = "default_address")]
+    address: String,
+    #[serde(default = "default_port")]
+    port: usize,
+    #[serde(default = "default_log_level")]
+    log_level: String
+}
+
+impl Default for General {
+    fn default() -> Self {
+        General {
+            address: default_address(),
+            port: default_port(),
+            log_level: default_log_level()
+        }
+    }
+}
+
+fn default_address() -> String {
+    "0.0.0.0".to_owned()
+}
+
+fn default_port() -> usize {
+    80
+}
+
+fn default_log_level() -> String {
+    "critical".to_owned()
+}

@@ -23,6 +23,13 @@ pub enum Env {
 }
 
 impl Env {
+    pub fn config(&self) -> &Config {
+        match *self {
+            Env::Production(ref config) => config,
+            Env::Test(ref config, _) => config
+        }
+    }
+
     /// Get the location of a file
     pub fn file_location(&self, file: PiholeFile) -> &str {
         match *self {
