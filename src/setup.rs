@@ -9,9 +9,9 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use auth::{self, AuthData};
-use config::{Config, PiholeFile};
+use config::{Env, PiholeFile, Config};
 use dns;
-use ftl;
+use ftl::FtlConnectionType;
 use rocket;
 use rocket::config::{ConfigBuilder, Environment};
 use rocket::local::Client;
@@ -20,11 +20,13 @@ use setup_vars::read_setup_vars;
 use stats;
 use std::collections::HashMap;
 use std::fs::File;
+use toml;
 use util;
 use web;
 use version;
 
-/// This is run when no route could be found and returns a custom 404 message.
+const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
+
 #[error(404)]
 fn not_found() -> util::Error {
     util::Error::NotFound
@@ -37,15 +39,24 @@ fn unauthorized() -> util::Error {
 
 /// Run the API normally (connect to FTL over the socket)
 pub fn start() {
-    let config = Config::Production;
-    let key = read_setup_vars("WEBPASSWORD", &config)
+    let config = Config::parse(CONFIG_LOCATION).unwrap();
+    let env = Env::Production(config);
+    let key = read_setup_vars("WEBPASSWORD", &env)
         .expect(&format!("Failed to open {}", PiholeFile::SetupVars.default_location()))
         .unwrap_or_default();
 
     setup(
-        rocket::ignite(),
-        ftl::FtlConnectionType::Socket,
-        config,
+        rocket::custom(
+            ConfigBuilder::new(Environment::Production)
+                .address(env.config().address())
+                .port(env.config().port() as u16)
+                .log_level(env.config().log_level())
+                .finalize().unwrap(),
+            // TODO: Add option to turn off logs
+            true
+        ),
+        FtlConnectionType::Socket,
+        env,
         key
     ).launch();
 }
@@ -53,7 +64,7 @@ pub fn start() {
 /// Setup the API with the testing data and return a Client to test with
 pub fn test(
     ftl_data: HashMap<String, Vec<u8>>,
-    config_data: HashMap<PiholeFile, File>
+    env_data: HashMap<PiholeFile, File>
 ) -> Client {
     Client::new(setup(
         rocket::custom(
@@ -62,8 +73,8 @@ pub fn test(
                 .unwrap(),
             false,
         ),
-        ftl::FtlConnectionType::Test(ftl_data),
-        Config::Test(config_data),
+        FtlConnectionType::Test(ftl_data),
+        Env::Test(toml::from_str("").unwrap(), env_data),
         "test_key".to_owned()
     )).unwrap()
 }
@@ -71,8 +82,8 @@ pub fn test(
 /// General server setup
 fn setup<'a>(
     server: rocket::Rocket,
-    connection_type: ftl::FtlConnectionType,
-    config: Config,
+    connection_type: FtlConnectionType,
+    env: Env,
     api_key: String
 ) -> rocket::Rocket {
     // Setup CORS
@@ -85,8 +96,8 @@ fn setup<'a>(
         .attach(cors)
         // Manage the connection type configuration
         .manage(connection_type)
-        // Manage the configuration
-        .manage(config)
+        // Manage the environment
+        .manage(env)
         // Manage the API key
         .manage(AuthData::new(api_key))
         // Mount the web interface

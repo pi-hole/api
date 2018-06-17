@@ -3,7 +3,7 @@
 *  Network-wide ad blocking via your own hardware.
 *
 *  API
-*  API Configuration
+*  Environment Structure
 *
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
@@ -13,52 +13,38 @@ use std::fs::{File, OpenOptions};
 use std::os::unix::fs::OpenOptionsExt;
 use std::io;
 use std::path::Path;
+use config::Config;
+use config::PiholeFile;
 
-/// The files exposed by the `Config`
-#[derive(Eq, PartialEq, Hash, Copy, Clone)]
-pub enum PiholeFile {
-    DnsmasqMainConfig,
-    Whitelist,
-    Blacklist,
-    Regexlist,
-    SetupVars,
-    LocalVersions,
-    LocalBranches
+/// Environment of the Pi-hole API. Stores the config and abstracts away some systems to make
+/// testing easier.
+pub enum Env {
+    Production(Config), Test(Config, HashMap<PiholeFile, File>)
 }
 
-impl PiholeFile {
-    pub fn default_location(&self) -> &'static str {
+impl Env {
+    pub fn config(&self) -> &Config {
         match *self {
-            PiholeFile::DnsmasqMainConfig => "/etc/dnsmasq.d/01-pihole.conf",
-            PiholeFile::Whitelist => "/etc/pihole/whitelist.txt",
-            PiholeFile::Blacklist => "/etc/pihole/blacklist.txt",
-            PiholeFile::Regexlist => "/etc/pihole/regex.list",
-            PiholeFile::SetupVars => "/etc/pihole/setupVars.conf",
-            PiholeFile::LocalVersions => "/etc/pihole/localversions",
-            PiholeFile::LocalBranches => "/etc/pihole/localbranches"
+            Env::Production(ref config) => config,
+            Env::Test(ref config, _) => config
         }
     }
-}
 
-/// Configuration for the Pi-hole API. Also abstracts away some systems to make testing easier
-pub enum Config {
-    Production, Test(HashMap<PiholeFile, File>)
-}
-
-impl Config {
     /// Get the location of a file
     pub fn file_location(&self, file: PiholeFile) -> &str {
-        // TODO: read config and make a map of locations from that
-        file.default_location()
+        match *self {
+            Env::Production(ref config_options) => config_options.file_location(file),
+            Env::Test(_, _) => file.default_location()
+        }
     }
 
     /// Open a file for reading
     pub fn read_file(&self, file: PiholeFile) -> io::Result<File> {
         match *self {
-            Config::Production => {
+            Env::Production(_) => {
                 File::open(self.file_location(file))
             },
-            Config::Test(ref map) => {
+            Env::Test(_, ref map) => {
                 match map.get(&file) {
                     Some(data) => data,
                     None => return Err(io::Error::new(io::ErrorKind::NotFound, "Missing test data"))
@@ -74,7 +60,7 @@ impl Config {
         append: bool
     ) -> io::Result<File> {
         match *self {
-            Config::Production => {
+            Env::Production(_) => {
                 let mut open_options = OpenOptions::new();
                 open_options
                     .create(true)
@@ -89,7 +75,7 @@ impl Config {
 
                 open_options.open(self.file_location(file))
             },
-            Config::Test(ref map) => {
+            Env::Test(_, ref map) => {
                 let file = match map.get(&file) {
                     Some(data) => data,
                     None => return Err(io::Error::new(io::ErrorKind::NotFound, "Missing test data"))
@@ -108,10 +94,10 @@ impl Config {
     #[allow(unused)]
     pub fn file_exists(&self, file: PiholeFile) -> bool {
         match *self {
-            Config::Production => {
+            Env::Production(_) => {
                 Path::new(self.file_location(file)).is_file()
             },
-            Config::Test(ref map) => {
+            Env::Test(_, ref map) => {
                 map.contains_key(&file)
             }
         }
@@ -120,8 +106,8 @@ impl Config {
     /// Check if we're in a testing environment
     pub fn is_test(&self) -> bool {
         match *self {
-            Config::Production => false,
-            Config::Test(_) => true
+            Env::Production(_) => false,
+            Env::Test(_, _) => true
         }
     }
 }

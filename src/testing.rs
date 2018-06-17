@@ -24,15 +24,15 @@ pub fn write_eom(data: &mut Vec<u8>) {
     data.push(0xc1);
 }
 
-/// Builds the data needed to create a `Config::Test`
-pub struct TestConfigBuilder {
+/// Builds the data needed to create a `Env::Test`
+pub struct TestEnvBuilder {
     test_files: Vec<TestFile>
 }
 
-impl TestConfigBuilder {
-    /// Create a new `TestConfigBuilder`
-    pub fn new() -> TestConfigBuilder {
-        TestConfigBuilder { test_files: Vec::new() }
+impl TestEnvBuilder {
+    /// Create a new `TestEnvBuilder`
+    pub fn new() -> TestEnvBuilder {
+        TestEnvBuilder { test_files: Vec::new() }
     }
 
     /// Add a file and verify that it does not change
@@ -57,7 +57,7 @@ impl TestConfigBuilder {
         self
     }
 
-    /// Build the config data. This can be used to create a `Config::Test`
+    /// Build the environment data. This can be used to create a `Env::Test`
     pub fn build(self) -> HashMap<PiholeFile, File> {
         let mut config_data = HashMap::new();
 
@@ -124,7 +124,7 @@ pub struct TestBuilder {
     should_auth: bool,
     body_data: Option<serde_json::Value>,
     ftl_data: HashMap<String, Vec<u8>>,
-    test_config_builder: TestConfigBuilder,
+    test_config_builder: TestEnvBuilder,
     expected_json: serde_json::Value,
     expected_status: Status
 }
@@ -138,7 +138,7 @@ impl TestBuilder {
             should_auth: true,
             body_data: None,
             ftl_data: HashMap::new(),
-            test_config_builder: TestConfigBuilder::new(),
+            test_config_builder: TestEnvBuilder::new(),
             expected_json: json!({
                 "data": [],
                 "errors": []

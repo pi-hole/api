@@ -8,7 +8,7 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use config::{Config, PiholeFile};
+use config::{Env, PiholeFile};
 use regex::Regex;
 use std::process::{Command, Stdio};
 use util;
@@ -32,9 +32,9 @@ pub fn is_valid_regex(regex_str: &str) -> bool {
 }
 
 /// Reload Gravity to activate changes in lists
-pub fn reload_gravity(list: PiholeFile, config: &Config) -> Result<(), util::Error> {
+pub fn reload_gravity(list: PiholeFile, env: &Env) -> Result<(), util::Error> {
     // Don't actually reload Gravity during testing
-    if config.is_test() {
+    if env.is_test() {
         return Ok(());
     }
 
