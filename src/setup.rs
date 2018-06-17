@@ -25,6 +25,8 @@ use util;
 use web;
 use version;
 
+const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
+
 #[error(404)]
 fn not_found() -> util::Error {
     util::Error::NotFound
@@ -37,8 +39,7 @@ fn unauthorized() -> util::Error {
 
 /// Run the API normally (connect to FTL over the socket)
 pub fn start() {
-    let config_location = "/etc/pihole/api-config.toml";
-    let config = Config::parse(config_location).unwrap();
+    let config = Config::parse(CONFIG_LOCATION).unwrap();
     let env = Env::Production(config);
     let key = read_setup_vars("WEBPASSWORD", &env)
         .expect(&format!("Failed to open {}", PiholeFile::SetupVars.default_location()))
