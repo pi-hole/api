@@ -15,6 +15,8 @@ use std::io;
 use std::path::Path;
 use config::Config;
 use config::PiholeFile;
+use util;
+use failure::ResultExt;
 
 /// Environment of the Pi-hole API. Stores the config and abstracts away some systems to make
 /// testing easier.
@@ -39,15 +41,17 @@ impl Env {
     }
 
     /// Open a file for reading
-    pub fn read_file(&self, file: PiholeFile) -> io::Result<File> {
+    pub fn read_file(&self, file: PiholeFile) -> Result<File, util::Error> {
         match *self {
             Env::Production(_) => {
-                File::open(self.file_location(file))
+                let file_location = self.file_location(file);
+                File::open(file_location)
+                    .context(util::ErrorKind::FileRead(file_location.to_owned())).into()
             },
             Env::Test(_, ref map) => {
                 match map.get(&file) {
                     Some(data) => data,
-                    None => return Err(io::Error::new(io::ErrorKind::NotFound, "Missing test data"))
+                    None => return Err(util::ErrorKind::NotFound).into()
                 }.try_clone()
             }
         }
@@ -58,7 +62,7 @@ impl Env {
         &self,
         file: PiholeFile,
         append: bool
-    ) -> io::Result<File> {
+    ) -> Result<File, util::Error> {
         match *self {
             Env::Production(_) => {
                 let mut open_options = OpenOptions::new();
@@ -73,12 +77,14 @@ impl Env {
                     open_options.truncate(true);
                 }
 
-                open_options.open(self.file_location(file))
+                let file_location = self.file_location(file);
+                open_options.open(file_location)
+                    .context(util::ErrorKind::FileRead(file_location.to_owned())).into()
             },
             Env::Test(_, ref map) => {
                 let file = match map.get(&file) {
                     Some(data) => data,
-                    None => return Err(io::Error::new(io::ErrorKind::NotFound, "Missing test data"))
+                    None => return Err(util::ErrorKind::NotFound).into()
                 }.try_clone()?;
 
                 if !append {

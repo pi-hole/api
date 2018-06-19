@@ -89,7 +89,9 @@ pub enum ErrorKind {
     #[fail(display = "Unauthorized")]
     Unauthorized,
     #[fail(display = "Error reading from {}", _0)]
-    FileRead(String)
+    FileRead(String),
+    #[fail(display = "Error parsing the config")]
+    ConfigParsingError
 }
 
 impl Error {
