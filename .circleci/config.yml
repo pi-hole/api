@@ -13,8 +13,6 @@ version: 2
           # Find a cache corresponding to this specific target.
           # When the target is different, this key will fail.
           - v3-cargo-{{ .Environment.CIRCLE_JOB }}-
-          # Find the most recent cache
-          - v3-cargo-
     - run:
         name: "Download Web"
         command: |
