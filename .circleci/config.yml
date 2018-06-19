@@ -8,11 +8,12 @@ version: 2
     - restore_cache:
         keys:
           # Find a cache corresponding to this specific target and Cargo.lock checksum.
-          # When the checksum is different, this key will fail
-          - v3-cargo-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cargo.lock" }}
+          # When the checksum is different, this key will fail.
+          # There are two dashes used between job and checksum to avoid x86_64 using the x86_64-musl cache
+          - v3-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
           # Find a cache corresponding to this specific target.
           # When the target is different, this key will fail.
-          - v3-cargo-{{ .Environment.CIRCLE_JOB }}-
+          - v3-cargo-{{ .Environment.CIRCLE_JOB }}--
     - run:
         name: "Download Web"
         command: |
