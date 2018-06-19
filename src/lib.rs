@@ -23,6 +23,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate rust_embed;
 extern crate toml;
+extern crate failure;
 
 pub use setup::*;
 
