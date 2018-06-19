@@ -29,12 +29,12 @@ const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
 
 #[error(404)]
 fn not_found() -> util::Error {
-    util::Error::NotFound
+    util::ErrorKind::NotFound.into()
 }
 
 #[error(401)]
 fn unauthorized() -> util::Error {
-    util::Error::Unauthorized
+    util::ErrorKind::Unauthorized.into()
 }
 
 /// Run the API normally (connect to FTL over the socket)

@@ -23,7 +23,7 @@ impl User {
     fn authenticate(request: &Request, input_key: &str) -> request::Outcome<Self, util::Error> {
         let auth_data: State<AuthData> = match request.guard().succeeded() {
             Some(auth_data) => auth_data,
-            None => return util::Error::Unknown.as_outcome()
+            None => return util::ErrorKind::Unknown.into().as_outcome()
         };
 
         if auth_data.key_matches(input_key) {
@@ -32,7 +32,7 @@ impl User {
 
             Outcome::Success(user)
         } else {
-            util::Error::Unauthorized.as_outcome()
+            util::ErrorKind::Unauthorized.into().as_outcome()
         }
     }
 
@@ -41,7 +41,7 @@ impl User {
             .get_private(USER_ATTR)
             .and_then(|cookie| cookie.value().parse().ok())
             .map(|id| User { id })
-            .into_outcome((util::Error::Unauthorized.status(), util::Error::Unauthorized))
+            .ok_or_else(|| util::ErrorKind::Unauthorized.into().as_outcome())
     }
 
     fn logout(&self, mut cookies: Cookies) {

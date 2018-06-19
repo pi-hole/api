@@ -11,11 +11,19 @@
 use std::io::prelude::*;
 use std::io::{self, BufReader};
 use config::{Env, PiholeFile};
+use util;
 
 /// Read in a value from setupVars.conf
-pub fn read_setup_vars(entry: &str, env: &Env) -> io::Result<Option<String>> {
+pub fn read_setup_vars(entry: &str, env: &Env) -> Result<Option<String>, util::Error> {
     // Open setupVars.conf
-    let reader = BufReader::new(env.read_file(PiholeFile::SetupVars)?);
+    let reader = BufReader::new(
+        env.read_file(PiholeFile::SetupVars)
+            .map_err(|e| {
+                e.context(util::ErrorKind::FileRead(
+                    env.config().file_location(PiholeFile::SetupVars).to_owned()
+                ))
+            })?
+    );
 
     // Check every line for the key (filter out lines which could not be read)
     for line in reader.lines().filter_map(|item| item.ok()) {

@@ -15,7 +15,8 @@ use rocket::request;
 use rocket::response::{self, Response, Responder};
 use rocket::http::Status;
 use std::fmt::{self, Display};
-use failure::{Context, Fail};
+use failure::{Context, Fail, Backtrace};
+use config::PiholeFile;
 
 /// Type alias for the most common return type of the API methods
 pub type Reply = Result<SetStatus<Json<Value>>, Error>;
@@ -67,7 +68,7 @@ pub struct Error {
 }
 
 /// The `ErrorKind` enum represents all the possible errors that the API can return.
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
+#[derive(Clone, Eq, PartialEq, Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "Unknown error")]
     Unknown,
@@ -75,6 +76,8 @@ pub enum ErrorKind {
     GravityError,
     #[fail(display = "Failed to connect to FTL")]
     FtlConnectionFail,
+    #[fail(display = "Error reading from FTL")]
+    FtlReadError,
     #[fail(display = "Not found")]
     NotFound,
     #[fail(display = "Item already exists")]
@@ -84,19 +87,43 @@ pub enum ErrorKind {
     #[fail(display = "Bad request")]
     BadRequest,
     #[fail(display = "Unauthorized")]
-    Unauthorized
+    Unauthorized,
+    #[fail(display = "Error reading from {}", _0)]
+    FileRead(String)
 }
 
 impl Error {
-    /// Get the wrapped `ErrorKind`
+    /// Get the wrapped [`ErrorKind`]
+    ///
+    /// [`ErrorKind`]: enum.ErrorKind.html
     pub fn kind(&self) -> ErrorKind {
         *self.inner.get_context()
     }
 
+    /// See [`ErrorKind::key`]
+    ///
+    /// [`ErrorKind::key`]: enum.ErrorKind.html#method.key
+    pub fn key(&self) -> &'static str {
+        self.kind().key()
+    }
+
+    /// See [`ErrorKind::status`]
+    ///
+    /// [`ErrorKind::status`]: enum.ErrorKind.html#method.status
+    pub fn status(&self) -> Status {
+        self.kind().status()
+    }
+
+    pub fn as_outcome<S>(&self) -> request::Outcome<S, Self> {
+        Outcome::Failure((self.status(), self.clone()))
+    }
+}
+
+impl ErrorKind {
     /// Get the error key. This should be used by clients to determine the error type instead of
     /// using the message because it will not change.
     pub fn key(&self) -> &'static str {
-        match self.kind() {
+        match *self {
             ErrorKind::Unknown => "unknown",
             ErrorKind::GravityError => "gravity_error",
             ErrorKind::FtlConnectionFail => "ftl_connection_fail",
@@ -110,7 +137,7 @@ impl Error {
 
     /// Get the error HTTP status. This will be used when calling `reply_error`
     pub fn status(&self) -> Status {
-        match self.kind() {
+        match *self {
             ErrorKind::Unknown => Status::InternalServerError,
             ErrorKind::GravityError => Status::InternalServerError,
             ErrorKind::FtlConnectionFail => Status::InternalServerError,
@@ -120,10 +147,6 @@ impl Error {
             ErrorKind::BadRequest => Status::BadRequest,
             ErrorKind::Unauthorized => Status::Unauthorized
         }
-    }
-
-    pub fn as_outcome<S>(&self) -> request::Outcome<S, Self> {
-        Outcome::Failure((self.status(), self.clone()))
     }
 }
 
