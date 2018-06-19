@@ -58,7 +58,7 @@ version: 2
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}.sha1" "${FTL_SECRET}"
           rm ./FTL-client
     - save_cache:
-        key: v3-cargo-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cargo.lock" }}
+        key: v3-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
         paths:
           - target
           - /root/.cargo
