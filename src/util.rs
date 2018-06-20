@@ -26,8 +26,11 @@ pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
     let json_data = match data {
         ReplyType::Data(d) => json!(d),
         ReplyType::Error(e) => {
-            // Print out the error
-            e.print_stacktrace();
+            // Only print out the error if it's not a common error
+            match e.kind() {
+                ErrorKind::Unauthorized | ErrorKind::NotFound => (),
+                _ => e.print_stacktrace()
+            }
 
             json!({
                 "error": {
