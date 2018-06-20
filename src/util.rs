@@ -108,7 +108,8 @@ impl Error {
         eprintln!("Error: {}", self);
 
         // Only print the backtrace if requested, to avoid a gap between error and causes
-        if env::var("RUST_BACKTRACE").is_ok() {
+        let backtrace_enabled = env::var("RUST_BACKTRACE").is_ok();
+        if backtrace_enabled {
             if let Some(backtrace) = self.backtrace() {
                 eprintln!("{}", backtrace);
             }
@@ -118,8 +119,10 @@ impl Error {
         for (i, cause) in self.causes().skip(1).enumerate() {
             eprintln!("Cause #{}: {}", i+1, cause);
 
-            if let Some(backtrace) = cause.backtrace() {
-                eprintln!("{}", backtrace);
+            if backtrace_enabled {
+                if let Some(backtrace) = cause.backtrace() {
+                    eprintln!("{}", backtrace);
+                }
             }
         }
     }
