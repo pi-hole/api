@@ -9,22 +9,14 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use config::{Env, PiholeFile};
-use failure::Fail;
 use std::io::BufReader;
 use std::io::prelude::*;
-use util::{Error, ErrorKind};
+use util::Error;
 
 /// Read in a value from setupVars.conf
 pub fn read_setup_vars(entry: &str, env: &Env) -> Result<Option<String>, Error> {
     // Open setupVars.conf
-    let reader = BufReader::new(
-        env.read_file(PiholeFile::SetupVars)
-            .map_err(|e| {
-                e.context(ErrorKind::FileRead(
-                    env.config().file_location(PiholeFile::SetupVars).to_owned()
-                ))
-            })?
-    );
+    let reader = BufReader::new(env.read_file(PiholeFile::SetupVars)?);
 
     // Check every line for the key (filter out lines which could not be read)
     for line in reader.lines().filter_map(|item| item.ok()) {
