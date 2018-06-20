@@ -3,7 +3,7 @@ use rocket::Outcome;
 use rocket::outcome::IntoOutcome;
 use rocket::http::{Cookie, Cookies};
 use std::sync::atomic::{Ordering, AtomicUsize};
-use util;
+use util::{Reply, Error, ErrorKind, reply_success};
 
 const USER_ATTR: &str = "user_id";
 const AUTH_HEADER: &str = "X-Pi-hole-Authenticate";
@@ -20,10 +20,10 @@ pub struct AuthData {
 }
 
 impl User {
-    fn authenticate(request: &Request, input_key: &str) -> request::Outcome<Self, util::Error> {
+    fn authenticate(request: &Request, input_key: &str) -> request::Outcome<Self, Error> {
         let auth_data: State<AuthData> = match request.guard().succeeded() {
             Some(auth_data) => auth_data,
-            None => return util::Error::Unknown.as_outcome()
+            None => return Error::from(ErrorKind::Unknown).into_outcome()
         };
 
         if auth_data.key_matches(input_key) {
@@ -32,16 +32,16 @@ impl User {
 
             Outcome::Success(user)
         } else {
-            util::Error::Unauthorized.as_outcome()
+            Error::from(ErrorKind::Unauthorized).into_outcome()
         }
     }
 
-    fn check_cookies(mut cookies: Cookies) -> request::Outcome<Self, util::Error> {
+    fn check_cookies(mut cookies: Cookies) -> request::Outcome<Self, Error> {
         cookies
             .get_private(USER_ATTR)
             .and_then(|cookie| cookie.value().parse().ok())
             .map(|id| User { id })
-            .into_outcome((util::Error::Unauthorized.status(), util::Error::Unauthorized))
+            .into_outcome((ErrorKind::Unauthorized.status(), Error::from(ErrorKind::Unauthorized)))
     }
 
     fn logout(&self, mut cookies: Cookies) {
@@ -50,7 +50,7 @@ impl User {
 }
 
 impl<'a, 'r> FromRequest<'a, 'r> for User {
-    type Error = util::Error;
+    type Error = Error;
 
     fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
         match request.headers().get_one(AUTH_HEADER) {
@@ -89,15 +89,15 @@ impl AuthData {
 
 /// Provides an endpoint to authenticate or check if already authenticated
 #[get("/auth")]
-pub fn check(_user: User) -> util::Reply {
-    util::reply_success()
+pub fn check(_user: User) -> Reply {
+    reply_success()
 }
 
 /// Clears the user's authentication
 #[delete("/auth")]
-pub fn logout(user: User, cookies: Cookies) -> util::Reply {
+pub fn logout(user: User, cookies: Cookies) -> Reply {
     user.logout(cookies);
-    util::reply_success()
+    reply_success()
 }
 
 #[cfg(test)]

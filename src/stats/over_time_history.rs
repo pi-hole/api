@@ -10,25 +10,24 @@
 
 use ftl::{FtlConnectionType, FtlConnection};
 use rocket::State;
-use util;
-use rmp::decode;
+use util::{Reply, Error, reply_data};
 
 /// Get the query history over time (separated into blocked and not blocked)
 #[get("/stats/overTime/history")]
-pub fn over_time_history(ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn over_time_history(ftl: State<FtlConnectionType>) -> Reply {
     let mut con = ftl.connect("overTime")?;
 
     let domains_over_time = get_over_time_data(&mut con)?;
     let blocked_over_time = get_over_time_data(&mut con)?;
 
-    util::reply_data(json!({
+    reply_data(json!({
         "domains_over_time": domains_over_time,
         "blocked_over_time": blocked_over_time
     }))
 }
 
 /// Read in some time data (represented by FTL as a map of ints to ints)
-fn get_over_time_data(ftl: &mut FtlConnection) -> Result<Vec<TimeStep>, decode::ValueReadError> {
+fn get_over_time_data(ftl: &mut FtlConnection) -> Result<Vec<TimeStep>, Error> {
     // Read in the length of the data to optimize memory usage
     let map_len = ftl.read_map_len()? as usize;
 

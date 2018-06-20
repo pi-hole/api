@@ -10,11 +10,11 @@
 
 use ftl::FtlConnectionType;
 use rocket::State;
-use util;
+use util::{Reply, reply_data};
 
 /// Get the summary data
 #[get("/stats/summary")]
-pub fn get_summary(ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn get_summary(ftl: State<FtlConnectionType>) -> Reply {
     let mut con = ftl.connect("stats")?;
 
     // Read in the data
@@ -34,7 +34,7 @@ pub fn get_summary(ftl: State<FtlConnectionType>) -> util::Reply {
     };
     con.expect_eom()?;
 
-    util::reply_data(json!({
+    reply_data(json!({
         "domains_blocked": domains_blocked,
         "total_queries": total_queries,
         "blocked_queries": blocked_queries,
