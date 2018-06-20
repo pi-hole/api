@@ -8,12 +8,12 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use std::io::prelude::*;
-use std::io::{self, BufReader, BufWriter};
-
-use util;
-use dns::common::{is_valid_domain, is_valid_regex};
 use config::{Env, PiholeFile};
+use dns::common::{is_valid_domain, is_valid_regex};
+use failure::ResultExt;
+use std::io::{self, BufReader, BufWriter};
+use std::io::prelude::*;
+use util::{Error, ErrorKind};
 
 pub enum List {
     White, Black, Regex
@@ -38,7 +38,7 @@ impl List {
     }
 
     /// Read in the domains from the list
-    pub fn get(&self, env: &Env) -> Result<Vec<String>, util::Error> {
+    pub fn get(&self, env: &Env) -> Result<Vec<String>, Error> {
         let file = match env.read_file(self.file()) {
             Ok(f) => f,
             Err(e) => {
@@ -46,7 +46,7 @@ impl List {
                     // If the file is not found, then the list is empty
                     return Ok(Vec::new());
                 } else {
-                    return Err(e.into());
+                    return Err(e);
                 }
             }
         };
@@ -61,34 +61,37 @@ impl List {
     }
 
     /// Add a domain to the list
-    pub fn add(&self, domain: &str, env: &Env) -> Result<(), util::Error> {
+    pub fn add(&self, domain: &str, env: &Env) -> Result<(), Error> {
         // Check if it's a valid domain before doing anything
         if !self.accepts(domain) {
-            return Err(util::Error::InvalidDomain);
+            return Err(ErrorKind::InvalidDomain).into();
         }
 
         // Check if the domain is already in the list
         if self.get(env)?.contains(&domain.to_owned()) {
-            return Err(util::Error::AlreadyExists);
+            return Err(ErrorKind::AlreadyExists).into();
         }
 
         // Open the list file in append mode (and create it if it doesn't exist)
         let mut file = env.write_file(self.file(), true)?;
 
         // Add the domain to the list
-        writeln!(file, "{}", domain)?;
+        writeln!(file, "{}", domain)
+            .context(ErrorKind::FileWrite(
+                env.file_location(self.file()).to_owned()
+            ))?;
 
         Ok(())
     }
 
     /// Try to remove a domain from the list, but it is not an error if the domain does not exist
-    pub fn try_remove(&self, domain: &str, env: &Env) -> Result<(), util::Error> {
+    pub fn try_remove(&self, domain: &str, env: &Env) -> Result<(), Error> {
         match self.remove(domain, env) {
             // Pass through successful results
             Ok(ok) => Ok(ok),
             Err(e) => {
                 // Ignore NotFound errors
-                if e == util::Error::NotFound {
+                if e == ErrorKind::NotFound {
                     Ok(())
                 } else {
                     Err(e)
@@ -98,16 +101,16 @@ impl List {
     }
 
     /// Remove a domain from the list
-    pub fn remove(&self, domain: &str, env: &Env) -> Result<(), util::Error> {
+    pub fn remove(&self, domain: &str, env: &Env) -> Result<(), Error> {
         // Check if it's a valid domain before doing anything
         if !self.accepts(domain) {
-            return Err(util::Error::InvalidDomain);
+            return Err(ErrorKind::InvalidDomain).into();
         }
 
         // Check if the domain is not in the list
         let domains = self.get(env)?;
         if !domains.contains(&domain.to_owned()) {
-            return Err(util::Error::NotFound);
+            return Err(ErrorKind::NotFound).into();
         }
 
         // Open the list file (and create it if it doesn't exist). This will truncate the list so
@@ -117,7 +120,10 @@ impl List {
 
         // Write all domains except the one we're deleting
         for domain in domains.into_iter().filter(|item| item != domain) {
-            writeln!(writer, "{}", domain)?;
+            writeln!(writer, "{}", domain)
+                .context(ErrorKind::FileWrite(
+                    env.file_location(self.file()).to_owned()
+                ))?;
         }
 
         Ok(())

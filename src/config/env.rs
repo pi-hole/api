@@ -79,7 +79,7 @@ impl Env {
 
                 let file_location = self.file_location(file);
                 open_options.open(file_location)
-                    .context(util::ErrorKind::FileRead(file_location.to_owned())).into()
+                    .context(util::ErrorKind::FileWrite(file_location.to_owned())).into()
             },
             Env::Test(_, ref map) => {
                 let file = match map.get(&file) {

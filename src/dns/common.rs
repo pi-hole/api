@@ -9,9 +9,10 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use config::{Env, PiholeFile};
+use failure::ResultExt;
 use regex::Regex;
 use std::process::{Command, Stdio};
-use util;
+use util::{Error, ErrorKind};
 
 /// Check if a domain is valid
 pub fn is_valid_domain(domain: &str) -> bool {
@@ -32,7 +33,7 @@ pub fn is_valid_regex(regex_str: &str) -> bool {
 }
 
 /// Reload Gravity to activate changes in lists
-pub fn reload_gravity(list: PiholeFile, env: &Env) -> Result<(), util::Error> {
+pub fn reload_gravity(list: PiholeFile, env: &Env) -> Result<(), Error> {
     // Don't actually reload Gravity during testing
     if env.is_test() {
         return Ok(());
@@ -46,18 +47,18 @@ pub fn reload_gravity(list: PiholeFile, env: &Env) -> Result<(), util::Error> {
         .arg(match list {
             PiholeFile::Whitelist => "--whitelist-only",
             PiholeFile::Blacklist => "--blacklist-only",
-            _ => return Err(util::Error::Unknown)
+            _ => return Err(ErrorKind::Unknown).into()
         })
         // Ignore stdin, stdout, and stderr
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         // Get the returned status code
-        .status()?;
+        .status().context(ErrorKind::GravityError)?;
 
     if status.success() {
         Ok(())
     } else {
-        Err(util::Error::GravityError)
+        Err(ErrorKind::GravityError).into()
     }
 }

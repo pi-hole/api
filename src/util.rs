@@ -90,6 +90,8 @@ pub enum ErrorKind {
     Unauthorized,
     #[fail(display = "Error reading from {}", _0)]
     FileRead(String),
+    #[fail(display = "Error writing to {}", _0)]
+    FileWrite(String),
     #[fail(display = "Error parsing the config")]
     ConfigParsingError
 }
@@ -129,11 +131,15 @@ impl ErrorKind {
             ErrorKind::Unknown => "unknown",
             ErrorKind::GravityError => "gravity_error",
             ErrorKind::FtlConnectionFail => "ftl_connection_fail",
+            ErrorKind::FtlReadError => "ftl_read_error",
             ErrorKind::NotFound => "not_found",
             ErrorKind::AlreadyExists => "already_exists",
             ErrorKind::InvalidDomain => "invalid_domain",
             ErrorKind::BadRequest => "bad_request",
-            ErrorKind::Unauthorized => "unauthorized"
+            ErrorKind::Unauthorized => "unauthorized",
+            ErrorKind::FileRead(_) => "file_read",
+            ErrorKind::FileWrite(_) => "file_write",
+            ErrorKind::ConfigParsingError => "config_parsing_error"
         }
     }
 
@@ -143,11 +149,15 @@ impl ErrorKind {
             ErrorKind::Unknown => Status::InternalServerError,
             ErrorKind::GravityError => Status::InternalServerError,
             ErrorKind::FtlConnectionFail => Status::InternalServerError,
+            ErrorKind::FtlReadError => Status::InternalServerError,
             ErrorKind::NotFound => Status::NotFound,
             ErrorKind::AlreadyExists => Status::Conflict,
             ErrorKind::InvalidDomain => Status::BadRequest,
             ErrorKind::BadRequest => Status::BadRequest,
-            ErrorKind::Unauthorized => Status::Unauthorized
+            ErrorKind::Unauthorized => Status::Unauthorized,
+            ErrorKind::FileRead(_) => Status::InternalServerErrror,
+            ErrorKind::FileWrite(_) => Status::InternalServerError,
+            ErrorKind::ConfigParsingError => Status::InternalServerError
         }
     }
 }
