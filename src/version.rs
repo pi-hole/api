@@ -38,7 +38,7 @@ fn read_api_version() -> Version {
     Version {
         tag: env!("GIT_TAG").to_owned(),
         branch: env!("GIT_BRANCH").to_owned(),
-        hash: env!("GIT_HASH").to_owned()
+        hash: env!("GIT_HASH").get(0..7).unwrap_or_default().to_owned() // Use a short hash
     }
 }
 

@@ -7,17 +7,13 @@ version: 2
     - checkout
     - restore_cache:
         keys:
-          # Find a cache corresponding to this specific Cargo.toml checksum and target.
-          # When the target is different, this key will fail
-          - v2-cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}
-          # Find a cache corresponding to this specific Cargo.toml checksum.
-          # When this file is changed, this key will fail.
-          - v2-cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}
-          # Find a cache corresponding to any build in this branch, regardless of Cargo.toml checksum.
-          # The most recent one will be used.
-          - v2-cargo-{{ .Branch }}
-          # Find the most recent cache used from any branch
-          - v2-cargo
+          # Find a cache corresponding to this specific target and Cargo.lock checksum.
+          # When the checksum is different, this key will fail.
+          # There are two dashes used between job and checksum to avoid x86_64 using the x86_64-musl cache
+          - v3-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
+          # Find a cache corresponding to this specific target.
+          # When the target is different, this key will fail.
+          - v3-cargo-{{ .Environment.CIRCLE_JOB }}--
     - run:
         name: "Download Web"
         command: |
@@ -62,7 +58,7 @@ version: 2
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}.sha1" "${FTL_SECRET}"
           rm ./FTL-client
     - save_cache:
-        key: v2-cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cargo.lock" }}
+        key: v3-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
         paths:
           - target
           - /root/.cargo
