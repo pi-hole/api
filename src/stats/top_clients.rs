@@ -9,21 +9,19 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use ftl::FtlConnectionType;
-use rmp::decode::DecodeStringError;
-use rmp::Marker;
 use rocket::State;
-use util;
+use util::{Reply, ErrorKind, reply_data, reply_error};
 use auth::User;
 
 /// Get the top clients with default parameters
 #[get("/stats/top_clients")]
-pub fn top_clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn top_clients(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
     get_top_clients(&ftl, TopClientParams::default())
 }
 
 /// Get the top clients with specified parameters
 #[get("/stats/top_clients?<params>")]
-pub fn top_clients_params(_auth: User, ftl: State<FtlConnectionType>, params: TopClientParams) -> util::Reply {
+pub fn top_clients_params(_auth: User, ftl: State<FtlConnectionType>, params: TopClientParams) -> Reply {
     get_top_clients(&ftl, params)
 }
 
@@ -53,7 +51,7 @@ struct Client {
     count: i32
 }
 
-fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> util::Reply {
+fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> Reply {
     let default_limit: usize = 10;
 
     // Create the command to send to FTL
@@ -82,15 +80,12 @@ fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> util::Re
             Ok(name) => name.to_owned(),
             Err(e) => {
                 // Check if we received the EOM
-                if let DecodeStringError::TypeMismatch(marker) = e {
-                    if marker == Marker::Reserved {
-                        // Received EOM
-                        break;
-                    }
+                if e.kind() == ErrorKind::FtlEomError {
+                    break;
                 }
 
                 // Unknown read error
-                return util::reply_error(util::Error::Unknown);
+                return reply_error(e);
             }
         };
 
@@ -100,7 +95,7 @@ fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> util::Re
         top_clients.push(Client { name, ip, count });
     }
 
-    util::reply_data(json!({
+    reply_data(json!({
         "top_clients": top_clients,
         "total_queries": total_queries
     }))

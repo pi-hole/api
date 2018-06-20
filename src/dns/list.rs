@@ -11,7 +11,7 @@
 use config::{Env, PiholeFile};
 use dns::common::{is_valid_domain, is_valid_regex};
 use failure::ResultExt;
-use std::io::{self, BufReader, BufWriter};
+use std::io::{BufReader, BufWriter};
 use std::io::prelude::*;
 use util::{Error, ErrorKind};
 
@@ -42,7 +42,7 @@ impl List {
         let file = match env.read_file(self.file()) {
             Ok(f) => f,
             Err(e) => {
-                if e.kind() == io::ErrorKind::NotFound {
+                if e.kind() == ErrorKind::NotFound {
                     // If the file is not found, then the list is empty
                     return Ok(Vec::new());
                 } else {
@@ -64,12 +64,12 @@ impl List {
     pub fn add(&self, domain: &str, env: &Env) -> Result<(), Error> {
         // Check if it's a valid domain before doing anything
         if !self.accepts(domain) {
-            return Err(ErrorKind::InvalidDomain).into();
+            return Err(ErrorKind::InvalidDomain.into());
         }
 
         // Check if the domain is already in the list
         if self.get(env)?.contains(&domain.to_owned()) {
-            return Err(ErrorKind::AlreadyExists).into();
+            return Err(ErrorKind::AlreadyExists.into());
         }
 
         // Open the list file in append mode (and create it if it doesn't exist)
@@ -91,7 +91,7 @@ impl List {
             Ok(ok) => Ok(ok),
             Err(e) => {
                 // Ignore NotFound errors
-                if e == ErrorKind::NotFound {
+                if e.kind() == ErrorKind::NotFound {
                     Ok(())
                 } else {
                     Err(e)
@@ -104,13 +104,13 @@ impl List {
     pub fn remove(&self, domain: &str, env: &Env) -> Result<(), Error> {
         // Check if it's a valid domain before doing anything
         if !self.accepts(domain) {
-            return Err(ErrorKind::InvalidDomain).into();
+            return Err(ErrorKind::InvalidDomain.into());
         }
 
         // Check if the domain is not in the list
         let domains = self.get(env)?;
         if !domains.contains(&domain.to_owned()) {
-            return Err(ErrorKind::NotFound).into();
+            return Err(ErrorKind::NotFound.into());
         }
 
         // Open the list file (and create it if it doesn't exist). This will truncate the list so

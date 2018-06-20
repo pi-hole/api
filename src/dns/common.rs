@@ -8,11 +8,12 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use config::{Env, PiholeFile};
+use config::Env;
 use failure::ResultExt;
 use regex::Regex;
 use std::process::{Command, Stdio};
 use util::{Error, ErrorKind};
+use dns::list::List;
 
 /// Check if a domain is valid
 pub fn is_valid_domain(domain: &str) -> bool {
@@ -33,7 +34,7 @@ pub fn is_valid_regex(regex_str: &str) -> bool {
 }
 
 /// Reload Gravity to activate changes in lists
-pub fn reload_gravity(list: PiholeFile, env: &Env) -> Result<(), Error> {
+pub fn reload_gravity(list: List, env: &Env) -> Result<(), Error> {
     // Don't actually reload Gravity during testing
     if env.is_test() {
         return Ok(());
@@ -45,20 +46,21 @@ pub fn reload_gravity(list: PiholeFile, env: &Env) -> Result<(), Error> {
         .arg("--skip-download")
         // Based on what list we modified, only reload what is necessary
         .arg(match list {
-            PiholeFile::Whitelist => "--whitelist-only",
-            PiholeFile::Blacklist => "--blacklist-only",
-            _ => return Err(ErrorKind::Unknown).into()
+            List::White => "--whitelist-only",
+            List::Black => "--blacklist-only",
+            _ => return Err(ErrorKind::Unknown.into())
         })
         // Ignore stdin, stdout, and stderr
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         // Get the returned status code
-        .status().context(ErrorKind::GravityError)?;
+        .status()
+        .context(ErrorKind::GravityError)?;
 
     if status.success() {
         Ok(())
     } else {
-        Err(ErrorKind::GravityError).into()
+        Err(ErrorKind::GravityError.into())
     }
 }

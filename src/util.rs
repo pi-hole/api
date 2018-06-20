@@ -16,7 +16,6 @@ use rocket::response::{self, Response, Responder};
 use rocket::http::Status;
 use std::fmt::{self, Display};
 use failure::{Context, Fail, Backtrace};
-use config::PiholeFile;
 
 /// Type alias for the most common return type of the API methods
 pub type Reply = Result<SetStatus<Json<Value>>, Error>;
@@ -28,7 +27,7 @@ pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
         ReplyType::Error(e) => json!({
             "error": {
                 "key": e.key(),
-                "message": e.message()
+                "message": format!("{}", e)
             }
         })
     };
@@ -78,6 +77,8 @@ pub enum ErrorKind {
     FtlConnectionFail,
     #[fail(display = "Error reading from FTL")]
     FtlReadError,
+    #[fail(display = "Read unexpected EOM from FTL")]
+    FtlEomError,
     #[fail(display = "Not found")]
     NotFound,
     #[fail(display = "Item already exists")]
@@ -101,7 +102,7 @@ impl Error {
     ///
     /// [`ErrorKind`]: enum.ErrorKind.html
     pub fn kind(&self) -> ErrorKind {
-        *self.inner.get_context()
+        self.inner.get_context().clone()
     }
 
     /// See [`ErrorKind::key`]
@@ -118,8 +119,8 @@ impl Error {
         self.kind().status()
     }
 
-    pub fn as_outcome<S>(&self) -> request::Outcome<S, Self> {
-        Outcome::Failure((self.status(), self.clone()))
+    pub fn into_outcome<S>(self) -> request::Outcome<S, Self> {
+        Outcome::Failure((self.status(), self))
     }
 }
 
@@ -132,6 +133,7 @@ impl ErrorKind {
             ErrorKind::GravityError => "gravity_error",
             ErrorKind::FtlConnectionFail => "ftl_connection_fail",
             ErrorKind::FtlReadError => "ftl_read_error",
+            ErrorKind::FtlEomError => "ftl_eom_error",
             ErrorKind::NotFound => "not_found",
             ErrorKind::AlreadyExists => "already_exists",
             ErrorKind::InvalidDomain => "invalid_domain",
@@ -150,12 +152,13 @@ impl ErrorKind {
             ErrorKind::GravityError => Status::InternalServerError,
             ErrorKind::FtlConnectionFail => Status::InternalServerError,
             ErrorKind::FtlReadError => Status::InternalServerError,
+            ErrorKind::FtlEomError => Status::InternalServerError,
             ErrorKind::NotFound => Status::NotFound,
             ErrorKind::AlreadyExists => Status::Conflict,
             ErrorKind::InvalidDomain => Status::BadRequest,
             ErrorKind::BadRequest => Status::BadRequest,
             ErrorKind::Unauthorized => Status::Unauthorized,
-            ErrorKind::FileRead(_) => Status::InternalServerErrror,
+            ErrorKind::FileRead(_) => Status::InternalServerError,
             ErrorKind::FileWrite(_) => Status::InternalServerError,
             ErrorKind::ConfigParsingError => Status::InternalServerError
         }

@@ -8,12 +8,12 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use config::{Env, PiholeFile};
+use config::Env;
 use dns::common::reload_gravity;
 use dns::list::List;
 use rocket::State;
 use rocket_contrib::Json;
-use util;
+use util::{Reply, reply_success};
 use auth::User;
 use ftl::FtlConnectionType;
 
@@ -29,7 +29,7 @@ pub fn add_whitelist(
     _auth: User,
     env: State<Env>,
     domain_input: Json<DomainInput>
-) -> util::Reply {
+) -> Reply {
     let domain = &domain_input.0.domain;
 
     // We need to add it to the whitelist and remove it from the blacklist
@@ -37,8 +37,8 @@ pub fn add_whitelist(
     List::Black.try_remove(domain, &env)?;
 
     // At this point, since we haven't hit an error yet, reload gravity
-    reload_gravity(PiholeFile::Whitelist, &env)?;
-    util::reply_success()
+    reload_gravity(List::White, &env)?;
+    reply_success()
 }
 
 /// Add a domain to the blacklist
@@ -47,7 +47,7 @@ pub fn add_blacklist(
     _auth: User,
     env: State<Env>,
     domain_input: Json<DomainInput>
-) -> util::Reply {
+) -> Reply {
     let domain = &domain_input.0.domain;
 
     // We need to add it to the blacklist and remove it from the whitelist
@@ -55,8 +55,8 @@ pub fn add_blacklist(
     List::White.try_remove(domain, &env)?;
 
     // At this point, since we haven't hit an error yet, reload gravity
-    reload_gravity(PiholeFile::Blacklist, &env)?;
-    util::reply_success()
+    reload_gravity(List::Black, &env)?;
+    reply_success()
 }
 
 /// Add a domain to the regex list
@@ -66,7 +66,7 @@ pub fn add_regexlist(
     env: State<Env>,
     ftl: State<FtlConnectionType>,
     domain_input: Json<DomainInput>
-) -> util::Reply {
+) -> Reply {
     let domain = &domain_input.0.domain;
 
     // We only need to add it to the regex list
@@ -74,7 +74,7 @@ pub fn add_regexlist(
 
     // At this point, since we haven't hit an error yet, tell FTL to recompile regex
     ftl.connect("recompile-regex")?.expect_eom()?;
-    util::reply_success()
+    reply_success()
 }
 
 #[cfg(test)]

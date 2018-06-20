@@ -10,14 +10,12 @@
 
 use ftl::FtlConnectionType;
 use rocket::State;
-use util;
+use util::{Reply, ErrorKind, reply_data, reply_error};
 use auth::User;
-use rmp::decode::DecodeStringError;
-use rmp::Marker;
 
 /// Get the query types
 #[get("/stats/query_types")]
-pub fn query_types(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn query_types(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
     let mut con = ftl.connect("querytypes")?;
 
     // Create a 4KiB string buffer
@@ -29,16 +27,14 @@ pub fn query_types(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
         let name = match con.read_str(&mut str_buffer) {
             Ok(name) => name.to_string(),
             Err(e) => {
+                // Check if we received the EO
                 // Check if we received the EOM
-                if let DecodeStringError::TypeMismatch(marker) = e {
-                    if marker == Marker::Reserved {
-                        // Received EOM
-                        break;
-                    }
+                if e.kind() == ErrorKind::FtlEomError {
+                    break;
                 }
 
                 // Unknown read error
-                return util::reply_error(util::Error::Unknown);
+                return reply_error(e);
             }
         };
 
@@ -47,7 +43,7 @@ pub fn query_types(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
         query_types.push(QueryType { name, percent });
     }
 
-    util::reply_data(query_types)
+    reply_data(query_types)
 }
 
 #[derive(Serialize)]

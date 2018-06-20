@@ -11,11 +11,10 @@
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::os::unix::fs::OpenOptionsExt;
-use std::io;
 use std::path::Path;
 use config::Config;
 use config::PiholeFile;
-use util;
+use util::{Error, ErrorKind};
 use failure::ResultExt;
 
 /// Environment of the Pi-hole API. Stores the config and abstracts away some systems to make
@@ -41,18 +40,22 @@ impl Env {
     }
 
     /// Open a file for reading
-    pub fn read_file(&self, file: PiholeFile) -> Result<File, util::Error> {
+    pub fn read_file(&self, file: PiholeFile) -> Result<File, Error> {
         match *self {
             Env::Production(_) => {
                 let file_location = self.file_location(file);
                 File::open(file_location)
-                    .context(util::ErrorKind::FileRead(file_location.to_owned())).into()
+                    .context(ErrorKind::FileRead(file_location.to_owned()))
+                    .map_err(Error::from)
             },
             Env::Test(_, ref map) => {
                 match map.get(&file) {
                     Some(data) => data,
-                    None => return Err(util::ErrorKind::NotFound).into()
-                }.try_clone()
+                    None => return Err(ErrorKind::NotFound.into())
+                }
+                    .try_clone()
+                    .context(ErrorKind::Unknown)
+                    .map_err(Error::from)
             }
         }
     }
@@ -62,7 +65,7 @@ impl Env {
         &self,
         file: PiholeFile,
         append: bool
-    ) -> Result<File, util::Error> {
+    ) -> Result<File, Error> {
         match *self {
             Env::Production(_) => {
                 let mut open_options = OpenOptions::new();
@@ -79,16 +82,20 @@ impl Env {
 
                 let file_location = self.file_location(file);
                 open_options.open(file_location)
-                    .context(util::ErrorKind::FileWrite(file_location.to_owned())).into()
+                    .context(ErrorKind::FileWrite(file_location.to_owned()))
+                    .map_err(Error::from)
             },
             Env::Test(_, ref map) => {
                 let file = match map.get(&file) {
                     Some(data) => data,
-                    None => return Err(util::ErrorKind::NotFound).into()
-                }.try_clone()?;
+                    None => return Err(ErrorKind::NotFound.into())
+                }
+                    .try_clone()
+                    .context(ErrorKind::Unknown)?;
 
                 if !append {
-                    file.set_len(0)?;
+                    file.set_len(0)
+                        .context(ErrorKind::Unknown)?;
                 }
 
                 Ok(file)

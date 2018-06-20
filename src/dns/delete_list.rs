@@ -8,28 +8,28 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use config::{Env, PiholeFile};
+use config::Env;
 use dns::common::reload_gravity;
 use dns::list::List;
 use rocket::State;
-use util;
+use util::{Reply, reply_success};
 use auth::User;
 use ftl::FtlConnectionType;
 
 /// Delete a domain from the whitelist
 #[delete("/dns/whitelist/<domain>")]
-pub fn delete_whitelist(_auth: User, env: State<Env>, domain: String) -> util::Reply {
+pub fn delete_whitelist(_auth: User, env: State<Env>, domain: String) -> Reply {
     List::White.remove(&domain, &env)?;
-    reload_gravity(PiholeFile::Whitelist, &env)?;
-    util::reply_success()
+    reload_gravity(List::White, &env)?;
+    reply_success()
 }
 
 /// Delete a domain from the blacklist
 #[delete("/dns/blacklist/<domain>")]
-pub fn delete_blacklist(_auth: User, env: State<Env>, domain: String) -> util::Reply {
+pub fn delete_blacklist(_auth: User, env: State<Env>, domain: String) -> Reply {
     List::Black.remove(&domain, &env)?;
-    reload_gravity(PiholeFile::Blacklist, &env)?;
-    util::reply_success()
+    reload_gravity(List::Black, &env)?;
+    reply_success()
 }
 
 /// Delete a domain from the regex list
@@ -39,10 +39,10 @@ pub fn delete_regexlist(
     env: State<Env>,
     ftl: State<FtlConnectionType>,
     domain: String
-) -> util::Reply {
+) -> Reply {
     List::Regex.remove(&domain, &env)?;
     ftl.connect("recompile-regex")?.expect_eom()?;
-    util::reply_success()
+    reply_success()
 }
 
 #[cfg(test)]

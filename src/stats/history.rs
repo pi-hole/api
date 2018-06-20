@@ -9,15 +9,13 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use ftl::FtlConnectionType;
-use rmp::decode::ValueReadError;
-use rmp::Marker;
 use rocket::State;
-use util;
+use util::{Reply, ErrorKind, reply_data, reply_error};
 use auth::User;
 
 /// Get the entire query history (as stored in FTL)
 #[get("/stats/history")]
-pub fn history(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn history(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
     get_history(&ftl, "getallqueries", None)
 }
 
@@ -27,7 +25,7 @@ pub fn history_params(
     _auth: User,
     ftl: State<FtlConnectionType>,
     params: HistoryParams
-) -> util::Reply {
+) -> Reply {
     let limit = params.limit;
     let command = match params {
         // Get the query history within the specified timespan
@@ -61,7 +59,7 @@ pub fn history_params(
             format!("getallqueries-client {}", client)
         },
         // FTL can't handle mixed input
-        _ => return util::reply_error(util::Error::BadRequest)
+        _ => return reply_error(ErrorKind::BadRequest)
     };
 
     get_history(
@@ -86,7 +84,7 @@ pub struct HistoryParams {
 }
 
 /// Get the query history according to the specified command
-fn get_history(ftl: &FtlConnectionType, command: &str, limit: Option<usize>) -> util::Reply {
+fn get_history(ftl: &FtlConnectionType, command: &str, limit: Option<usize>) -> Reply {
     let full_command = if let Some(num) = limit {
         format!("{} ({})", command, num)
     } else {
@@ -105,15 +103,12 @@ fn get_history(ftl: &FtlConnectionType, command: &str, limit: Option<usize>) -> 
             Ok(timestamp) => timestamp,
             Err(e) => {
                 // Check if we received the EOM
-                if let ValueReadError::TypeMismatch(marker) = e {
-                    if marker == Marker::Reserved {
-                        // Received EOM
-                        break;
-                    }
+                if e.kind() == ErrorKind::FtlEomError {
+                    break;
                 }
 
                 // Unknown read error
-                return util::reply_error(util::Error::Unknown);
+                return reply_error(e);
             }
         };
 
@@ -127,7 +122,7 @@ fn get_history(ftl: &FtlConnectionType, command: &str, limit: Option<usize>) -> 
         history.push(Query(timestamp, query_type, domain, client, status, dnssec));
     }
 
-    util::reply_data(history)
+    reply_data(history)
 }
 
 #[cfg(test)]
