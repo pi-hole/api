@@ -15,6 +15,7 @@ use rocket::request;
 use rocket::response::{self, Response, Responder};
 use rocket::http::Status;
 use std::fmt::{self, Display};
+use std::env;
 use failure::{Context, Fail, Backtrace};
 
 /// Type alias for the most common return type of the API methods
@@ -24,12 +25,17 @@ pub type Reply = Result<SetStatus<Json<Value>>, Error>;
 pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
     let json_data = match data {
         ReplyType::Data(d) => json!(d),
-        ReplyType::Error(e) => json!({
-            "error": {
-                "key": e.key(),
-                "message": format!("{}", e)
-            }
-        })
+        ReplyType::Error(e) => {
+            // Print out the error
+            e.print_stacktrace();
+
+            json!({
+                "error": {
+                    "key": e.key(),
+                    "message": format!("{}", e)
+                }
+            })
+        }
     };
 
     Ok(SetStatus(Json(json_data), status))
@@ -98,6 +104,26 @@ pub enum ErrorKind {
 }
 
 impl Error {
+    pub fn print_stacktrace(&self) {
+        eprintln!("Error: {}", self);
+
+        // Only print the backtrace if requested, to avoid a gap between error and causes
+        if env::var("RUST_BACKTRACE").is_ok() {
+            if let Some(backtrace) = self.backtrace() {
+                eprintln!("{}", backtrace);
+            }
+        }
+
+        // Print out each cause
+        for (i, cause) in self.causes().skip(1).enumerate() {
+            eprintln!("Cause #{}: {}", i+1, cause);
+
+            if let Some(backtrace) = cause.backtrace() {
+                eprintln!("{}", backtrace);
+            }
+        }
+    }
+
     /// Get the wrapped [`ErrorKind`]
     ///
     /// [`ErrorKind`]: enum.ErrorKind.html

@@ -21,29 +21,27 @@ use stats;
 use std::collections::HashMap;
 use std::fs::File;
 use toml;
-use util;
+use util::{Error, ErrorKind};
 use web;
 use version;
 
 const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
 
 #[error(404)]
-fn not_found() -> util::Error {
-    util::ErrorKind::NotFound.into()
+fn not_found() -> Error {
+    ErrorKind::NotFound.into()
 }
 
 #[error(401)]
-fn unauthorized() -> util::Error {
-    util::ErrorKind::Unauthorized.into()
+fn unauthorized() -> Error {
+    ErrorKind::Unauthorized.into()
 }
 
 /// Run the API normally (connect to FTL over the socket)
-pub fn start() {
-    let config = Config::parse(CONFIG_LOCATION).unwrap();
+pub fn start() -> Result<(), Error> {
+    let config = Config::parse(CONFIG_LOCATION)?;
     let env = Env::Production(config);
-    let key = read_setup_vars("WEBPASSWORD", &env)
-        .expect(&format!("Failed to open {}", PiholeFile::SetupVars.default_location()))
-        .unwrap_or_default();
+    let key = read_setup_vars("WEBPASSWORD", &env)?.unwrap_or_default();
 
     setup(
         rocket::custom(
@@ -59,6 +57,8 @@ pub fn start() {
         env,
         key
     ).launch();
+
+    Ok(())
 }
 
 /// Setup the API with the testing data and return a Client to test with
