@@ -39,6 +39,7 @@ mod setup;
 mod config;
 mod setup_vars;
 mod version;
+mod hostname;
 
 #[cfg(test)]
 mod testing;
