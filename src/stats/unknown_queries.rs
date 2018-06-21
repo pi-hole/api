@@ -9,10 +9,8 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use ftl::FtlConnectionType;
-use rmp::decode::ValueReadError;
-use rmp::Marker;
 use rocket::State;
-use util;
+use util::{Reply, ErrorKind, reply_data, reply_error};
 use auth::User;
 
 /// Represents a query returned in `/stats/unknown_queries`
@@ -21,7 +19,7 @@ struct UnknownQuery(i32, i32, String, String, String, u8, bool);
 
 /// Get all unknown queries
 #[get("/stats/unknown_queries")]
-pub fn unknown_queries(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn unknown_queries(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
     let mut con = ftl.connect("unknown")?;
 
     // Create a 4KiB string buffer
@@ -34,15 +32,12 @@ pub fn unknown_queries(_auth: User, ftl: State<FtlConnectionType>) -> util::Repl
             Ok(timestamp) => timestamp,
             Err(e) => {
                 // Check if we received the EOM
-                if let ValueReadError::TypeMismatch(marker) = e {
-                    if marker == Marker::Reserved {
-                        // Received EOM
-                        break;
-                    }
+                if e.kind() == ErrorKind::FtlEomError {
+                    break;
                 }
 
                 // Unknown read error
-                return util::reply_error(util::Error::Unknown);
+                return reply_error(e);
             }
         };
 
@@ -65,7 +60,7 @@ pub fn unknown_queries(_auth: User, ftl: State<FtlConnectionType>) -> util::Repl
         ));
     }
 
-    util::reply_data(queries)
+    reply_data(queries)
 }
 
 #[cfg(test)]

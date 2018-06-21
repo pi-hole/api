@@ -12,11 +12,11 @@ use config::{Env, PiholeFile};
 use std::io::{BufRead, BufReader};
 use std::fs::File;
 use rocket::State;
-use util;
+use util::{Reply, reply_data};
 
 /// Get the DNS blocking status
 #[get("/dns/status")]
-pub fn status(env: State<Env>) -> util::Reply {
+pub fn status(env: State<Env>) -> Reply {
     let status = match env.read_file(PiholeFile::DnsmasqMainConfig) {
         Ok(file) => check_for_gravity(file),
 
@@ -24,7 +24,7 @@ pub fn status(env: State<Env>) -> util::Reply {
         Err(_) => "unknown"
     };
 
-    util::reply_data(json!({
+    reply_data(json!({
         "status": status
     }))
 }

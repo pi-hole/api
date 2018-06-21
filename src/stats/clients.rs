@@ -9,22 +9,20 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use ftl::FtlConnectionType;
-use rmp::decode::DecodeStringError;
-use rmp::Marker;
 use rocket::State;
-use util;
+use util::{Reply, Error, ErrorKind, reply_data, reply_error};
 use auth::User;
 
 /// Get the names of clients
 #[get("/stats/clients")]
-pub fn clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn clients(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
     match get_clients(&ftl) {
-        Ok(data) => util::reply_data(data),
-        Err(err) => util::reply_error(err)
+        Ok(data) => reply_data(data),
+        Err(err) => reply_error(err)
     }
 }
 
-pub fn get_clients(ftl: &FtlConnectionType) -> Result<Vec<Client>, util::Error> {
+pub fn get_clients(ftl: &FtlConnectionType) -> Result<Vec<Client>, Error> {
     let mut con = ftl.connect("client-names")?;
 
     // Create a 4KiB string buffer
@@ -37,15 +35,12 @@ pub fn get_clients(ftl: &FtlConnectionType) -> Result<Vec<Client>, util::Error> 
             Ok(name) => name.to_owned(),
             Err(e) => {
                 // Check if we received the EOM
-                if let DecodeStringError::TypeMismatch(marker) = e {
-                    if marker == Marker::Reserved {
-                        // Received EOM
-                        break;
-                    }
+                if e.kind() == ErrorKind::FtlEomError {
+                    break;
                 }
 
                 // Unknown read error
-                return Err(util::Error::Unknown);
+                return Err(e);
             }
         };
 

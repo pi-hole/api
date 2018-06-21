@@ -9,21 +9,19 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use ftl::FtlConnectionType;
-use rmp::decode::DecodeStringError;
-use rmp::Marker;
 use rocket::State;
-use util;
+use util::{Reply, ErrorKind, reply_data, reply_error};
 use auth::User;
 
 /// Get the most recent blocked domain
 #[get("/stats/recent_blocked")]
-pub fn recent_blocked(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn recent_blocked(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
     get_recent_blocked(&ftl, 1)
 }
 
 /// Get the `num` most recently blocked domains
 #[get("/stats/recent_blocked?<params>")]
-pub fn recent_blocked_params(_auth: User, ftl: State<FtlConnectionType>, params: RecentBlockedParams) -> util::Reply {
+pub fn recent_blocked_params(_auth: User, ftl: State<FtlConnectionType>, params: RecentBlockedParams) -> Reply {
     get_recent_blocked(&ftl, params.num)
 }
 
@@ -34,7 +32,7 @@ pub struct RecentBlockedParams {
 }
 
 /// Get `num`-many most recently blocked domains
-pub fn get_recent_blocked(ftl: &FtlConnectionType, num: usize) -> util::Reply {
+pub fn get_recent_blocked(ftl: &FtlConnectionType, num: usize) -> Reply {
     let mut con = ftl.connect(&format!("recentBlocked ({})", num))?;
 
     // Create a 4KiB string buffer
@@ -49,16 +47,13 @@ pub fn get_recent_blocked(ftl: &FtlConnectionType, num: usize) -> util::Reply {
             Ok(domain) => domain.to_owned(),
             Err(e) => {
                 // Check if we received the EOM
-                if let DecodeStringError::TypeMismatch(marker) = e {
-                    if marker == Marker::Reserved {
-                        // Received EOM
-                        less_domains_than_expected = true;
-                        break;
-                    }
+                if e.kind() == ErrorKind::FtlEomError {
+                    less_domains_than_expected = true;
+                    break;
                 }
 
                 // Unknown read error
-                return util::reply_error(util::Error::Unknown);
+                return reply_error(e);
             }
         };
 
@@ -70,7 +65,7 @@ pub fn get_recent_blocked(ftl: &FtlConnectionType, num: usize) -> util::Reply {
         con.expect_eom()?;
     }
 
-    util::reply_data(domains)
+    reply_data(domains)
 }
 
 #[cfg(test)]

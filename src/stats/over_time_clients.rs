@@ -9,16 +9,14 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use ftl::FtlConnectionType;
-use rmp::decode::ValueReadError;
-use rmp::Marker;
 use rocket::State;
-use util;
+use util::{Reply, ErrorKind, reply_data, reply_error};
 use auth::User;
 use stats::clients::get_clients;
 
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
-pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
     let mut over_time = Vec::new();
     let clients = get_clients(&ftl)?;
 
@@ -32,15 +30,12 @@ pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Re
             Ok(timestamp) => timestamp,
             Err(e) => {
                 // Check if we received the EOM
-                if let ValueReadError::TypeMismatch(marker) = e {
-                    if marker == Marker::Reserved {
-                        // Received EOM
-                        break;
-                    }
+                if e.kind() == ErrorKind::FtlEomError {
+                    break;
                 }
 
                 // Unknown read error
-                return util::reply_error(util::Error::Unknown);
+                return reply_error(e);
             }
         };
 
@@ -62,7 +57,7 @@ pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> util::Re
         over_time.push(TimeStep { timestamp, data: step });
     }
 
-    util::reply_data(json!({
+    reply_data(json!({
         "over_time": over_time,
         "clients": clients
     }))
