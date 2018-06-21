@@ -11,5 +11,7 @@
 extern crate pihole_api;
 
 fn main() {
-    pihole_api::start();
+    if let Err(e) = pihole_api::start() {
+        e.print_stacktrace();
+    }
 }

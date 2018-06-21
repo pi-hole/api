@@ -9,15 +9,13 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use ftl::FtlConnectionType;
-use rmp::decode::DecodeStringError;
-use rmp::Marker;
 use rocket::State;
-use util;
+use util::{Reply, ErrorKind, reply_data};
 use auth::User;
 
 /// Get the forward destinations
 #[get("/stats/forward_destinations")]
-pub fn forward_destinations(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn forward_destinations(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
     let mut con = ftl.connect("forward-dest")?;
 
     // Create a 4KiB string buffer
@@ -30,15 +28,12 @@ pub fn forward_destinations(_auth: User, ftl: State<FtlConnectionType>) -> util:
             Ok(name) => name.to_owned(),
             Err(e) => {
                 // Check if we received the EOM
-                if let DecodeStringError::TypeMismatch(marker) = e {
-                    if marker == Marker::Reserved {
-                        // Received EOM
-                        break;
-                    }
+                if e.kind() == ErrorKind::FtlEomError {
+                    break;
                 }
 
                 // Unknown read error
-                return util::reply_error(util::Error::Unknown);
+                return Err(e);
             }
         };
 
@@ -48,7 +43,7 @@ pub fn forward_destinations(_auth: User, ftl: State<FtlConnectionType>) -> util:
         forward_destinations.push(ForwardDestination { name, ip, percent });
     }
 
-    util::reply_data(forward_destinations)
+    reply_data(forward_destinations)
 }
 
 #[derive(Serialize)]

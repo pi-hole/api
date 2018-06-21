@@ -8,23 +8,24 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use rocket::State;
 use config::{Env, PiholeFile};
+use failure::ResultExt;
 use ftl::FtlConnectionType;
-use util;
+use rocket::State;
 use std::io::Read;
-use web::WebAssets;
 use std::str;
+use util::{Error, ErrorKind, Reply, reply_data};
+use web::WebAssets;
 
 /// Get the versions of all Pi-hole systems
 #[get("/version")]
-pub fn version(env: State<Env>, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn version(env: State<Env>, ftl: State<FtlConnectionType>) -> Reply {
     let core_version = read_core_version(&env).unwrap_or_default();
     let web_version = read_web_version().unwrap_or_default();
     let ftl_version = read_ftl_version(&ftl).unwrap_or_default();
     let api_version = read_api_version();
 
-    util::reply_data(json!({
+    reply_data(json!({
         "core": core_version,
         "web": web_version,
         "ftl": ftl_version,
@@ -37,12 +38,12 @@ fn read_api_version() -> Version {
     Version {
         tag: env!("GIT_TAG").to_owned(),
         branch: env!("GIT_BRANCH").to_owned(),
-        hash: env!("GIT_HASH").to_owned()
+        hash: env!("GIT_HASH").get(0..7).unwrap_or_default().to_owned() // Use a short hash
     }
 }
 
 /// Read FTL version information from FTL's API
-fn read_ftl_version(ftl: &FtlConnectionType) -> Result<Version, util::Error> {
+fn read_ftl_version(ftl: &FtlConnectionType) -> Result<Version, Error> {
     let mut con = ftl.connect("version")?;
     let mut str_buffer = [0u8; 4096];
 
@@ -62,16 +63,17 @@ fn read_ftl_version(ftl: &FtlConnectionType) -> Result<Version, util::Error> {
 }
 
 /// Read Web version information from the `VERSION` file in the web assets.
-fn read_web_version() -> Result<Version, util::Error> {
-    let version_raw = WebAssets::get("VERSION").ok_or(util::Error::Unknown)?;
-    let version_str = str::from_utf8(&version_raw)?;
+fn read_web_version() -> Result<Version, Error> {
+    let version_raw = WebAssets::get("VERSION").ok_or(ErrorKind::Unknown)?;
+    let version_str = str::from_utf8(&version_raw)
+        .context(ErrorKind::Unknown)?;
 
     parse_web_version(version_str)
 }
 
 /// Parse Web version information from the string.
 /// The string should be in the format "TAG BRANCH COMMIT".
-fn parse_web_version(version_str: &str) -> Result<Version, util::Error> {
+fn parse_web_version(version_str: &str) -> Result<Version, Error> {
     // Trim to remove possible newline
     let version_split: Vec<&str> = version_str
         .trim_right_matches("\n")
@@ -79,7 +81,7 @@ fn parse_web_version(version_str: &str) -> Result<Version, util::Error> {
         .collect();
 
     if version_split.len() != 3 {
-        return Err(util::Error::Unknown);
+        return Err(ErrorKind::Unknown.into());
     }
 
     Ok(Version {
@@ -90,14 +92,20 @@ fn parse_web_version(version_str: &str) -> Result<Version, util::Error> {
 }
 
 /// Read Core version information from the file system
-fn read_core_version(env: &Env) -> Result<Version, util::Error> {
+fn read_core_version(env: &Env) -> Result<Version, Error> {
     // Read the version files
     let mut local_versions = String::new();
     let mut local_branches = String::new();
     env.read_file(PiholeFile::LocalVersions)?
-        .read_to_string(&mut local_versions)?;
+        .read_to_string(&mut local_versions)
+        .context(ErrorKind::FileRead(
+            env.file_location(PiholeFile::LocalVersions).to_owned()
+        ))?;
     env.read_file(PiholeFile::LocalBranches)?
-        .read_to_string(&mut local_branches)?;
+        .read_to_string(&mut local_branches)
+        .context(ErrorKind::FileRead(
+            env.file_location(PiholeFile::LocalBranches).to_owned()
+        ))?;
 
     // These files are structured as "CORE WEB FTL", but we only want Core's data
     let git_version = local_versions.split(" ").next().unwrap_or_default();
@@ -109,12 +117,12 @@ fn read_core_version(env: &Env) -> Result<Version, util::Error> {
 
 /// Parse version data from the output of `git describe` (stored in `PiholeFile::LocalVersions`).
 /// The string is in the form "TAG-NUMBER-COMMIT", though it could also have "-dirty" at the end.
-fn parse_git_version(git_version: &str, branch: &str) -> Result<Version, util::Error> {
+fn parse_git_version(git_version: &str, branch: &str) -> Result<Version, Error> {
     let split: Vec<&str> = git_version.split("-").collect();
 
     // Could include "-dirty", which would make the length equal 4
     if split.len() < 3 {
-        return Err(util::Error::Unknown);
+        return Err(ErrorKind::Unknown.into());
     }
 
     // Only set the tag if this is the tagged commit (we are 0 commits after the tag)
@@ -137,14 +145,14 @@ struct Version {
 
 #[cfg(test)]
 mod tests {
-    use super::{Version, parse_git_version, parse_web_version, read_ftl_version};
-    use testing::{TestEnvBuilder, write_eom};
-    use config::{PiholeFile, Env, Config};
-    use version::read_core_version;
-    use util;
-    use rmp::encode;
+    use config::{Config, Env, PiholeFile};
     use ftl::FtlConnectionType;
+    use rmp::encode;
     use std::collections::HashMap;
+    use super::{parse_git_version, parse_web_version, read_ftl_version, Version};
+    use testing::{TestEnvBuilder, write_eom};
+    use util::ErrorKind;
+    use version::read_core_version;
 
     #[test]
     fn test_read_ftl_version_dev() {
@@ -162,7 +170,7 @@ mod tests {
         let ftl = FtlConnectionType::Test(map);
 
         assert_eq!(
-            read_ftl_version(&ftl),
+            read_ftl_version(&ftl).map_err(|e| e.kind()),
             Ok(Version {
                 tag: "".to_owned(),
                 branch: "tweak/version-api".to_owned(),
@@ -187,7 +195,7 @@ mod tests {
         let ftl = FtlConnectionType::Test(map);
 
         assert_eq!(
-            read_ftl_version(&ftl),
+            read_ftl_version(&ftl).map_err(|e| e.kind()),
             Ok(Version {
                 tag: "v4.0".to_owned(),
                 branch: "master".to_owned(),
@@ -199,7 +207,7 @@ mod tests {
     #[test]
     fn test_parse_web_version_dev() {
         assert_eq!(
-            parse_web_version(" development d2037fd"),
+            parse_web_version(" development d2037fd").map_err(|e| e.kind()),
             Ok(Version {
                 tag: "".to_owned(),
                 branch: "development".to_owned(),
@@ -211,7 +219,7 @@ mod tests {
     #[test]
     fn test_parse_web_version_release() {
         assert_eq!(
-            parse_web_version("v1.0.0 master abcdefg"),
+            parse_web_version("v1.0.0 master abcdefg").map_err(|e| e.kind()),
             Ok(Version {
                 tag: "v1.0.0".to_owned(),
                 branch: "master".to_owned(),
@@ -222,13 +230,16 @@ mod tests {
 
     #[test]
     fn test_parse_web_version_invalid() {
-        assert_eq!(parse_web_version("invalid data"), Err(util::Error::Unknown));
+        assert_eq!(
+            parse_web_version("invalid data").map_err(|e| e.kind()),
+            Err(ErrorKind::Unknown)
+        );
     }
 
     #[test]
     fn test_parse_web_version_newline() {
         assert_eq!(
-            parse_web_version(" development d2037fd\n"),
+            parse_web_version(" development d2037fd\n").map_err(|e| e.kind()),
             Ok(Version {
                 tag: "".to_owned(),
                 branch: "development".to_owned(),
@@ -254,7 +265,7 @@ mod tests {
         );
 
         assert_eq!(
-            read_core_version(&test_env),
+            read_core_version(&test_env).map_err(|e| e.kind()),
             Ok(Version {
                 tag: "".to_owned(),
                 branch: "development".to_owned(),
@@ -279,13 +290,16 @@ mod tests {
                 .build()
         );
 
-        assert_eq!(read_core_version(&test_env), Err(util::Error::Unknown));
+        assert_eq!(
+            read_core_version(&test_env).map_err(|e| e.kind()),
+            Err(ErrorKind::Unknown)
+        );
     }
 
     #[test]
     fn test_parse_git_version_release() {
         assert_eq!(
-            parse_git_version("v3.3.1-0-gfbee18e", "master"),
+            parse_git_version("v3.3.1-0-gfbee18e", "master").map_err(|e| e.kind()),
             Ok(Version {
                 tag: "v3.3.1".to_owned(),
                 branch: "master".to_owned(),
@@ -297,7 +311,8 @@ mod tests {
     #[test]
     fn test_parse_git_version_dev() {
         assert_eq!(
-            parse_git_version("v3.3.1-222-gd9c924b", "development"),
+            parse_git_version("v3.3.1-222-gd9c924b", "development")
+                .map_err(|e| e.kind()),
             Ok(Version {
                 tag: "".to_owned(),
                 branch: "development".to_owned(),
@@ -309,15 +324,16 @@ mod tests {
     #[test]
     fn test_parse_git_version_invalid() {
         assert_eq!(
-            parse_git_version("invalid data", "branch"),
-            Err(util::Error::Unknown)
+            parse_git_version("invalid data", "branch").map_err(|e| e.kind()),
+            Err(ErrorKind::Unknown)
         );
     }
 
     #[test]
     fn test_parse_git_version_dirty() {
         assert_eq!(
-            parse_git_version("v3.3.1-222-gd9c924b-dirty", "development"),
+            parse_git_version("v3.3.1-222-gd9c924b-dirty", "development")
+                .map_err(|e| e.kind()),
             Ok(Version {
                 tag: "".to_owned(),
                 branch: "development".to_owned(),

@@ -9,33 +9,31 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use ftl::FtlConnectionType;
-use rmp::decode::DecodeStringError;
-use rmp::Marker;
 use rocket::State;
-use util;
+use util::{Reply, ErrorKind, reply_data, reply_error};
 use auth::User;
 
 /// Return the top domains with default parameters
 #[get("/stats/top_domains")]
-pub fn top_domains(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn top_domains(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
     get_top_domains(&ftl, false, TopParams::default())
 }
 
 /// Return the top domains with specified parameters
 #[get("/stats/top_domains?<params>")]
-pub fn top_domains_params(_auth: User, ftl: State<FtlConnectionType>, params: TopParams) -> util::Reply {
+pub fn top_domains_params(_auth: User, ftl: State<FtlConnectionType>, params: TopParams) -> Reply {
     get_top_domains(&ftl, false, params)
 }
 
 /// Return the top blocked domains with default parameters
 #[get("/stats/top_blocked")]
-pub fn top_blocked(_auth: User, ftl: State<FtlConnectionType>) -> util::Reply {
+pub fn top_blocked(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
     get_top_domains(&ftl, true, TopParams::default())
 }
 
 /// Return the top blocked domains with specified parameters
 #[get("/stats/top_blocked?<params>")]
-pub fn top_blocked_params(_auth: User, ftl: State<FtlConnectionType>, params: TopParams) -> util::Reply {
+pub fn top_blocked_params(_auth: User, ftl: State<FtlConnectionType>, params: TopParams) -> Reply {
     get_top_domains(&ftl, true, params)
 }
 
@@ -65,7 +63,7 @@ struct Domain {
 }
 
 /// Get the top domains (blocked or not)
-fn get_top_domains(ftl: &FtlConnectionType, blocked: bool, params: TopParams) -> util::Reply {
+fn get_top_domains(ftl: &FtlConnectionType, blocked: bool, params: TopParams) -> Reply {
     let default_limit: usize = TopParams::default().limit.unwrap_or(10);
 
     // Create the command to send to FTL
@@ -102,15 +100,12 @@ fn get_top_domains(ftl: &FtlConnectionType, blocked: bool, params: TopParams) ->
             Ok(domain) => domain.to_owned(),
             Err(e) => {
                 // Check if we received the EOM
-                if let DecodeStringError::TypeMismatch(marker) = e {
-                    if marker == Marker::Reserved {
-                        // Received EOM
-                        break;
-                    }
+                if e.kind() == ErrorKind::FtlEomError {
+                    break;
                 }
 
                 // Unknown read error
-                return util::reply_error(util::Error::Unknown);
+                return reply_error(e);
             }
         };
 
@@ -126,7 +121,7 @@ fn get_top_domains(ftl: &FtlConnectionType, blocked: bool, params: TopParams) ->
         ("top_domains", "total_queries")
     };
 
-    util::reply_data(json!({
+    reply_data(json!({
         top_type: top,
         queries_type: queries
     }))

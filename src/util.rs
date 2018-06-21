@@ -14,7 +14,9 @@ use rocket::{Request, Outcome};
 use rocket::request;
 use rocket::response::{self, Response, Responder};
 use rocket::http::Status;
-use std::fmt::Display;
+use std::fmt::{self, Display};
+use std::env;
+use failure::{Context, Fail, Backtrace};
 
 /// Type alias for the most common return type of the API methods
 pub type Reply = Result<SetStatus<Json<Value>>, Error>;
@@ -23,12 +25,20 @@ pub type Reply = Result<SetStatus<Json<Value>>, Error>;
 pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
     let json_data = match data {
         ReplyType::Data(d) => json!(d),
-        ReplyType::Error(e) => json!({
-            "error": {
-                "key": e.key(),
-                "message": e.message()
+        ReplyType::Error(e) => {
+            // Only print out the error if it's not a common error
+            match e.kind() {
+                ErrorKind::Unauthorized | ErrorKind::NotFound => (),
+                _ => e.print_stacktrace()
             }
-        })
+
+            json!({
+                "error": {
+                    "key": e.key(),
+                    "message": format!("{}", e)
+                }
+            })
+        }
     };
 
     Ok(SetStatus(Json(json_data), status))
@@ -42,7 +52,8 @@ pub fn reply_data<D: Serialize>(data: D) -> Reply {
 
 /// Create a reply with an error. The data will be an empty array and the status will taken from
 /// `error.status()`.
-pub fn reply_error(error: Error) -> Reply {
+pub fn reply_error<E: Into<Error>>(error: E) -> Reply {
+    let error = error.into();
     let status = error.status();
     reply::<()>(ReplyType::Error(error), status)
 }
@@ -56,79 +67,161 @@ pub enum ReplyType<D: Serialize> {
     Data(D), Error(Error)
 }
 
-/// The `Error` enum represents all the possible errors that the API can return. These errors have
-/// messages, keys, and HTTP statuses.
-#[derive(Debug, PartialEq, Clone)]
-pub enum Error {
+/// Wraps `ErrorKind` to provide context via `Context`.
+///
+/// See https://boats.gitlab.io/failure/error-errorkind.html
+#[derive(Debug)]
+pub struct Error {
+    inner: Context<ErrorKind>
+}
+
+/// The `ErrorKind` enum represents all the possible errors that the API can return.
+#[derive(Clone, Eq, PartialEq, Debug, Fail)]
+pub enum ErrorKind {
+    #[fail(display = "Unknown error")]
     Unknown,
+    #[fail(display = "Gravity failed to form")]
     GravityError,
-    Custom(String, Status),
+    #[fail(display = "Failed to connect to FTL")]
     FtlConnectionFail,
+    #[fail(display = "Error reading from FTL")]
+    FtlReadError,
+    #[fail(display = "Read unexpected EOM from FTL")]
+    FtlEomError,
+    #[fail(display = "Not found")]
     NotFound,
+    #[fail(display = "Item already exists")]
     AlreadyExists,
+    #[fail(display = "Invalid domain")]
     InvalidDomain,
+    #[fail(display = "Bad request")]
     BadRequest,
-    Unauthorized
+    #[fail(display = "Unauthorized")]
+    Unauthorized,
+    #[fail(display = "Error reading from {}", _0)]
+    FileRead(String),
+    #[fail(display = "Error writing to {}", _0)]
+    FileWrite(String),
+    #[fail(display = "Error parsing the config")]
+    ConfigParsingError
 }
 
 impl Error {
-    /// Get the error message. This is meant as a human-readable message to be shown on the client
-    /// UI. In the future these strings may be translated, so clients should rely on `key()` to
-    /// determine the error type.
-    pub fn message(&self) -> &str {
-        match *self {
-            Error::Unknown => "Unknown error",
-            Error::GravityError => "Gravity failed to form",
-            Error::Custom(ref msg, _) => msg,
-            Error::FtlConnectionFail => "Failed to connect to FTL",
-            Error::NotFound => "Not found",
-            Error::AlreadyExists => "Item already exists",
-            Error::InvalidDomain => "Invalid domain",
-            Error::BadRequest => "Bad request",
-            Error::Unauthorized => "Unauthorized"
+    pub fn print_stacktrace(&self) {
+        eprintln!("Error: {}", self);
+
+        // Only print the backtrace if requested, to avoid a gap between error and causes
+        let backtrace_enabled = env::var("RUST_BACKTRACE").is_ok();
+        if backtrace_enabled {
+            if let Some(backtrace) = self.backtrace() {
+                eprintln!("{}", backtrace);
+            }
+        }
+
+        // Print out each cause
+        for (i, cause) in self.causes().skip(1).enumerate() {
+            eprintln!("Cause #{}: {}", i+1, cause);
+
+            if backtrace_enabled {
+                if let Some(backtrace) = cause.backtrace() {
+                    eprintln!("{}", backtrace);
+                }
+            }
         }
     }
 
+    /// Get the wrapped [`ErrorKind`]
+    ///
+    /// [`ErrorKind`]: enum.ErrorKind.html
+    pub fn kind(&self) -> ErrorKind {
+        self.inner.get_context().clone()
+    }
+
+    /// See [`ErrorKind::key`]
+    ///
+    /// [`ErrorKind::key`]: enum.ErrorKind.html#method.key
+    pub fn key(&self) -> &'static str {
+        self.kind().key()
+    }
+
+    /// See [`ErrorKind::status`]
+    ///
+    /// [`ErrorKind::status`]: enum.ErrorKind.html#method.status
+    pub fn status(&self) -> Status {
+        self.kind().status()
+    }
+
+    pub fn into_outcome<S>(self) -> request::Outcome<S, Self> {
+        Outcome::Failure((self.status(), self))
+    }
+}
+
+impl ErrorKind {
     /// Get the error key. This should be used by clients to determine the error type instead of
     /// using the message because it will not change.
-    pub fn key(&self) -> &str {
+    pub fn key(&self) -> &'static str {
         match *self {
-            Error::Unknown => "unknown",
-            Error::GravityError => "gravity_error",
-            Error::Custom(_, _) => "custom",
-            Error::FtlConnectionFail => "ftl_connection_fail",
-            Error::NotFound => "not_found",
-            Error::AlreadyExists => "already_exists",
-            Error::InvalidDomain => "invalid_domain",
-            Error::BadRequest => "bad_request",
-            Error::Unauthorized => "unauthorized"
+            ErrorKind::Unknown => "unknown",
+            ErrorKind::GravityError => "gravity_error",
+            ErrorKind::FtlConnectionFail => "ftl_connection_fail",
+            ErrorKind::FtlReadError => "ftl_read_error",
+            ErrorKind::FtlEomError => "ftl_eom_error",
+            ErrorKind::NotFound => "not_found",
+            ErrorKind::AlreadyExists => "already_exists",
+            ErrorKind::InvalidDomain => "invalid_domain",
+            ErrorKind::BadRequest => "bad_request",
+            ErrorKind::Unauthorized => "unauthorized",
+            ErrorKind::FileRead(_) => "file_read",
+            ErrorKind::FileWrite(_) => "file_write",
+            ErrorKind::ConfigParsingError => "config_parsing_error"
         }
     }
 
     /// Get the error HTTP status. This will be used when calling `reply_error`
     pub fn status(&self) -> Status {
         match *self {
-            Error::Unknown => Status::InternalServerError,
-            Error::GravityError => Status::InternalServerError,
-            Error::Custom(_, status) => status,
-            Error::FtlConnectionFail => Status::InternalServerError,
-            Error::NotFound => Status::NotFound,
-            Error::AlreadyExists => Status::Conflict,
-            Error::InvalidDomain => Status::BadRequest,
-            Error::BadRequest => Status::BadRequest,
-            Error::Unauthorized => Status::Unauthorized
+            ErrorKind::Unknown => Status::InternalServerError,
+            ErrorKind::GravityError => Status::InternalServerError,
+            ErrorKind::FtlConnectionFail => Status::InternalServerError,
+            ErrorKind::FtlReadError => Status::InternalServerError,
+            ErrorKind::FtlEomError => Status::InternalServerError,
+            ErrorKind::NotFound => Status::NotFound,
+            ErrorKind::AlreadyExists => Status::Conflict,
+            ErrorKind::InvalidDomain => Status::BadRequest,
+            ErrorKind::BadRequest => Status::BadRequest,
+            ErrorKind::Unauthorized => Status::Unauthorized,
+            ErrorKind::FileRead(_) => Status::InternalServerError,
+            ErrorKind::FileWrite(_) => Status::InternalServerError,
+            ErrorKind::ConfigParsingError => Status::InternalServerError
         }
-    }
-
-    pub fn as_outcome<S>(&self) -> request::Outcome<S, Self> {
-        Outcome::Failure((self.status(), self.clone()))
     }
 }
 
-impl<T: Display> From<T> for Error {
-    fn from(e: T) -> Self {
-        // Cast to an Error by making a Error::Custom using the error's message
-        Error::Custom(format!("{}", e), Status::InternalServerError)
+impl Fail for Error {
+    fn cause(&self) -> Option<&Fail> {
+        self.inner.cause()
+    }
+
+    fn backtrace(&self) -> Option<&Backtrace> {
+        self.inner.backtrace()
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        Display::fmt(&self.inner, f)
+    }
+}
+
+impl From<ErrorKind> for Error {
+    fn from(kind: ErrorKind) -> Error {
+        Error { inner: Context::new(kind) }
+    }
+}
+
+impl From<Context<ErrorKind>> for Error {
+    fn from(inner: Context<ErrorKind>) -> Error {
+        Error { inner }
     }
 }
 

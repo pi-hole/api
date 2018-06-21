@@ -11,24 +11,24 @@
 use config::Env;
 use dns::list::List;
 use rocket::State;
-use util;
+use util::{Reply, reply_data};
 
 /// Get the Whitelist domains
 #[get("/dns/whitelist")]
-pub fn get_whitelist(env: State<Env>) -> util::Reply {
-    util::reply_data(List::White.get(&env)?)
+pub fn get_whitelist(env: State<Env>) -> Reply {
+    reply_data(List::White.get(&env)?)
 }
 
 /// Get the Blacklist domains
 #[get("/dns/blacklist")]
-pub fn get_blacklist(env: State<Env>) -> util::Reply {
-    util::reply_data(List::Black.get(&env)?)
+pub fn get_blacklist(env: State<Env>) -> Reply {
+    reply_data(List::Black.get(&env)?)
 }
 
 /// Get the Regex list domains
 #[get("/dns/regexlist")]
-pub fn get_regexlist(env: State<Env>) -> util::Reply {
-    util::reply_data(List::Regex.get(&env)?)
+pub fn get_regexlist(env: State<Env>) -> Reply {
+    reply_data(List::Regex.get(&env)?)
 }
 
 #[cfg(test)]

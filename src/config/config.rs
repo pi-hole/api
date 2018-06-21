@@ -12,8 +12,9 @@ use config::PiholeFile;
 use toml;
 use std::io::{self, prelude::*};
 use std::fs::File;
-use std::error::Error;
 use rocket::config::LoggingLevel;
+use util::{Error, ErrorKind};
+use failure::Fail;
 
 /// The API config options
 #[derive(Deserialize, Default)]
@@ -26,7 +27,7 @@ pub struct Config {
 
 impl Config {
     /// Parse the config from the file located at `config_location`
-    pub fn parse(config_location: &str) -> Result<Config, String> {
+    pub fn parse(config_location: &str) -> Result<Config, Error> {
         let mut buffer = String::new();
 
         // Read the file to a string, but return the default config if the file doesn't exist
@@ -35,14 +36,18 @@ impl Config {
             Err(e) => {
                 match e.kind() {
                     io::ErrorKind::NotFound => return Ok(Self::default()),
-                    _ => return Err(e.description().to_owned())
+                    _ => return Err(e.context(
+                        ErrorKind::FileRead(config_location.to_owned())
+                    )).map_err(Error::from)
                 }
             }
         };
 
-        file.read_to_string(&mut buffer).map_err(|e| e.description().to_owned())?;
+        file.read_to_string(&mut buffer)
+            .map_err(|e| e.context(ErrorKind::FileRead(config_location.to_owned())))?;
 
-        toml::from_str(&buffer).map_err(|e| e.description().to_owned())
+        toml::from_str(&buffer)
+            .map_err(|e| e.context(ErrorKind::ConfigParsingError).into())
     }
 
     /// Get the configured location of a file

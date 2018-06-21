@@ -8,12 +8,13 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use std::io::prelude::*;
-use std::io::{self, BufReader};
 use config::{Env, PiholeFile};
+use std::io::BufReader;
+use std::io::prelude::*;
+use util::Error;
 
 /// Read in a value from setupVars.conf
-pub fn read_setup_vars(entry: &str, env: &Env) -> io::Result<Option<String>> {
+pub fn read_setup_vars(entry: &str, env: &Env) -> Result<Option<String>, Error> {
     // Open setupVars.conf
     let reader = BufReader::new(env.read_file(PiholeFile::SetupVars)?);
 
