@@ -33,7 +33,7 @@ pub fn read_setup_vars(entry: &str, env: &Env) -> Result<Option<String>, Error> 
                 // Get the right hand side if it exists and is not empty
                 split
                     .next()
-                    .and_then(|item| if item.len() == 0 { Some("") } else { Some(item) })
+                    .and_then(|item| if item.len() == 0 { None } else { Some(item) })
                     .map(|item| item.to_owned())
             )
         }
