@@ -24,7 +24,7 @@ use toml;
 use util::{Error, ErrorKind};
 use web;
 use version;
-use networkinfo;
+use network;
 
 const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
 
@@ -138,7 +138,7 @@ fn setup<'a>(
             dns::delete_whitelist,
             dns::delete_blacklist,
             dns::delete_regexlist,
-            networkinfo::networkinfo
+            network::network
         ])
         // Add custom error handlers
         .catch(errors![not_found, unauthorized])
