@@ -40,7 +40,7 @@ mod setup;
 mod config;
 mod setup_vars;
 mod version;
-mod networkinfo;
+mod network;
 
 #[cfg(test)]
 mod testing;
