@@ -26,6 +26,7 @@ extern crate toml;
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;
+extern crate hostname;
 
 pub use setup::*;
 
@@ -39,6 +40,7 @@ mod setup;
 mod config;
 mod setup_vars;
 mod version;
+mod network;
 
 #[cfg(test)]
 mod testing;
