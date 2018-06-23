@@ -24,7 +24,7 @@ fn get_hostname() -> String {
 #[get("/settings/network")]
 pub fn network(env: State<Env>) -> util::Reply {
     return util::reply_data(json!({
-        "interface": read_setup_vars(&"PIHOLE_INTERFACE", &env)?,
+        "interface": read_setup_vars(&"PIHOLE_INTERFACE", &env)?.unwrap_or_default(),
         "ipv4_address": read_setup_vars(&"IPV4_ADDRESS", &env)?.unwrap_or_default(),
         "ipv6_address": read_setup_vars(&"IPV6_ADDRESS", &env)?.unwrap_or_default(),
         "hostname": get_hostname()
