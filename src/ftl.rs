@@ -125,7 +125,8 @@ impl<'test> FtlConnection<'test> {
         )
     }
 
-    /// Read in a u64 (unsigned longint) value
+    /// Read in a u64 (unsigned long int) value
+    #[allow(unused)]
     pub fn read_u64(&mut self) -> Result<u64, Error> {
         FtlConnection::handle_eom_value(
             decode::read_u64(&mut self.0)
@@ -139,7 +140,8 @@ impl<'test> FtlConnection<'test> {
         )
     }
 
-    /// Read in an i64 (signed longint) value
+    /// Read in an i64 (signed long int) value
+    #[allow(unused)]
     pub fn read_i64(&mut self) -> Result<i64, Error> {
         FtlConnection::handle_eom_value(
             decode::read_i64(&mut self.0)
