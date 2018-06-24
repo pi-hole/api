@@ -18,9 +18,9 @@ use hostname::get_hostname;
 #[get("/settings/network")]
 pub fn network(env: State<Env>) -> Reply {
     return reply_data(json!({
-        "interface": read_setup_vars(&"PIHOLE_INTERFACE", &env)?.unwrap_or_default(),
-        "ipv4_address": read_setup_vars(&"IPV4_ADDRESS", &env)?.unwrap_or_default(),
-        "ipv6_address": read_setup_vars(&"IPV6_ADDRESS", &env)?.unwrap_or_default(),
+        "interface": read_setup_vars("PIHOLE_INTERFACE", &env)?.unwrap_or_default(),
+        "ipv4_address": read_setup_vars("IPV4_ADDRESS", &env)?.unwrap_or_default(),
+        "ipv6_address": read_setup_vars("IPV6_ADDRESS", &env)?.unwrap_or_default(),
         "hostname": get_hostname().unwrap_or("unknown".to_owned())
     }));  
 }
