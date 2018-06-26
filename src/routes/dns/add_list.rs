@@ -9,8 +9,8 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use config::Env;
-use dns::common::reload_gravity;
-use dns::list::List;
+use routes::dns::common::reload_gravity;
+use routes::dns::list::List;
 use rocket::State;
 use rocket_contrib::Json;
 use util::{Reply, reply_success};

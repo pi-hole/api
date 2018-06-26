@@ -9,7 +9,7 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use config::Env;
-use dns::list::List;
+use routes::dns::list::List;
 use rocket::State;
 use util::{Reply, reply_data};
 

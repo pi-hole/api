@@ -9,7 +9,7 @@
 *  Please see LICENSE file for your rights under this license. */
 
 use config::{Env, PiholeFile};
-use dns::common::{is_valid_domain, is_valid_regex};
+use routes::dns::common::{is_valid_domain, is_valid_regex};
 use failure::ResultExt;
 use std::io::{BufReader, BufWriter};
 use std::io::prelude::*;
