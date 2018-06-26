@@ -15,7 +15,7 @@ use rocket::State;
 use std::io::Read;
 use std::str;
 use util::{Error, ErrorKind, Reply, reply_data};
-use web::WebAssets;
+use routes::web::WebAssets;
 
 /// Get the versions of all Pi-hole systems
 #[get("/version")]
@@ -152,7 +152,7 @@ mod tests {
     use super::{parse_git_version, parse_web_version, read_ftl_version, Version};
     use testing::{TestEnvBuilder, write_eom};
     use util::ErrorKind;
-    use version::read_core_version;
+    use routes::version::read_core_version;
 
     #[test]
     fn test_read_ftl_version_dev() {

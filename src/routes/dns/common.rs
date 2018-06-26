@@ -13,7 +13,7 @@ use failure::ResultExt;
 use regex::Regex;
 use std::process::{Command, Stdio};
 use util::{Error, ErrorKind};
-use dns::list::List;
+use routes::dns::list::List;
 
 /// Check if a domain is valid
 pub fn is_valid_domain(domain: &str) -> bool {

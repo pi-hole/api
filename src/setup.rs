@@ -10,21 +10,17 @@
 
 use auth::{self, AuthData};
 use config::{Env, PiholeFile, Config};
-use dns;
 use ftl::FtlConnectionType;
 use rocket;
 use rocket::config::{ConfigBuilder, Environment};
 use rocket::local::Client;
 use rocket_cors::{Cors};
 use setup_vars::read_setup_vars;
-use stats;
+use routes::{dns, settings, stats, version, web};
 use std::collections::HashMap;
 use std::fs::File;
 use toml;
 use util::{Error, ErrorKind};
-use web;
-use version;
-use network;
 
 const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
 
@@ -138,7 +134,7 @@ fn setup<'a>(
             dns::delete_whitelist,
             dns::delete_blacklist,
             dns::delete_regexlist,
-            network::network
+            settings::network
         ])
         // Add custom error handlers
         .catch(errors![not_found, unauthorized])

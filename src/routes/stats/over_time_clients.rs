@@ -12,7 +12,7 @@ use ftl::FtlConnectionType;
 use rocket::State;
 use util::{Reply, ErrorKind, reply_data, reply_error};
 use auth::User;
-use stats::clients::get_clients;
+use routes::stats::clients::get_clients;
 
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
