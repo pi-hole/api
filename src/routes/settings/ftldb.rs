@@ -18,8 +18,8 @@ use auth::User;
 pub fn ftldb(ftl: State<FtlConnectionType>, _auth: User) -> Reply {
     let mut con = ftl.connect("dbstats")?;
     // Read in FTL's database stats
-    let db_queries = con.read_i32()?.to_string();
-    let db_filesize = con.read_i64()?.to_string();
+    let db_queries = con.read_i32()?;
+    let db_filesize = con.read_i64()?;
     let mut version_buffer = [0u8; 64];
     let db_sqlite_version = con.read_str(&mut version_buffer)?;  
     con.expect_eom()?;
@@ -30,5 +30,4 @@ pub fn ftldb(ftl: State<FtlConnectionType>, _auth: User) -> Reply {
         "sqlite_version": db_sqlite_version
     }))
 }
-
 
