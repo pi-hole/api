@@ -13,16 +13,29 @@ use setup_vars::read_setup_vars;
 use util::{Reply, reply_data};
 use config::{Env};
 use auth::User;
-use std::str::FromStr;
+
+/// Convert booleans returned as strings.
+fn as_bool(t: &str) -> bool {
+  match t.to_lowercase().as_str() {
+    "true" | "1" => true,
+    "false" | "0" => false,
+    _ => false
+  }
+}
 
 /// Get DHCP configuration
 #[get("/settings/dhcp")]
 pub fn dhcp(env: State<Env>, _auth: User) -> Reply {
-
-    // Convert other data types returned as strings.
-    let dhcp_active : bool = FromStr::from_str(&read_setup_vars("DHCP_ACTIVE", &env)?.unwrap_or_default()).unwrap_or_default();
-    let ipv6_support : bool = FromStr::from_str(&read_setup_vars("DHCP_IPv6", &env)?.unwrap_or_default()).unwrap_or_default();
-    let lease_time : i32 = FromStr::from_str(&read_setup_vars("DHCP_LEASETIME", &env)?.unwrap_or_default()).unwrap_or_default();
+    let dhcp_active: bool = read_setup_vars("DHCP_ACTIVE", &env)?
+        .map(|s| as_bool(&s))
+        .unwrap_or(false);
+    let ipv6_support: bool = read_setup_vars("DHCP_IPv6", &env)?
+        .map(|s| as_bool(&s))
+        .unwrap_or(false);
+    let lease_time: i32 = read_setup_vars("DHCP_LEASETIME", &env)?
+        .unwrap_or_default()
+        .parse::<i32>()
+        .unwrap_or_default();
 
     return reply_data(json!({
       "active": dhcp_active,
@@ -34,4 +47,3 @@ pub fn dhcp(env: State<Env>, _auth: User) -> Reply {
       "ipv6_support": ipv6_support
     }));
 }
-
