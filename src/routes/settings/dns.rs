@@ -13,23 +13,25 @@ use setup_vars::read_setup_vars;
 use util::{Reply, reply_data};
 use config::{Env};
 use auth::User;
-use convert::as_bool;
+use routes::settings::convert::as_bool;
+use failure::Error;
 
-fn get_upstream_dns(env: &State<Env>) -> Vec<String> {
+/// Get upstream DNS servers
+fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
     let mut upstream_dns = Vec::new();
     for i in 1.. {
         let key = format!("PIHOLE_DNS_{}", i);
-        let data = read_setup_vars(&key, &env).unwrap();
+        let data = read_setup_vars(&key, &env)?;
         if let Some(ip) = data {
             upstream_dns.push(ip);
         } else {
-            break;
+            break
         }
     }
-    upstream_dns
+    Ok(upstream_dns)
 }
 
-/// Get DNS Configuration & Upstream servers
+/// Get DNS Configuration
 #[get("/settings/dns")]
 pub fn dns(env: State<Env>, _auth: User) -> Reply {
     let fqdn_required: bool = read_setup_vars("DNS_FQDN_REQUIRED", &env)?
@@ -48,7 +50,7 @@ pub fn dns(env: State<Env>, _auth: User) -> Reply {
         .unwrap_or("single".to_owned());
 
     return reply_data(json!({
-        "upstream_dns": get_upstream_dns(&env),
+        "upstream_dns": get_upstream_dns(&env).unwrap_or_default(),
         "options": {
           "fqdn_required": fqdn_required,
           "bogus_priv": bogus_priv,
@@ -65,22 +67,21 @@ pub fn dns(env: State<Env>, _auth: User) -> Reply {
 
 #[cfg(test)]
 mod tests {
-
-    use convert::as_bool;
+    use routes::settings::convert::as_bool;
 
     #[test]
     fn test_as_bool() {
-    let mut input = "false";
-    assert_eq!(as_bool(input), false);
-    input = "FALSE";
-    assert_eq!(as_bool(input), false);
-    input = "TRUE";
-    assert_eq!(as_bool(input), true);
-    input = "tRuE";
-    assert_eq!(as_bool(input), true);
-    input = "1";
-    assert_eq!(as_bool(input), true);
-    input = "0";
-    assert_eq!(as_bool(input), false);
+        let mut input = "false";
+        assert_eq!(as_bool(input), false);
+        input = "FALSE";
+        assert_eq!(as_bool(input), false);
+        input = "TRUE";
+        assert_eq!(as_bool(input), true);
+        input = "tRuE";
+        assert_eq!(as_bool(input), true);
+        input = "1";
+        assert_eq!(as_bool(input), true);
+        input = "0";
+        assert_eq!(as_bool(input), false);
     }
 }

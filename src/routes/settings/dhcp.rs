@@ -13,7 +13,7 @@ use setup_vars::read_setup_vars;
 use util::{Reply, reply_data};
 use config::{Env};
 use auth::User;
-use convert::as_bool;
+use routes::settings::convert::as_bool;
 
 /// Get DHCP configuration
 #[get("/settings/dhcp")]
