@@ -37,6 +37,7 @@ mod routes;
 mod setup;
 mod config;
 mod setup_vars;
+mod convert;
 
 #[cfg(test)]
 mod testing;

@@ -30,4 +30,3 @@ pub fn ftldb(ftl: State<FtlConnectionType>, _auth: User) -> Reply {
         "sqlite_version": db_sqlite_version
     }))
 }
-

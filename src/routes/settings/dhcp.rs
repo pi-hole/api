@@ -13,15 +13,7 @@ use setup_vars::read_setup_vars;
 use util::{Reply, reply_data};
 use config::{Env};
 use auth::User;
-
-/// Convert booleans returned as strings.
-fn as_bool(t: &str) -> bool {
-  match t.to_lowercase().as_str() {
-    "true" | "1" => true,
-    "false" | "0" => false,
-    _ => false
-  }
-}
+use convert::as_bool;
 
 /// Get DHCP configuration
 #[get("/settings/dhcp")]
@@ -47,3 +39,4 @@ pub fn dhcp(env: State<Env>, _auth: User) -> Reply {
       "ipv6_support": ipv6_support
     }));
 }
+

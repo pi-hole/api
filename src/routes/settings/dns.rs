@@ -8,45 +8,30 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-use std::collections::HashMap;
 use rocket::State;
 use setup_vars::read_setup_vars;
 use util::{Reply, reply_data};
 use config::{Env};
 use auth::User;
+use convert::as_bool;
 
-/// Convert booleans returned as strings.
-fn as_bool(t: &str) -> bool {
-  match t.to_lowercase().as_str() {
-    "true" | "1" => true,
-    "false" | "0" => false,
-    _ => false
-  }
+fn get_upstream_dns(env: &State<Env>) -> Vec<String> {
+    let mut upstream_dns = Vec::new();
+    for i in 1.. {
+        let key = format!("PIHOLE_DNS_{}", i);
+        let data = read_setup_vars(&key, &env).unwrap();
+        if let Some(ip) = data {
+            upstream_dns.push(ip);
+        } else {
+            break;
+        }
+    }
+    upstream_dns
 }
 
 /// Get DNS Configuration & Upstream servers
 #[get("/settings/dns")]
 pub fn dns(env: State<Env>, _auth: User) -> Reply {
-    // Get upstream DNS servers - number may vary
-    let mut server_list = HashMap::new();
-    let dns = "dns_";
-    let pidns = "PIHOLE_DNS_";
-    let mut dns_counter = 1;
-    while dns_counter > 0 {  
-        // setup search and output strings
-        let mut dns_number = dns.to_owned();
-        let mut pidns_number = pidns.to_owned();
-        dns_number.push_str(&dns_counter.to_string());
-        pidns_number.push_str(&dns_counter.to_string());
-        let upstreamdns : String = read_setup_vars(&pidns_number, &env)?.unwrap_or_default();
-        if upstreamdns != "" {
-            server_list.insert(dns_number, upstreamdns);
-            dns_counter += 1 ;
-        }
-        else {
-            dns_counter = -1 
-        }
-    }  
     let fqdn_required: bool = read_setup_vars("DNS_FQDN_REQUIRED", &env)?
         .map(|s| as_bool(&s))
         .unwrap_or(false);
@@ -59,11 +44,11 @@ pub fn dns(env: State<Env>, _auth: User) -> Reply {
     let cf_enabled: bool = read_setup_vars("CONDITIONAL_FORWARDING", &env)?
         .map(|s| as_bool(&s))
         .unwrap_or(false);
-    let listening_type = read_setup_vars("DNSMASQ_LISTENING", &env)?.unwrap_or("single".to_owned());
+    let listening_type = read_setup_vars("DNSMASQ_LISTENING", &env)?
+        .unwrap_or("single".to_owned());
 
     return reply_data(json!({
-        "upstream_dns": 
-           server_list,
+        "upstream_dns": get_upstream_dns(&env),
         "options": {
           "fqdn_required": fqdn_required,
           "bogus_priv": bogus_priv,
@@ -76,4 +61,26 @@ pub fn dns(env: State<Env>, _auth: User) -> Reply {
           "domain": read_setup_vars("CONDITIONAL_FORWARDING_DOMAIN", &env)?.unwrap_or_default(),
         }
     }));
+}
+
+#[cfg(test)]
+mod tests {
+
+    use convert::as_bool;
+
+    #[test]
+    fn test_as_bool() {
+    let mut input = "false";
+    assert_eq!(as_bool(input), false);
+    input = "FALSE";
+    assert_eq!(as_bool(input), false);
+    input = "TRUE";
+    assert_eq!(as_bool(input), true);
+    input = "tRuE";
+    assert_eq!(as_bool(input), true);
+    input = "1";
+    assert_eq!(as_bool(input), true);
+    input = "0";
+    assert_eq!(as_bool(input), false);
+    }
 }
