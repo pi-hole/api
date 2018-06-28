@@ -14,7 +14,7 @@ use util::{Reply, reply_data};
 use config::{Env};
 use auth::User;
 use routes::settings::convert::as_bool;
-use failure::Error;
+use util::Error;
 
 /// Get upstream DNS servers
 fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
@@ -50,7 +50,7 @@ pub fn dns(env: State<Env>, _auth: User) -> Reply {
         .unwrap_or("single".to_owned());
 
     return reply_data(json!({
-        "upstream_dns": get_upstream_dns(&env).unwrap_or_default(),
+        "upstream_dns": get_upstream_dns(&env)?,
         "options": {
           "fqdn_required": fqdn_required,
           "bogus_priv": bogus_priv,
@@ -71,17 +71,11 @@ mod tests {
 
     #[test]
     fn test_as_bool() {
-        let mut input = "false";
-        assert_eq!(as_bool(input), false);
-        input = "FALSE";
-        assert_eq!(as_bool(input), false);
-        input = "TRUE";
-        assert_eq!(as_bool(input), true);
-        input = "tRuE";
-        assert_eq!(as_bool(input), true);
-        input = "1";
-        assert_eq!(as_bool(input), true);
-        input = "0";
-        assert_eq!(as_bool(input), false);
+        assert_eq!(as_bool("FALSE"), false);
+        assert_eq!(as_bool("false"), false);
+        assert_eq!(as_bool("TRUE"), true);
+        assert_eq!(as_bool("tRuE"), true);
+        assert_eq!(as_bool("1"), true);
+        assert_eq!(as_bool("0"), false);
     }
 }
