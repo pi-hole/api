@@ -10,6 +10,7 @@
 
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
+use std::io::{Seek, SeekFrom};
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
 use config::Config;
@@ -49,13 +50,18 @@ impl Env {
                     .map_err(Error::from)
             },
             Env::Test(_, ref map) => {
-                match map.get(&file) {
-                    Some(data) => data,
+                let mut test_file = match map.get(&file) {
+                    Some(data) => data.try_clone()
+                                      .context(ErrorKind::Unknown)
+                                      .map_err(Error::from)?,
                     None => return Err(ErrorKind::NotFound.into())
-                }
-                    .try_clone()
+                };
+
+                test_file.seek(SeekFrom::Start(0))
                     .context(ErrorKind::Unknown)
-                    .map_err(Error::from)
+                    .map_err(Error::from)?;
+
+                Ok(test_file)
             }
         }
     }
