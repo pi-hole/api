@@ -10,11 +10,10 @@
 
 use rocket::State;
 use setup_vars::read_setup_vars;
-use util::{Reply, reply_data};
+use util::{Error, Reply, reply_data};
 use config::{Env};
 use auth::User;
 use routes::settings::convert::as_bool;
-use util::Error;
 
 /// Get upstream DNS servers
 fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
@@ -28,28 +27,29 @@ fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
             break
         }
     }
+
     Ok(upstream_dns)
 }
 
 /// Get DNS Configuration
-#[get("/settings/dns")]
-pub fn dns(env: State<Env>, _auth: User) -> Reply {
-    let fqdn_required: bool = read_setup_vars("DNS_FQDN_REQUIRED", &env)?
+#[get("/settings/get_dns")]
+pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
+    let fqdn_required = read_setup_vars("DNS_FQDN_REQUIRED", &env)?
         .map(|s| as_bool(&s))
         .unwrap_or(false);
-    let bogus_priv: bool = read_setup_vars("DNS_BOGUS_PRIV", &env)?
+    let bogus_priv = read_setup_vars("DNS_BOGUS_PRIV", &env)?
         .map(|s| as_bool(&s))
         .unwrap_or(false);
-    let dnssec: bool = read_setup_vars("DNSSEC", &env)?
+    let dnssec = read_setup_vars("DNSSEC", &env)?
         .map(|s| as_bool(&s))
         .unwrap_or(false);
-    let cf_enabled: bool = read_setup_vars("CONDITIONAL_FORWARDING", &env)?
+    let cf_enabled = read_setup_vars("CONDITIONAL_FORWARDING", &env)?
         .map(|s| as_bool(&s))
         .unwrap_or(false);
     let listening_type = read_setup_vars("DNSMASQ_LISTENING", &env)?
         .unwrap_or("single".to_owned());
 
-    return reply_data(json!({
+    reply_data(json!({
         "upstream_dns": get_upstream_dns(&env)?,
         "options": {
           "fqdn_required": fqdn_required,
@@ -62,20 +62,5 @@ pub fn dns(env: State<Env>, _auth: User) -> Reply {
           "router_ip": read_setup_vars("CONDITIONAL_FORWARDING_IP", &env)?.unwrap_or_default(),
           "domain": read_setup_vars("CONDITIONAL_FORWARDING_DOMAIN", &env)?.unwrap_or_default(),
         }
-    }));
-}
-
-#[cfg(test)]
-mod tests {
-    use routes::settings::convert::as_bool;
-
-    #[test]
-    fn test_as_bool() {
-        assert_eq!(as_bool("FALSE"), false);
-        assert_eq!(as_bool("false"), false);
-        assert_eq!(as_bool("TRUE"), true);
-        assert_eq!(as_bool("tRuE"), true);
-        assert_eq!(as_bool("1"), true);
-        assert_eq!(as_bool("0"), false);
-    }
+    }))
 }

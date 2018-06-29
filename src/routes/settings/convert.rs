@@ -8,10 +8,25 @@
 *  Please see LICENSE file for your rights under this license. */
 
 /// Convert booleans returned as strings.
-pub fn as_bool(t: &str) -> bool {
-  match t.to_lowercase().as_str() {
-    "true" | "1" => true,
-    "false" | "0" => false,
-    _ => false
-  }
+pub fn as_bool(boolean_string: &str) -> bool {
+    match boolean_string.to_lowercase().as_str() {
+        "true" | "1" => true,
+        "false" | "0" => false,
+        _ => false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use routes::settings::convert::as_bool;
+
+    #[test]
+    fn test_as_bool() {
+        assert_eq!(as_bool("FALSE"), false);
+        assert_eq!(as_bool("false"), false);
+        assert_eq!(as_bool("TRUE"), true);
+        assert_eq!(as_bool("tRuE"), true);
+        assert_eq!(as_bool("1"), true);
+        assert_eq!(as_bool("0"), false);
+    }
 }

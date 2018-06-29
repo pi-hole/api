@@ -16,20 +16,20 @@ use auth::User;
 use routes::settings::convert::as_bool;
 
 /// Get DHCP configuration
-#[get("/settings/dhcp")]
-pub fn dhcp(env: State<Env>, _auth: User) -> Reply {
-    let dhcp_active: bool = read_setup_vars("DHCP_ACTIVE", &env)?
+#[get("/settings/get_dhcp")]
+pub fn get_dhcp(env: State<Env>, _auth: User) -> Reply {
+    let dhcp_active = read_setup_vars("DHCP_ACTIVE", &env)?
         .map(|s| as_bool(&s))
         .unwrap_or(false);
-    let ipv6_support: bool = read_setup_vars("DHCP_IPv6", &env)?
+    let ipv6_support = read_setup_vars("DHCP_IPv6", &env)?
         .map(|s| as_bool(&s))
         .unwrap_or(false);
-    let lease_time: i32 = read_setup_vars("DHCP_LEASETIME", &env)?
+    let lease_time = read_setup_vars("DHCP_LEASETIME", &env)?
         .unwrap_or_default()
         .parse::<i32>()
         .unwrap_or_default();
 
-    return reply_data(json!({
+    reply_data(json!({
       "active": dhcp_active,
       "ip_start": read_setup_vars("DHCP_START", &env)?.unwrap_or_default(),
       "ip_end": read_setup_vars("DHCP_END", &env)?.unwrap_or_default(),
@@ -37,6 +37,5 @@ pub fn dhcp(env: State<Env>, _auth: User) -> Reply {
       "lease_time": lease_time,
       "domain": read_setup_vars("PIHOLE_DOMAIN", &env)?.unwrap_or_default(),
       "ipv6_support": ipv6_support
-    }));
+    }))
 }
-

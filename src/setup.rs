@@ -134,10 +134,10 @@ fn setup<'a>(
             dns::delete_whitelist,
             dns::delete_blacklist,
             dns::delete_regexlist,
-            settings::dhcp,
-            settings::dns,
-            settings::ftldb,
-            settings::network
+            settings::get_dhcp,
+            settings::get_dns,
+            settings::get_ftldb,
+            settings::get_network
         ])
         // Add custom error handlers
         .catch(errors![not_found, unauthorized])

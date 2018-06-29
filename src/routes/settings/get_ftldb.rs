@@ -13,9 +13,9 @@ use rocket::State;
 use util::{Reply, reply_data};
 use auth::User;
 
-/// Read memory and db stats from FTL
-#[get("/settings/ftldb")]
-pub fn ftldb(ftl: State<FtlConnectionType>, _auth: User) -> Reply {
+/// Read db stats from FTL
+#[get("/settings/get_ftldb")]
+pub fn get_ftldb(ftl: State<FtlConnectionType>, _auth: User) -> Reply {
     let mut con = ftl.connect("dbstats")?;
     // Read in FTL's database stats
     let db_queries = con.read_i32()?;
