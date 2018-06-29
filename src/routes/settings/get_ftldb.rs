@@ -30,3 +30,50 @@ pub fn get_ftldb(ftl: State<FtlConnectionType>, _auth: User) -> Reply {
         "sqlite_version": db_sqlite_version
     }))
 }
+
+#[cfg(test)]
+mod test {
+    use rmp::encode;
+    use testing::{TestBuilder, write_eom};
+
+    #[test]
+    fn test_get_ftldb() {
+        let mut data = Vec::new();
+        encode::write_i32(&mut data, 1048576).unwrap();
+        encode::write_i64(&mut data, 32768).unwrap();
+        encode::write_str(&mut data, "3.0.1").unwrap();
+        write_eom(&mut data);
+
+        TestBuilder::new()
+            .endpoint("/admin/api/settings/get_ftldb")
+            .ftl("dbstats", data)
+            .expect_json(
+                json!({
+                    "queries": 1048576,
+                    "filesize": 32768,
+                    "sqlite_version": "3.0.1"
+                })
+            )
+            .test();
+    }
+    #[test]
+    fn test_get_ftldb2() {
+        let mut data = Vec::new();
+        encode::write_i32(&mut data, 0).unwrap();
+        encode::write_i64(&mut data, 0).unwrap();
+        encode::write_str(&mut data, "").unwrap();
+        write_eom(&mut data);
+
+        TestBuilder::new()
+            .endpoint("/admin/api/settings/get_ftldb")
+            .ftl("dbstats", data)
+            .expect_json(
+                json!({
+                    "queries": 0,
+                    "filesize": 0,
+                    "sqlite_version": ""
+                })
+            )
+            .test();
+    }
+}
