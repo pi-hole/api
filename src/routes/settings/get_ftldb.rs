@@ -14,7 +14,7 @@ use util::{Reply, reply_data};
 use auth::User;
 
 /// Read db stats from FTL
-#[get("/settings/get_ftldb")]
+#[get("/settings/ftldb")]
 pub fn get_ftldb(ftl: State<FtlConnectionType>, _auth: User) -> Reply {
     let mut con = ftl.connect("dbstats")?;
     // Read in FTL's database stats
@@ -37,6 +37,7 @@ mod test {
     use testing::{TestBuilder, write_eom};
 
     #[test]
+    // Basic test for reported values
     fn test_get_ftldb() {
         let mut data = Vec::new();
         encode::write_i32(&mut data, 1048576).unwrap();
@@ -45,7 +46,7 @@ mod test {
         write_eom(&mut data);
 
         TestBuilder::new()
-            .endpoint("/admin/api/settings/get_ftldb")
+            .endpoint("/admin/api/settings/ftldb")
             .ftl("dbstats", data)
             .expect_json(
                 json!({
@@ -56,8 +57,10 @@ mod test {
             )
             .test();
     }
+
     #[test]
-    fn test_get_ftldb2() {
+    // Test for (unlikely/"impossible") null report / sqlite not present
+    fn test_get_ftldb_noentries() {
         let mut data = Vec::new();
         encode::write_i32(&mut data, 0).unwrap();
         encode::write_i64(&mut data, 0).unwrap();
@@ -65,7 +68,7 @@ mod test {
         write_eom(&mut data);
 
         TestBuilder::new()
-            .endpoint("/admin/api/settings/get_ftldb")
+            .endpoint("/admin/api/settings/ftldb")
             .ftl("dbstats", data)
             .expect_json(
                 json!({

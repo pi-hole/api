@@ -18,7 +18,7 @@ pub fn as_bool(boolean_string: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use routes::settings::convert::as_bool;
+    use super::as_bool;
 
     #[test]
     fn test_as_bool() {
