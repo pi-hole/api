@@ -37,10 +37,11 @@ mod test {
     use testing::TestBuilder;
     use hostname::get_hostname;
 
+    /// Basic test for reported settings
     #[test]
-    // Basic test for reported settings
     fn test_get_network() {
-        let currenthost = get_hostname().unwrap_or("unknown".to_owned());
+        let current_host = get_hostname().unwrap_or("unknown".to_owned());
+
         TestBuilder::new()
             .endpoint("/admin/api/settings/network")
             .file(
@@ -54,16 +55,17 @@ mod test {
                     "interface": "eth0",
                     "ipv4_address": "192.168.1.205",
                     "ipv6_address": "fd06:fb62:d251:9033:0:0:0:33",
-                    "hostname": currenthost
+                    "hostname": current_host
                 })
             )
             .test();
     }
 
+    /// Test for common configuration of ipv4 only (no ipv6)
     #[test]
-    // Test for common configuration of ipv4 only (no ipv6)
     fn test_get_network_ipv4only() {
-        let currenthost = get_hostname().unwrap_or("unknown".to_owned());
+        let current_host = get_hostname().unwrap_or("unknown".to_owned());
+
         TestBuilder::new()
             .endpoint("/admin/api/settings/network")
             .file(
@@ -77,7 +79,7 @@ mod test {
                     "interface": "eth0",
                     "ipv4_address": "192.168.1.205",
                     "ipv6_address": "",
-                    "hostname": currenthost
+                    "hostname": current_host
                 })
             )
             .test();

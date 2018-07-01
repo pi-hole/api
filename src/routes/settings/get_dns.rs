@@ -18,9 +18,11 @@ use routes::settings::common::as_bool;
 /// Get upstream DNS servers
 fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
     let mut upstream_dns = Vec::new();
+
     for i in 1.. {
         let key = format!("PIHOLE_DNS_{}", i);
         let data = read_setup_vars(&key, &env)?;
+
         if let Some(ip) = data {
             upstream_dns.push(ip);
         } else {
@@ -70,11 +72,10 @@ pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
 mod test {
     use config::PiholeFile;
     use testing::TestBuilder;
-    use rocket::http::Method;
 
+    /// Basic test for reported settings
     #[test]
-    // Basic test for reported settings
-    fn test_get_dns_multipleupstreams() {
+    fn test_get_dns_multiple_upstreams() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dns")
             .file(
@@ -94,7 +95,8 @@ mod test {
                 CONDITIONAL_FORWARDING=true\n\
                 CONDITIONAL_FORWARDING_IP=192.168.1.1\n\
                 CONDITIONAL_FORWARDING_DOMAIN=hub\n\
-                CONDITIONAL_FORWARDING_REVERSE=1.168.192.in-addr.arpa\n")
+                CONDITIONAL_FORWARDING_REVERSE=1.168.192.in-addr.arpa\n"
+            )
             .expect_json(
                 json!({
                     "conditional_forwarding": {
@@ -123,12 +125,11 @@ mod test {
             .test();
     }
 
+    /// Test that default settings are reported if not present
     #[test]
-    // Test that default settings are reported if not present
-    fn test_get_dns_minimalsetup() {
+    fn test_get_dns_minimal_setup() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dns")
-            .method(Method::Get)
             .file(PiholeFile::SetupVars, "")
             .expect_json(
                 json!({

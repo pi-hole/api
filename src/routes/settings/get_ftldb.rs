@@ -17,6 +17,7 @@ use auth::User;
 #[get("/settings/ftldb")]
 pub fn get_ftldb(ftl: State<FtlConnectionType>, _auth: User) -> Reply {
     let mut con = ftl.connect("dbstats")?;
+
     // Read in FTL's database stats
     let db_queries = con.read_i32()?;
     let db_filesize = con.read_i64()?;
@@ -36,8 +37,8 @@ mod test {
     use rmp::encode;
     use testing::{TestBuilder, write_eom};
 
+    /// Basic test for reported values
     #[test]
-    // Basic test for reported values
     fn test_get_ftldb() {
         let mut data = Vec::new();
         encode::write_i32(&mut data, 1048576).unwrap();

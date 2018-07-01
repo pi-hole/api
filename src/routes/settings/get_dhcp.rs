@@ -45,8 +45,8 @@ mod test {
     use config::PiholeFile;
     use testing::TestBuilder;
 
+    /// Basic test for reported settings
     #[test]
-    // Basic test for reported settings
     fn test_get_dhcp() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dhcp")
@@ -74,9 +74,9 @@ mod test {
             .test();
     }
 
+    /// Test that default settings are reported if not present
     #[test]
-    // Test that default settings are reported if not present
-    fn test_get_dhcp_minimalsetup() {
+    fn test_get_dhcp_minimal_setup() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dhcp")
             .file(PiholeFile::SetupVars, "")
