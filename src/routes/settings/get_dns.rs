@@ -13,7 +13,7 @@ use setup_vars::read_setup_vars;
 use util::{Error, Reply, reply_data};
 use config::{Env};
 use auth::User;
-use routes::settings::convert::as_bool;
+use routes::settings::common::as_bool;
 
 /// Get upstream DNS servers
 fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
