@@ -50,8 +50,13 @@ mod test {
     fn test_get_dhcp() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dhcp")
-            .file(PiholeFile::SetupVars,
-"DHCP_START=192.168.1.201\nDHCP_END=192.168.1.251\nDHCP_ROUTER=192.168.1.1\nDHCP_LEASETIME=24\nPIHOLE_DOMAIN=lan\nDHCP_IPv6=false\nDHCP_ACTIVE=false\n")
+            .file(PiholeFile::SetupVars, "DHCP_START=192.168.1.201\n\
+                DHCP_END=192.168.1.251\n\
+                DHCP_ROUTER=192.168.1.1\n\
+                DHCP_LEASETIME=24\n\
+                PIHOLE_DOMAIN=lan\n\
+                DHCP_IPv6=false\n\
+                DHCP_ACTIVE=false\n")
             .expect_json(
                 json!({
                     "active": false,
@@ -71,8 +76,7 @@ mod test {
     fn test_get_dhcp_minimalsetup() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dhcp")
-            .file(PiholeFile::SetupVars,
-"WEBPASSWORD=\nPIHOLE_INTERFACE=eth0\nIPV4_ADDRESS=192.168.1.205/24\nIPV6_ADDRESS=\nPIHOLE_DNS_1=8.8.8.8\n")
+            .file(PiholeFile::SetupVars, "")
             .expect_json(
                 json!({
                     "active": false,
@@ -81,27 +85,6 @@ mod test {
                     "router_ip": "",
                     "lease_time": 24,
                     "domain": "",
-                    "ipv6_support": false,
-                })
-            )
-            .test();
-    }
-
-    #[test]
-    // Test reporting settings from full setup file
-    fn test_get_dhcp_fullsetup() {
-        TestBuilder::new()
-            .endpoint("/admin/api/settings/dhcp")
-            .file(PiholeFile::SetupVars,
-"WEBPASSWORD=841001982B38908BB1424B52990515474B77B05205B809304A10B21B03A93279\n API_PRIVACY_MODE=false\nPIHOLE_INTERFACE=eth0\nIPV4_ADDRESS=192.168.1.205/24\nIPV6_ADDRESS=fd06:fb62:d251:9033:0:0:0:33\nQUERY_LOGGING=true\nINSTALL_WEB_SERVER=true\nINSTALL_WEB_INTERFACE=true\nLIGHTTPD_ENABLED=1\nTEMPERATUREUNIT=K\nWEBUIBOXEDLAYOUT=boxed\nDNSMASQ_LISTENING=all\nDNS_FQDN_REQUIRED=true\nDNS_BOGUS_PRIV=true\nDNSSEC=false\nPIHOLE_DNS_1=8.8.8.8\nPIHOLE_DNS_2=8.8.4.4\nCONDITIONAL_FORWARDING=true\nCONDITIONAL_FORWARDING_IP=192.168.1.1\nCONDITIONAL_FORWARDING_DOMAIN=hub\nCONDITIONAL_FORWARDING_REVERSE=1.168.192.in-addr.arpa\nDHCP_START=192.168.1.201\nDHCP_END=192.168.1.251\nDHCP_ROUTER=192.168.1.1\nDHCP_LEASETIME=24\nPIHOLE_DOMAIN=lan\nDHCP_IPv6=false\nDHCP_ACTIVE=false\n")
-            .expect_json(
-                json!({
-                    "active": false,
-                    "ip_start": "192.168.1.201",
-                    "ip_end": "192.168.1.251",
-                    "router_ip": "192.168.1.1",
-                    "lease_time": 24,
-                    "domain": "lan",
                     "ipv6_support": false,
                 })
             )

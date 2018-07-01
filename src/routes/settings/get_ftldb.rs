@@ -57,26 +57,4 @@ mod test {
             )
             .test();
     }
-
-    #[test]
-    // Test for (unlikely/"impossible") null report / sqlite not present
-    fn test_get_ftldb_noentries() {
-        let mut data = Vec::new();
-        encode::write_i32(&mut data, 0).unwrap();
-        encode::write_i64(&mut data, 0).unwrap();
-        encode::write_str(&mut data, "").unwrap();
-        write_eom(&mut data);
-
-        TestBuilder::new()
-            .endpoint("/admin/api/settings/ftldb")
-            .ftl("dbstats", data)
-            .expect_json(
-                json!({
-                    "queries": 0,
-                    "filesize": 0,
-                    "sqlite_version": ""
-                })
-            )
-            .test();
-    }
 }

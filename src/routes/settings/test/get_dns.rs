@@ -32,7 +32,7 @@ fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
 }
 
 /// Get DNS Configuration
-#[get("/settings/dns")]
+#[get("/settings/get_dns")]
 pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
     let fqdn_required = read_setup_vars("DNS_FQDN_REQUIRED", &env)?
         .map(|s| as_bool(&s))
@@ -73,26 +73,40 @@ mod test {
     use rocket::http::Method;
 
     #[test]
-    // Basic test for reported settings
-    fn test_get_dns_multipleupstreams() {
+    fn test_get_dns() {
         TestBuilder::new()
-            .endpoint("/admin/api/settings/dns")
-            .file(PiholeFile::SetupVars, "DNSMASQ_LISTENING=all\n\
-                DNS_FQDN_REQUIRED=true\n\
-                DNS_BOGUS_PRIV=true\n\
-                DNSSEC=false\n\
-                PIHOLE_DNS_1=8.8.8.8\n\
-                PIHOLE_DNS_2=7.7.7.7\n\
-                PIHOLE_DNS_3=6.6.6.6\n\
-                PIHOLE_DNS_4=5.5.5.5\n\
-                PIHOLE_DNS_5=22.22.22.22\n\
-                PIHOLE_DNS_6=31.31.31.31\n\
-                PIHOLE_DNS_7=40.40.40.40\n\
-                PIHOLE_DNS_8=1.0.0.0\n\
-                CONDITIONAL_FORWARDING=true\n\
-                CONDITIONAL_FORWARDING_IP=192.168.1.1\n\
-                CONDITIONAL_FORWARDING_DOMAIN=hub\n\
-                CONDITIONAL_FORWARDING_REVERSE=1.168.192.in-addr.arpa\n")
+            .endpoint("/admin/api/settings/get_dns")
+            .method(Method::Get)
+            .file(PiholeFile::SetupVars, 
+                "WEBPASSWORD=841001982B38908BB1424B52990515474B77B05205B809304A10B21B03A93279\n
+                API_QUERY_LOG_SHOW=all\n
+                API_PRIVACY_MODE=false\n
+                PIHOLE_INTERFACE=enp0s3\n
+                IPV4_ADDRESS=192.168.1.205/24\n
+                IPV6_ADDRESS=fd06:fb62:d251:9033:0:0:0:33\n
+                QUERY_LOGGING=true\n
+                INSTALL_WEB_SERVER=true\n
+                INSTALL_WEB_INTERFACE=true\n
+                LIGHTTPD_ENABLED=1\n
+                TEMPERATUREUNIT=K\n
+                WEBUIBOXEDLAYOUT=boxed\n
+                DNSMASQ_LISTENING=all\n
+                DNS_FQDN_REQUIRED=true\n
+                DNS_BOGUS_PRIV=true\n
+                DNSSEC=false\n
+                PIHOLE_DNS_1=8.8.8.8\n
+                PIHOLE_DNS_2=8.8.4.4\n
+                CONDITIONAL_FORWARDING=true\n
+                CONDITIONAL_FORWARDING_IP=192.168.1.1\n
+                CONDITIONAL_FORWARDING_DOMAIN=hub\n
+                CONDITIONAL_FORWARDING_REVERSE=1.168.192.in-addr.arpa\n
+                DHCP_START=192.168.1.201\n
+                DHCP_END=192.168.1.251\n
+                DHCP_ROUTER=192.168.1.1\n
+                DHCP_LEASETIME=24\n
+                PIHOLE_DOMAIN=lan\n
+                DHCP_IPv6=false\n
+                DHCP_ACTIVE=false\n")
             .expect_json(
                 json!({
                     "conditional_forwarding": {
@@ -106,35 +120,7 @@ mod test {
                         "fqdn_required": true,
                         "listening_type": "all"
                     },
-                    "upstream_dns": ["8.8.8.8", "7.7.7.7", "6.6.6.6",
-                                     "5.5.5.5", "22.22.22.22", "31.31.31.31",
-                                     "40.40.40.40", "1.0.0.0"]
-                })
-            )
-            .test();
-    }
-
-    #[test]
-    // Test that default settings are reported if not present
-    fn test_get_dns_minimalsetup() {
-        TestBuilder::new()
-            .endpoint("/admin/api/settings/dns")
-            .method(Method::Get)
-            .file(PiholeFile::SetupVars, "")
-            .expect_json(
-                json!({
-                    "conditional_forwarding": {
-                        "domain": "",
-                        "enabled": false,
-                        "router_ip": ""
-                    },
-                    "options": {
-                        "bogus_priv": false,
-                        "dnssec": false,
-                        "fqdn_required": false,
-                        "listening_type": "single"
-                    },
-                    "upstream_dns": []
+                    "upstream_dns": ["8.8.8.8", "8.8.4.4"]
                 })
             )
             .test();
