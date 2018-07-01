@@ -79,9 +79,7 @@ mod test {
     fn test_get_dhcp_minimalsetup() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dhcp")
-            .file(
-                PiholeFile::SetupVars, ""
-            )
+            .file(PiholeFile::SetupVars, "")
             .expect_json(
                 json!({
                     "active": false,

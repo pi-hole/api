@@ -129,9 +129,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dns")
             .method(Method::Get)
-            .file(
-                PiholeFile::SetupVars, ""
-            )
+            .file(PiholeFile::SetupVars, "")
             .expect_json(
                 json!({
                     "conditional_forwarding": {
