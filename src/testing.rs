@@ -9,7 +9,6 @@
 *  Please see LICENSE file for your rights under this license. */
 
 extern crate serde_json;
-extern crate tempfile;
 
 use config::PiholeFile;
 use rocket::http::{Method, ContentType, Header, Status};
@@ -18,6 +17,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::SeekFrom;
+use tempfile::NamedTempFile;
 
 /// Add the end of message byte to the data
 pub fn write_eom(data: &mut Vec<u8>) {
@@ -26,7 +26,7 @@ pub fn write_eom(data: &mut Vec<u8>) {
 
 /// Builds the data needed to create a `Env::Test`
 pub struct TestEnvBuilder {
-    test_files: Vec<TestFile>
+    test_files: Vec<TestFile<NamedTempFile>>
 }
 
 impl TestEnvBuilder {
@@ -49,7 +49,7 @@ impl TestEnvBuilder {
     ) -> Self {
         let test_file = TestFile::new(
             pihole_file,
-            tempfile::tempfile().unwrap(),
+            NamedTempFile::new().unwrap(),
             initial_data.to_owned(),
             expected_data.to_owned()
         );
@@ -58,7 +58,7 @@ impl TestEnvBuilder {
     }
 
     /// Build the environment data. This can be used to create a `Env::Test`
-    pub fn build(self) -> HashMap<PiholeFile, File> {
+    pub fn build(self) -> HashMap<PiholeFile, NamedTempFile> {
         let mut config_data = HashMap::new();
 
         // Create temporary mock files
@@ -75,13 +75,13 @@ impl TestEnvBuilder {
     }
 
     /// Get a copy of the inner test files for later verification
-    fn get_test_files(&self) -> Vec<TestFile> {
+    fn get_test_files(&self) -> Vec<TestFile<File>> {
         let mut test_files = Vec::new();
 
         for test_file in &self.test_files {
             test_files.push(TestFile {
                 pihole_file: test_file.pihole_file,
-                temp_file: test_file.temp_file.try_clone().unwrap(),
+                temp_file: test_file.temp_file.reopen().unwrap(),
                 initial_data: test_file.initial_data.clone(),
                 expected_data: test_file.expected_data.clone()
             })
@@ -91,22 +91,23 @@ impl TestEnvBuilder {
     }
 }
 
-/// Represents a mocked file along with the initial and expected data
-struct TestFile {
+/// Represents a mocked file along with the initial and expected data. The `T` generic is the type
+/// of temporary file, usually `NamedTempFile` or `File`.
+struct TestFile<T> {
     pihole_file: PiholeFile,
-    temp_file: File,
+    temp_file: T,
     initial_data: String,
     expected_data: String
 }
 
-impl TestFile {
+impl<T> TestFile<T> {
     /// Create a new `TestFile`
     fn new(
         pihole_file: PiholeFile,
-        temp_file: File,
+        temp_file: T,
         initial_data: String,
         expected_data: String
-    ) -> TestFile {
+    ) -> TestFile<T> {
         TestFile {
             pihole_file,
             temp_file,

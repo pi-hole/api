@@ -16,11 +16,12 @@ use config::Config;
 use config::PiholeFile;
 use util::{Error, ErrorKind};
 use failure::ResultExt;
+use tempfile::NamedTempFile;
 
 /// Environment of the Pi-hole API. Stores the config and abstracts away some systems to make
 /// testing easier.
 pub enum Env {
-    Production(Config), Test(Config, HashMap<PiholeFile, File>)
+    Production(Config), Test(Config, HashMap<PiholeFile, NamedTempFile>)
 }
 
 impl Env {
@@ -53,7 +54,7 @@ impl Env {
                     Some(data) => data,
                     None => return Err(ErrorKind::NotFound.into())
                 }
-                    .try_clone()
+                    .reopen()
                     .context(ErrorKind::Unknown)
                     .map_err(Error::from)
             }
@@ -90,7 +91,7 @@ impl Env {
                     Some(data) => data,
                     None => return Err(ErrorKind::NotFound.into())
                 }
-                    .try_clone()
+                    .reopen()
                     .context(ErrorKind::Unknown)?;
 
                 if !append {

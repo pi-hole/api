@@ -18,9 +18,9 @@ use rocket_cors::{Cors};
 use setup_vars::read_setup_vars;
 use routes::{dns, settings, stats, version, web};
 use std::collections::HashMap;
-use std::fs::File;
 use toml;
 use util::{Error, ErrorKind};
+use tempfile::NamedTempFile;
 
 const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
 
@@ -61,7 +61,7 @@ pub fn start() -> Result<(), Error> {
 /// Setup the API with the testing data and return a Client to test with
 pub fn test(
     ftl_data: HashMap<String, Vec<u8>>,
-    env_data: HashMap<PiholeFile, File>
+    env_data: HashMap<PiholeFile, NamedTempFile>
 ) -> Client {
     Client::new(setup(
         rocket::custom(
@@ -134,7 +134,10 @@ fn setup<'a>(
             dns::delete_whitelist,
             dns::delete_blacklist,
             dns::delete_regexlist,
-            settings::network
+            settings::get_dhcp,
+            settings::get_dns,
+            settings::get_ftldb,
+            settings::get_network
         ])
         // Add custom error handlers
         .catch(errors![not_found, unauthorized])

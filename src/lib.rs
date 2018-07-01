@@ -27,6 +27,7 @@ extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 extern crate hostname;
+extern crate tempfile;
 
 pub use setup::*;
 
