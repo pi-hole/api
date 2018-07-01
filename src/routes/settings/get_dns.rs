@@ -77,7 +77,9 @@ mod test {
     fn test_get_dns_multipleupstreams() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dns")
-            .file(PiholeFile::SetupVars, "DNSMASQ_LISTENING=all\n\
+            .file(
+                PiholeFile::SetupVars,
+                "DNSMASQ_LISTENING=all\n\
                 DNS_FQDN_REQUIRED=true\n\
                 DNS_BOGUS_PRIV=true\n\
                 DNSSEC=false\n\
@@ -106,9 +108,16 @@ mod test {
                         "fqdn_required": true,
                         "listening_type": "all"
                     },
-                    "upstream_dns": ["8.8.8.8", "7.7.7.7", "6.6.6.6",
-                                     "5.5.5.5", "22.22.22.22", "31.31.31.31",
-                                     "40.40.40.40", "1.0.0.0"]
+                    "upstream_dns": [
+                        "8.8.8.8",
+                        "7.7.7.7",
+                        "6.6.6.6",
+                        "5.5.5.5",
+                        "22.22.22.22",
+                        "31.31.31.31",
+                        "40.40.40.40",
+                        "1.0.0.0"
+                    ]
                 })
             )
             .test();
@@ -120,7 +129,9 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dns")
             .method(Method::Get)
-            .file(PiholeFile::SetupVars, "")
+            .file(
+                PiholeFile::SetupVars, ""
+            )
             .expect_json(
                 json!({
                     "conditional_forwarding": {

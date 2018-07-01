@@ -50,13 +50,16 @@ mod test {
     fn test_get_dhcp() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dhcp")
-            .file(PiholeFile::SetupVars, "DHCP_START=192.168.1.201\n\
+            .file(
+                PiholeFile::SetupVars, 
+                "DHCP_START=192.168.1.201\n\
                 DHCP_END=192.168.1.251\n\
                 DHCP_ROUTER=192.168.1.1\n\
                 DHCP_LEASETIME=24\n\
                 PIHOLE_DOMAIN=lan\n\
                 DHCP_IPv6=false\n\
-                DHCP_ACTIVE=false\n")
+                DHCP_ACTIVE=false\n"
+            )
             .expect_json(
                 json!({
                     "active": false,
@@ -76,7 +79,9 @@ mod test {
     fn test_get_dhcp_minimalsetup() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dhcp")
-            .file(PiholeFile::SetupVars, "")
+            .file(
+                PiholeFile::SetupVars, ""
+            )
             .expect_json(
                 json!({
                     "active": false,

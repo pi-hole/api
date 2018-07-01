@@ -43,9 +43,12 @@ mod test {
         let currenthost = get_hostname().unwrap_or("unknown".to_owned());
         TestBuilder::new()
             .endpoint("/admin/api/settings/network")
-            .file(PiholeFile::SetupVars,"IPV4_ADDRESS=192.168.1.205/24\n\
+            .file(
+                PiholeFile::SetupVars,
+                "IPV4_ADDRESS=192.168.1.205/24\n\
                 IPV6_ADDRESS=fd06:fb62:d251:9033:0:0:0:33\n\
-                PIHOLE_INTERFACE=eth0\n")
+                PIHOLE_INTERFACE=eth0\n"
+            )
             .expect_json(
                 json!({
                     "interface": "eth0",
@@ -63,9 +66,12 @@ mod test {
         let currenthost = get_hostname().unwrap_or("unknown".to_owned());
         TestBuilder::new()
             .endpoint("/admin/api/settings/network")
-            .file(PiholeFile::SetupVars,"IPV4_ADDRESS=192.168.1.205/24\n\
+            .file(
+                PiholeFile::SetupVars,
+                "IPV4_ADDRESS=192.168.1.205/24\n\
                 IPV6_ADDRESS=\n\
-                PIHOLE_INTERFACE=eth0\n")
+                PIHOLE_INTERFACE=eth0\n"
+            )
             .expect_json(
                 json!({
                     "interface": "eth0",
