@@ -6,7 +6,8 @@ RUN apt-get update && \
         gcc libc-dev gcc-arm-linux-gnueabihf libc6-dev-armhf-cross && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2018-06-20 && \
     export PATH="/root/.cargo/bin:$PATH" && \
-    rustup target add arm-unknown-linux-gnueabihf
+    rustup target add arm-unknown-linux-gnueabihf && \
+    rustup component add rustfmt-preview
 
 ENV PATH="/root/.cargo/bin:$PATH" \
     TARGET_CC=arm-linux-gnueabihf-gcc \
