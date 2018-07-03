@@ -58,6 +58,7 @@ impl Config {
             PiholeFile::Blacklist => &self.file_locations.blacklist,
             PiholeFile::Regexlist => &self.file_locations.regexlist,
             PiholeFile::SetupVars => &self.file_locations.setup_vars,
+            PiholeFile::FTLConf => &self.file_locations.ftlconf,
             PiholeFile::LocalVersions => &self.file_locations.local_versions,
             PiholeFile::LocalBranches => &self.file_locations.local_branches
         }
@@ -96,6 +97,8 @@ pub struct Files {
     regexlist: String,
     #[serde(default = "default_setup_vars")]
     setup_vars: String,
+    #[serde(default = "default_ftlconf")]
+    ftlconf: String,
     #[serde(default = "default_local_versions")]
     local_versions: String,
     #[serde(default = "default_local_branches")]
@@ -110,6 +113,7 @@ impl Default for Files {
             blacklist: default_blacklist(),
             regexlist: default_regexlist(),
             setup_vars: default_setup_vars(),
+            ftlconf: default_ftlconf(),
             local_versions: default_local_versions(),
             local_branches: default_local_branches()
         }
@@ -130,6 +134,7 @@ default!(default_whitelist, Whitelist);
 default!(default_blacklist, Blacklist);
 default!(default_regexlist, Regexlist);
 default!(default_setup_vars, SetupVars);
+default!(default_ftlconf, FTLConf);
 default!(default_local_versions, LocalVersions);
 default!(default_local_branches, LocalBranches);
 

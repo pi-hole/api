@@ -137,7 +137,8 @@ fn setup<'a>(
             settings::get_dhcp,
             settings::get_dns,
             settings::get_ftldb,
-            settings::get_network
+            settings::get_network,
+            settings::test_writing
         ])
         // Add custom error handlers
         .catch(errors![not_found, unauthorized])
