@@ -38,6 +38,7 @@ mod routes;
 mod setup;
 mod config;
 mod setup_vars;
+mod setup_validate;
 
 #[cfg(test)]
 mod testing;
