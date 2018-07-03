@@ -1,12 +1,12 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Common functions for settings endpoints
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Common Functions For Settings Endpoints
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
 /// Convert booleans returned as strings.
 pub fn as_bool(boolean_string: &str) -> bool {
