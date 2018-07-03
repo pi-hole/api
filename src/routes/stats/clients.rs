@@ -78,19 +78,10 @@ mod test {
             .endpoint("/admin/api/stats/clients")
             .ftl("client-names", data)
             .expect_json(json!([
-                    {
-                        "name": "client1",
-                        "ip": "10.1.1.1"
-                    },
-                    {
-                        "name": "",
-                        "ip": "10.1.1.2"
-                    },
-                    {
-                        "name": "client3",
-                        "ip": "10.1.1.3"
-                    }
-                ]))
+                { "name": "client1", "ip": "10.1.1.1" },
+                { "name": "",        "ip": "10.1.1.2" },
+                { "name": "client3", "ip": "10.1.1.3" }
+            ]))
             .test();
     }
 }

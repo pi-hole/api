@@ -80,35 +80,14 @@ mod test {
             .endpoint("/admin/api/stats/query_types")
             .ftl("querytypes", data)
             .expect_json(json!([
-                    {
-                        "name": "A (IPv4)",
-                        "percent": 0.10000000149011612
-                    },
-                    {
-                        "name": "AAAA (IPv6)",
-                        "percent": 0.20000000298023225
-                    },
-                    {
-                        "name": "ANY",
-                        "percent": 0.30000001192092898
-                    },
-                    {
-                        "name": "SRV",
-                        "percent": 0.4000000059604645
-                    },
-                    {
-                        "name": "SOA",
-                        "percent": 0.5
-                    },
-                    {
-                        "name": "PTR",
-                        "percent": 0.6000000238418579
-                    },
-                    {
-                        "name": "TXT",
-                        "percent": 0.699999988079071
-                    }
-                ]))
+                { "name": "A (IPv4)", "percent": 0.10000000149011612 },
+                { "name": "AAAA (IPv6)", "percent": 0.20000000298023225 },
+                { "name": "ANY", "percent": 0.30000001192092898 },
+                { "name": "SRV", "percent": 0.4000000059604645 },
+                { "name": "SOA", "percent": 0.5 },
+                { "name": "PTR", "percent": 0.6000000238418579 },
+                { "name": "TXT", "percent": 0.699999988079071 }
+            ]))
             .test();
     }
 }

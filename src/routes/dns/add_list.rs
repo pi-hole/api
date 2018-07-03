@@ -84,12 +84,8 @@ mod test {
             .file(PiholeFile::Blacklist, "")
             .file(PiholeFile::Regexlist, "")
             .file(PiholeFile::SetupVars, "")
-            .body(json!({
-                    "domain": "example.com"
-                }))
-            .expect_json(json!({
-                    "status": "success"
-                }))
+            .body(json!({ "domain": "example.com" }))
+            .expect_json(json!({ "status": "success" }))
             .test();
     }
 
@@ -102,12 +98,8 @@ mod test {
             .file(PiholeFile::Whitelist, "")
             .file(PiholeFile::Regexlist, "")
             .file(PiholeFile::SetupVars, "")
-            .body(json!({
-                    "domain": "example.com"
-                }))
-            .expect_json(json!({
-                    "status": "success"
-                }))
+            .body(json!({ "domain": "example.com" }))
+            .expect_json(json!({ "status": "success" }))
             .test();
     }
 
@@ -124,12 +116,8 @@ mod test {
             .file(PiholeFile::Whitelist, "")
             .file(PiholeFile::Blacklist, "")
             .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
-            .body(json!({
-                    "domain": "^.*example.com$"
-                }))
-            .expect_json(json!({
-                    "status": "success"
-                }))
+            .body(json!({ "domain": "^.*example.com$" }))
+            .expect_json(json!({ "status": "success" }))
             .test();
     }
 }

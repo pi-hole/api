@@ -76,22 +76,10 @@ mod test {
             .endpoint("/admin/api/stats/forward_destinations")
             .ftl("forward-dest", data)
             .expect_json(json!([
-                    {
-                        "name": "google-dns-alt",
-                        "ip": "8.8.4.4",
-                        "percent": 0.4000000059604645
-                    },
-                    {
-                        "name": "google-dns",
-                        "ip": "8.8.8.8",
-                        "percent": 0.30000001192092898
-                    },
-                    {
-                        "name": "cache",
-                        "ip": "cache",
-                        "percent": 0.30000001192092898
-                    }
-                ]))
+                { "name": "google-dns-alt", "ip": "8.8.4.4", "percent": 0.4000000059604645 },
+                { "name": "google-dns", "ip": "8.8.8.8", "percent": 0.30000001192092898 },
+                { "name": "cache", "ip": "cache", "percent": 0.30000001192092898 }
+            ]))
             .test();
     }
 }

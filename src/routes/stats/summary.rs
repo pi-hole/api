@@ -72,17 +72,17 @@ mod test {
             .endpoint("/admin/api/stats/summary")
             .ftl("stats", data)
             .expect_json(json!({
-                    "domains_blocked": -1,
-                    "total_queries": 7,
-                    "blocked_queries": 2,
-                    "percent_blocked": 28.571428298950197,
-                    "unique_domains": 6,
-                    "forwarded_queries": 3,
-                    "cached_queries": 2,
-                    "total_clients": 3,
-                    "unique_clients": 3,
-                    "status": "unknown"
-                }))
+                "domains_blocked": -1,
+                "total_queries": 7,
+                "blocked_queries": 2,
+                "percent_blocked": 28.571428298950197,
+                "unique_domains": 6,
+                "forwarded_queries": 3,
+                "cached_queries": 2,
+                "total_clients": 3,
+                "unique_clients": 3,
+                "status": "unknown"
+            }))
             .test();
     }
 }

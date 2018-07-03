@@ -137,25 +137,13 @@ mod test {
             .endpoint("/admin/api/stats/top_clients")
             .ftl("top-clients (10)", data)
             .expect_json(json!({
-                    "top_clients": [
-                        {
-                            "name": "client1",
-                            "ip": "10.1.1.1",
-                            "count": 30
-                        },
-                        {
-                            "name": "",
-                            "ip": "10.1.1.2",
-                            "count": 20
-                        },
-                        {
-                            "name": "client3",
-                            "ip": "10.1.1.3",
-                            "count": 10
-                        }
-                    ],
-                    "total_queries": 100
-                }))
+                "top_clients": [
+                    { "name": "client1", "ip": "10.1.1.1", "count": 30 },
+                    { "name": "",        "ip": "10.1.1.2", "count": 20 },
+                    { "name": "client3", "ip": "10.1.1.3", "count": 10 }
+                ],
+                "total_queries": 100
+            }))
             .test();
     }
 
@@ -175,20 +163,12 @@ mod test {
             .endpoint("/admin/api/stats/top_clients?limit=2")
             .ftl("top-clients (2)", data)
             .expect_json(json!({
-                    "top_clients": [
-                        {
-                            "name": "client1",
-                            "ip": "10.1.1.1",
-                            "count": 30
-                        },
-                        {
-                            "name": "",
-                            "ip": "10.1.1.2",
-                            "count": 20
-                        }
-                    ],
-                    "total_queries": 100
-                }))
+                "top_clients": [
+                    { "name": "client1", "ip": "10.1.1.1", "count": 30 },
+                    { "name": "",        "ip": "10.1.1.2", "count": 20 }
+                ],
+                "total_queries": 100
+            }))
             .test();
     }
 }

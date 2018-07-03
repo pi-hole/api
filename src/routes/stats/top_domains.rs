@@ -147,18 +147,18 @@ mod test {
             .endpoint("/admin/api/stats/top_domains")
             .ftl("top-domains (10)", data)
             .expect_json(json!({
-                    "top_domains": [
-                        {
-                            "domain": "example.com",
-                            "count": 7
-                        },
-                        {
-                            "domain": "example.net",
-                            "count": 3
-                        }
-                    ],
-                    "total_queries": 10
-                }))
+                "top_domains": [
+                    {
+                        "domain": "example.com",
+                        "count": 7
+                    },
+                    {
+                        "domain": "example.net",
+                        "count": 3
+                    }
+                ],
+                "total_queries": 10
+            }))
             .test();
     }
 
@@ -174,14 +174,14 @@ mod test {
             .endpoint("/admin/api/stats/top_domains?limit=1")
             .ftl("top-domains (1)", data)
             .expect_json(json!({
-                    "top_domains": [
-                        {
-                            "domain": "example.com",
-                            "count": 7
-                        }
-                    ],
-                    "total_queries": 10
-                }))
+                "top_domains": [
+                    {
+                        "domain": "example.com",
+                        "count": 7
+                    }
+                ],
+                "total_queries": 10
+            }))
             .test();
     }
 }

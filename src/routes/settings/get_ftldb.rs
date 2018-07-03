@@ -50,10 +50,10 @@ mod test {
             .endpoint("/admin/api/settings/ftldb")
             .ftl("dbstats", data)
             .expect_json(json!({
-                    "queries": 1048576,
-                    "filesize": 32768,
-                    "sqlite_version": "3.0.1"
-                }))
+                "queries": 1048576,
+                "filesize": 32768,
+                "sqlite_version": "3.0.1"
+            }))
             .test();
     }
 }

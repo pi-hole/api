@@ -77,27 +77,15 @@ mod test {
             .endpoint("/admin/api/stats/overTime/history")
             .ftl("overTime", data)
             .expect_json(json!({
-                    "domains_over_time": [
-                        {
-                            "timestamp": 1520126228,
-                            "count": 10
-                        },
-                        {
-                            "timestamp": 1520126406,
-                            "count": 20
-                        }
-                    ],
-                    "blocked_over_time": [
-                        {
-                            "timestamp": 1520126228,
-                            "count": 5
-                        },
-                        {
-                            "timestamp": 1520126406,
-                            "count": 5
-                        }
-                    ]
-                }))
+                "domains_over_time": [
+                    { "timestamp": 1520126228, "count": 10 },
+                    { "timestamp": 1520126406, "count": 20 }
+                ],
+                "blocked_over_time": [
+                    { "timestamp": 1520126228, "count": 5 },
+                    { "timestamp": 1520126406, "count": 5 }
+                ]
+            }))
             .test();
     }
 }

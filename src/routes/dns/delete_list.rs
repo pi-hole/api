@@ -57,9 +57,7 @@ mod test {
             .endpoint("/admin/api/dns/whitelist/example.com")
             .method(Method::Delete)
             .file_expect(PiholeFile::Whitelist, "example.com\n", "")
-            .expect_json(json!({
-                    "status": "success"
-                }))
+            .expect_json(json!({ "status": "success" }))
             .test();
     }
 
@@ -69,9 +67,7 @@ mod test {
             .endpoint("/admin/api/dns/blacklist/example.com")
             .method(Method::Delete)
             .file_expect(PiholeFile::Blacklist, "example.com\n", "")
-            .expect_json(json!({
-                    "status": "success"
-                }))
+            .expect_json(json!({ "status": "success" }))
             .test();
     }
 
@@ -85,9 +81,7 @@ mod test {
             .method(Method::Delete)
             .ftl("recompile-regex", data)
             .file_expect(PiholeFile::Regexlist, "^.*example.com$\n", "")
-            .expect_json(json!({
-                    "status": "success"
-                }))
+            .expect_json(json!({ "status": "success" }))
             .test();
     }
 }

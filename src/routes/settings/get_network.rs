@@ -51,11 +51,11 @@ mod test {
                  PIHOLE_INTERFACE=eth0\n"
             )
             .expect_json(json!({
-                    "interface": "eth0",
-                    "ipv4_address": "192.168.1.205",
-                    "ipv6_address": "fd06:fb62:d251:9033:0:0:0:33",
-                    "hostname": current_host
-                }))
+                "interface": "eth0",
+                "ipv4_address": "192.168.1.205",
+                "ipv6_address": "fd06:fb62:d251:9033:0:0:0:33",
+                "hostname": current_host
+            }))
             .test();
     }
 
@@ -73,11 +73,11 @@ mod test {
                  PIHOLE_INTERFACE=eth0\n"
             )
             .expect_json(json!({
-                    "interface": "eth0",
-                    "ipv4_address": "192.168.1.205",
-                    "ipv6_address": "",
-                    "hostname": current_host
-                }))
+                "interface": "eth0",
+                "ipv4_address": "192.168.1.205",
+                "ipv6_address": "",
+                "hostname": current_host
+            }))
             .test();
     }
 }

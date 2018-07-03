@@ -61,14 +61,14 @@ mod test {
                  DHCP_ACTIVE=false\n"
             )
             .expect_json(json!({
-                    "active": false,
-                    "ip_start": "192.168.1.201",
-                    "ip_end": "192.168.1.251",
-                    "router_ip": "192.168.1.1",
-                    "lease_time": 24,
-                    "domain": "lan",
-                    "ipv6_support": false,
-                }))
+                "active": false,
+                "ip_start": "192.168.1.201",
+                "ip_end": "192.168.1.251",
+                "router_ip": "192.168.1.1",
+                "lease_time": 24,
+                "domain": "lan",
+                "ipv6_support": false,
+            }))
             .test();
     }
 
@@ -79,14 +79,14 @@ mod test {
             .endpoint("/admin/api/settings/dhcp")
             .file(PiholeFile::SetupVars, "")
             .expect_json(json!({
-                    "active": false,
-                    "ip_start": "",
-                    "ip_end": "",
-                    "router_ip": "",
-                    "lease_time": 24,
-                    "domain": "",
-                    "ipv6_support": false,
-                }))
+                "active": false,
+                "ip_start": "",
+                "ip_end": "",
+                "router_ip": "",
+                "lease_time": 24,
+                "domain": "",
+                "ipv6_support": false,
+            }))
             .test();
     }
 }

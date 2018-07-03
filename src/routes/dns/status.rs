@@ -58,9 +58,7 @@ mod test {
                 PiholeFile::DnsmasqMainConfig,
                 "addn-hosts=/etc/pihole/gravity.list"
             )
-            .expect_json(json!({
-                    "status": "enabled"
-                }))
+            .expect_json(json!({ "status": "enabled" }))
             .test();
     }
 
@@ -72,9 +70,7 @@ mod test {
                 PiholeFile::DnsmasqMainConfig,
                 "#addn-hosts=/etc/pihole/gravity.list"
             )
-            .expect_json(json!({
-                    "status": "disabled"
-                }))
+            .expect_json(json!({ "status": "disabled" }))
             .test();
     }
 
@@ -83,9 +79,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/dns/status")
             .file(PiholeFile::DnsmasqMainConfig, "random data...")
-            .expect_json(json!({
-                    "status": "unknown"
-                }))
+            .expect_json(json!({ "status": "unknown" }))
             .test();
     }
 }

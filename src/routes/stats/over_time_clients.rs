@@ -103,27 +103,15 @@ mod test {
             .ftl("ClientsoverTime", over_time)
             .ftl("client-names", clients)
             .expect_json(json!({
-                    "over_time": [
-                        {
-                            "timestamp": 1520126228,
-                            "data": [7, 3]
-                        },
-                        {
-                            "timestamp": 1520126406,
-                            "data": [6, 4]
-                        }
-                    ],
-                    "clients": [
-                        {
-                            "name": "client1",
-                            "ip": "10.1.1.1"
-                        },
-                        {
-                            "name": "",
-                            "ip": "10.1.1.2"
-                        }
-                    ]
-                }))
+                "over_time": [
+                    { "timestamp": 1520126228, "data": [7, 3] },
+                    { "timestamp": 1520126406, "data": [6, 4] }
+                ],
+                "clients": [
+                    { "name": "client1", "ip": "10.1.1.1" },
+                    { "name": "",        "ip": "10.1.1.2" }
+                ]
+            }))
             .test();
     }
 }
