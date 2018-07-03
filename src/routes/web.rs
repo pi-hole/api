@@ -8,10 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use rocket::response::Response;
 use rocket::http::ContentType;
-use std::path::PathBuf;
+use rocket::response::Response;
 use std::io::Cursor;
+use std::path::PathBuf;
 
 #[derive(RustEmbed)]
 #[folder = "web/"]
@@ -28,17 +28,17 @@ fn get_file<'r>(filename: &str) -> Option<Response<'r>> {
         ContentType::Binary
     };
 
-    WebAssets::get(filename)
-        .map_or_else(
-            || None,
-            |data| {
-                Some(
-                    Response::build()
-                        .header(content_type)
-                        .sized_body(Cursor::new(data))
-                        .finalize()
-                )
-            })
+    WebAssets::get(filename).map_or_else(
+        || None,
+        |data| {
+            Some(
+                Response::build()
+                    .header(content_type)
+                    .sized_body(Cursor::new(data))
+                    .finalize()
+            )
+        }
+    )
 }
 
 /// Return the index page of the web interface

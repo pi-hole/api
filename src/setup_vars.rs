@@ -9,8 +9,8 @@
 // Please see LICENSE file for your rights under this license.
 
 use config::{Env, PiholeFile};
-use std::io::BufReader;
 use std::io::prelude::*;
+use std::io::BufReader;
 use util::Error;
 
 /// Read in a value from setupVars.conf
@@ -35,7 +35,7 @@ pub fn read_setup_vars(entry: &str, env: &Env) -> Result<Option<String>, Error> 
                     .next()
                     .and_then(|item| if item.len() == 0 { None } else { Some(item) })
                     .map(|item| item.to_owned())
-            )
+            );
         }
     }
 

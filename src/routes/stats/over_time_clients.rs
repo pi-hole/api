@@ -8,11 +8,11 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use auth::User;
 use ftl::FtlConnectionType;
 use rocket::State;
-use util::{Reply, ErrorKind, reply_data, reply_error};
-use auth::User;
 use routes::stats::clients::get_clients;
+use util::{reply_data, reply_error, ErrorKind, Reply};
 
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
@@ -20,8 +20,8 @@ pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
     let mut over_time = Vec::new();
     let clients = get_clients(&ftl)?;
 
-    // Don't open another FTL connection until the connection from `get_clients` is done!
-    // Otherwise FTL's global lock mechanism will cause a deadlock.
+    // Don't open another FTL connection until the connection from `get_clients` is
+    // done! Otherwise FTL's global lock mechanism will cause a deadlock.
     let mut con = ftl.connect("ClientsoverTime")?;
 
     loop {
@@ -39,7 +39,8 @@ pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
             }
         };
 
-        // Create a new step in the graph (stores the value of each client usage at that time)
+        // Create a new step in the graph (stores the value of each client usage at
+        // that time)
         let mut step = Vec::new();
 
         // Get all the data for this step
@@ -54,7 +55,10 @@ pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
             step.push(client);
         }
 
-        over_time.push(TimeStep { timestamp, data: step });
+        over_time.push(TimeStep {
+            timestamp,
+            data: step
+        });
     }
 
     reply_data(json!({
@@ -72,7 +76,7 @@ struct TimeStep {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestBuilder, write_eom};
+    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_over_time_clients() {
@@ -89,17 +93,16 @@ mod test {
 
         let mut clients = Vec::new();
         encode::write_str(&mut clients, "client1").unwrap();
-        encode::write_str(&mut clients , "10.1.1.1").unwrap();
-        encode::write_str(&mut clients , "").unwrap();
-        encode::write_str(&mut clients , "10.1.1.2").unwrap();
+        encode::write_str(&mut clients, "10.1.1.1").unwrap();
+        encode::write_str(&mut clients, "").unwrap();
+        encode::write_str(&mut clients, "10.1.1.2").unwrap();
         write_eom(&mut clients);
 
         TestBuilder::new()
             .endpoint("/admin/api/stats/overTime/clients")
             .ftl("ClientsoverTime", over_time)
             .ftl("client-names", clients)
-            .expect_json(
-                json!({
+            .expect_json(json!({
                     "over_time": [
                         {
                             "timestamp": 1520126228,
@@ -120,8 +123,7 @@ mod test {
                             "ip": "10.1.1.2"
                         }
                     ]
-                })
-            )
+                }))
             .test();
     }
 }

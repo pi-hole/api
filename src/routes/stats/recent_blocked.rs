@@ -8,10 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use auth::User;
 use ftl::FtlConnectionType;
 use rocket::State;
-use util::{Reply, ErrorKind, reply_data, reply_error};
-use auth::User;
+use util::{reply_data, reply_error, ErrorKind, Reply};
 
 /// Get the most recent blocked domain
 #[get("/stats/recent_blocked")]
@@ -21,7 +21,11 @@ pub fn recent_blocked(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
 
 /// Get the `num` most recently blocked domains
 #[get("/stats/recent_blocked?<params>")]
-pub fn recent_blocked_params(_auth: User, ftl: State<FtlConnectionType>, params: RecentBlockedParams) -> Reply {
+pub fn recent_blocked_params(
+    _auth: User,
+    ftl: State<FtlConnectionType>,
+    params: RecentBlockedParams
+) -> Reply {
     get_recent_blocked(&ftl, params.num)
 }
 
@@ -41,8 +45,8 @@ pub fn get_recent_blocked(ftl: &FtlConnectionType, num: usize) -> Reply {
     let mut less_domains_than_expected = false;
 
     for _ in 0..num {
-        // Get the next domain. If FTL returns less than what we asked (there haven't been enough
-        // blocked domains), then exit the loop
+        // Get the next domain. If FTL returns less than what we asked (there haven't
+        // been enough blocked domains), then exit the loop
         let domain = match con.read_str(&mut str_buffer) {
             Ok(domain) => domain.to_owned(),
             Err(e) => {
@@ -60,7 +64,8 @@ pub fn get_recent_blocked(ftl: &FtlConnectionType, num: usize) -> Reply {
         domains.push(domain);
     }
 
-    // If we got the number of domains we expected, then we still need to read the EOM
+    // If we got the number of domains we expected, then we still need to read the
+    // EOM
     if !less_domains_than_expected {
         con.expect_eom()?;
     }
@@ -71,7 +76,7 @@ pub fn get_recent_blocked(ftl: &FtlConnectionType, num: usize) -> Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestBuilder, write_eom};
+    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_recent_blocked() {
@@ -82,11 +87,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/recent_blocked")
             .ftl("recentBlocked (1)", data)
-            .expect_json(
-                json!([
-                    "example.com"
-                ])
-            )
+            .expect_json(json!(["example.com"]))
             .test();
     }
 
@@ -102,14 +103,12 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/recent_blocked?num=4")
             .ftl("recentBlocked (4)", data)
-            .expect_json(
-                json!([
-                    "example.com",
-                    "doubleclick.com",
-                    "google.com",
-                    "ads.net"
-                ])
-            )
+            .expect_json(json!([
+                "example.com",
+                "doubleclick.com",
+                "google.com",
+                "ads.net"
+            ]))
             .test();
     }
 }

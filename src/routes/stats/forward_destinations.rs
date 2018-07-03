@@ -8,10 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use auth::User;
 use ftl::FtlConnectionType;
 use rocket::State;
-use util::{Reply, ErrorKind, reply_data};
-use auth::User;
+use util::{reply_data, ErrorKind, Reply};
 
 /// Get the forward destinations
 #[get("/stats/forward_destinations")]
@@ -56,7 +56,7 @@ struct ForwardDestination {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestBuilder, write_eom};
+    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_forward_destinations() {
@@ -75,8 +75,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/forward_destinations")
             .ftl("forward-dest", data)
-            .expect_json(
-                json!([
+            .expect_json(json!([
                     {
                         "name": "google-dns-alt",
                         "ip": "8.8.4.4",
@@ -92,8 +91,7 @@ mod test {
                         "ip": "cache",
                         "percent": 0.30000001192092898
                     }
-                ])
-            )
+                ]))
             .test();
     }
 }

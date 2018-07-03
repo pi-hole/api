@@ -8,13 +8,13 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use auth::User;
 use config::Env;
+use ftl::FtlConnectionType;
+use rocket::State;
 use routes::dns::common::reload_gravity;
 use routes::dns::list::List;
-use rocket::State;
-use util::{Reply, reply_success};
-use auth::User;
-use ftl::FtlConnectionType;
+use util::{reply_success, Reply};
 
 /// Delete a domain from the whitelist
 #[delete("/dns/whitelist/<domain>")]
@@ -47,9 +47,9 @@ pub fn delete_regexlist(
 
 #[cfg(test)]
 mod test {
-    use testing::{TestBuilder, write_eom};
     use config::PiholeFile;
     use rocket::http::Method;
+    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_delete_whitelist() {
@@ -57,11 +57,9 @@ mod test {
             .endpoint("/admin/api/dns/whitelist/example.com")
             .method(Method::Delete)
             .file_expect(PiholeFile::Whitelist, "example.com\n", "")
-            .expect_json(
-                json!({
+            .expect_json(json!({
                     "status": "success"
-                })
-            )
+                }))
             .test();
     }
 
@@ -71,11 +69,9 @@ mod test {
             .endpoint("/admin/api/dns/blacklist/example.com")
             .method(Method::Delete)
             .file_expect(PiholeFile::Blacklist, "example.com\n", "")
-            .expect_json(
-                json!({
+            .expect_json(json!({
                     "status": "success"
-                })
-            )
+                }))
             .test();
     }
 
@@ -89,11 +85,9 @@ mod test {
             .method(Method::Delete)
             .ftl("recompile-regex", data)
             .file_expect(PiholeFile::Regexlist, "^.*example.com$\n", "")
-            .expect_json(
-                json!({
+            .expect_json(json!({
                     "status": "success"
-                })
-            )
+                }))
             .test();
     }
 }

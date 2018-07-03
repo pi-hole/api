@@ -22,8 +22,8 @@ extern crate serde;
 extern crate serde_derive;
 #[macro_use]
 extern crate rust_embed;
-extern crate toml;
 extern crate failure;
+extern crate toml;
 #[macro_use]
 extern crate failure_derive;
 extern crate hostname;
@@ -31,13 +31,13 @@ extern crate tempfile;
 
 pub use setup::*;
 
-mod util;
 mod auth;
+mod config;
 mod ftl;
 mod routes;
 mod setup;
-mod config;
 mod setup_vars;
+mod util;
 
 #[cfg(test)]
 mod testing;

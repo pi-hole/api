@@ -10,7 +10,7 @@
 
 use ftl::FtlConnectionType;
 use rocket::State;
-use util::{Reply, reply_data};
+use util::{reply_data, Reply};
 
 /// Get the summary data
 #[get("/stats/summary")]
@@ -51,7 +51,7 @@ pub fn get_summary(ftl: State<FtlConnectionType>) -> Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestBuilder, write_eom};
+    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_summary() {
@@ -71,8 +71,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/summary")
             .ftl("stats", data)
-            .expect_json(
-                json!({
+            .expect_json(json!({
                     "domains_blocked": -1,
                     "total_queries": 7,
                     "blocked_queries": 2,
@@ -83,8 +82,7 @@ mod test {
                     "total_clients": 3,
                     "unique_clients": 3,
                     "status": "unknown"
-                })
-            )
+                }))
             .test();
     }
 }

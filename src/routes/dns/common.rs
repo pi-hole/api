@@ -11,9 +11,9 @@
 use config::Env;
 use failure::ResultExt;
 use regex::Regex;
+use routes::dns::list::List;
 use std::process::{Command, Stdio};
 use util::{Error, ErrorKind};
-use routes::dns::list::List;
 
 /// Check if a domain is valid
 pub fn is_valid_domain(domain: &str) -> bool {

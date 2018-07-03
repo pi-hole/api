@@ -8,10 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use auth::User;
 use ftl::FtlConnectionType;
 use rocket::State;
-use util::{Reply, ErrorKind, reply_data, reply_error};
-use auth::User;
+use util::{reply_data, reply_error, ErrorKind, Reply};
 
 /// Get the query types
 #[get("/stats/query_types")]
@@ -55,7 +55,7 @@ struct QueryType {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestBuilder, write_eom};
+    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_query_types() {
@@ -79,8 +79,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/query_types")
             .ftl("querytypes", data)
-            .expect_json(
-                json!([
+            .expect_json(json!([
                     {
                         "name": "A (IPv4)",
                         "percent": 0.10000000149011612
@@ -109,8 +108,7 @@ mod test {
                         "name": "TXT",
                         "percent": 0.699999988079071
                     }
-                ])
-            )
+                ]))
             .test();
     }
 }

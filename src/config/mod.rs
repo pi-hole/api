@@ -8,10 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-mod env;
 mod config;
+mod env;
 mod file;
 
-pub use self::env::Env;
 pub use self::config::Config;
+pub use self::env::Env;
 pub use self::file::PiholeFile;

@@ -8,10 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use auth::User;
 use ftl::FtlConnectionType;
 use rocket::State;
-use util::{Reply, ErrorKind, reply_data, reply_error};
-use auth::User;
+use util::{reply_data, reply_error, ErrorKind, Reply};
 
 /// Get the entire query history (as stored in FTL)
 #[get("/stats/history")]
@@ -21,11 +21,7 @@ pub fn history(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
 
 /// Get the query history according to the specified parameters
 #[get("/stats/history?<params>")]
-pub fn history_params(
-    _auth: User,
-    ftl: State<FtlConnectionType>,
-    params: HistoryParams
-) -> Reply {
+pub fn history_params(_auth: User, ftl: State<FtlConnectionType>, params: HistoryParams) -> Reply {
     let limit = params.limit;
     let command = match params {
         // Get the query history within the specified timespan
@@ -35,9 +31,7 @@ pub fn history_params(
             domain: None,
             client: None,
             ..
-        } => {
-            format!("getallqueries-time {} {}", from, until)
-        },
+        } => format!("getallqueries-time {} {}", from, until),
         // Get the query history for the specified domain
         HistoryParams {
             from: None,
@@ -45,9 +39,7 @@ pub fn history_params(
             domain: Some(domain),
             client: None,
             ..
-        } => {
-            format!("getallqueries-domain {}", domain)
-        },
+        } => format!("getallqueries-domain {}", domain),
         // Get the query history for the specified client
         HistoryParams {
             from: None,
@@ -55,18 +47,12 @@ pub fn history_params(
             domain: None,
             client: Some(client),
             ..
-        } => {
-            format!("getallqueries-client {}", client)
-        },
+        } => format!("getallqueries-client {}", client),
         // FTL can't handle mixed input
         _ => return reply_error(ErrorKind::BadRequest)
     };
 
-    get_history(
-        &ftl,
-        &command,
-        limit
-    )
+    get_history(&ftl, &command, limit)
 }
 
 /// Represents a query returned in `/stats/history`
@@ -128,7 +114,7 @@ fn get_history(ftl: &FtlConnectionType, command: &str, limit: Option<usize>) -> 
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestBuilder, write_eom};
+    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_history() {
@@ -150,26 +136,10 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/history")
             .ftl("getallqueries", data)
-            .expect_json(
-                json!([
-                    [
-                        1520126228,
-                        "IPv4",
-                        "example.com",
-                        "client1",
-                        2,
-                        1
-                    ],
-                    [
-                        1520126406,
-                        "IPv6",
-                        "doubleclick.com",
-                        "client2",
-                        1,
-                        1
-                    ]
-                ])
-            )
+            .expect_json(json!([
+                [1520126228, "IPv4", "example.com", "client1", 2, 1],
+                [1520126406, "IPv6", "doubleclick.com", "client2", 1, 1]
+            ]))
             .test();
     }
 
@@ -193,26 +163,10 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/history?from=1520126228&until=1520126406")
             .ftl("getallqueries-time 1520126228 1520126406", data)
-            .expect_json(
-                json!([
-                    [
-                        1520126228,
-                        "IPv4",
-                        "example.com",
-                        "client1",
-                        2,
-                        1
-                    ],
-                    [
-                        1520126406,
-                        "IPv6",
-                        "doubleclick.com",
-                        "client2",
-                        1,
-                        1
-                    ]
-                ])
-            )
+            .expect_json(json!([
+                [1520126228, "IPv4", "example.com", "client1", 2, 1],
+                [1520126406, "IPv6", "doubleclick.com", "client2", 1, 1]
+            ]))
             .test();
     }
 
@@ -230,18 +184,14 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/history?domain=example.com")
             .ftl("getallqueries-domain example.com", data)
-            .expect_json(
-                json!([
-                    [
-                        1520126228,
-                        "IPv4",
-                        "example.com",
-                        "client1",
-                        2,
-                        1
-                    ]
-                ])
-            )
+            .expect_json(json!([[
+                1520126228,
+                "IPv4",
+                "example.com",
+                "client1",
+                2,
+                1
+            ]]))
             .test();
     }
 
@@ -259,18 +209,14 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/history?client=client1")
             .ftl("getallqueries-client client1", data)
-            .expect_json(
-                json!([
-                    [
-                        1520126228,
-                        "IPv4",
-                        "example.com",
-                        "client1",
-                        2,
-                        1
-                    ]
-                ])
-            )
+            .expect_json(json!([[
+                1520126228,
+                "IPv4",
+                "example.com",
+                "client1",
+                2,
+                1
+            ]]))
             .test();
     }
 }

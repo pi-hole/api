@@ -11,7 +11,7 @@
 extern crate serde_json;
 
 use config::PiholeFile;
-use rocket::http::{Method, ContentType, Header, Status};
+use rocket::http::{ContentType, Header, Method, Status};
 use setup;
 use std::collections::HashMap;
 use std::fs::File;
@@ -32,7 +32,9 @@ pub struct TestEnvBuilder {
 impl TestEnvBuilder {
     /// Create a new `TestEnvBuilder`
     pub fn new() -> TestEnvBuilder {
-        TestEnvBuilder { test_files: Vec::new() }
+        TestEnvBuilder {
+            test_files: Vec::new()
+        }
     }
 
     /// Add a file and verify that it does not change
@@ -91,8 +93,8 @@ impl TestEnvBuilder {
     }
 }
 
-/// Represents a mocked file along with the initial and expected data. The `T` generic is the type
-/// of temporary file, usually `NamedTempFile` or `File`.
+/// Represents a mocked file along with the initial and expected data. The `T`
+/// generic is the type of temporary file, usually `NamedTempFile` or `File`.
 struct TestFile<T> {
     pihole_file: PiholeFile,
     temp_file: T,
@@ -117,7 +119,8 @@ impl<T> TestFile<T> {
     }
 }
 
-/// Represents a test configuration, with all the data needed to carry out the test
+/// Represents a test configuration, with all the data needed to carry out the
+/// test
 pub struct TestBuilder {
     endpoint: String,
     method: Method,
@@ -189,8 +192,9 @@ impl TestBuilder {
         initial_data: &str,
         expected_data: &str
     ) -> Self {
-        self.test_config_builder = self.test_config_builder
-            .file_expect(pihole_file, initial_data, expected_data);
+        self.test_config_builder =
+            self.test_config_builder
+                .file_expect(pihole_file, initial_data, expected_data);
         self
     }
 
@@ -217,9 +221,7 @@ impl TestBuilder {
 
         // Add the authentication header
         if self.should_auth {
-            request.add_header(
-                Header::new("X-Pi-hole-Authenticate", "test_key")
-            );
+            request.add_header(Header::new("X-Pi-hole-Authenticate", "test_key"));
         }
 
         // Add the rest of the headers
@@ -258,7 +260,8 @@ impl TestBuilder {
         let mut buffer = String::new();
 
         // Get the file handles and expected data
-        let expected_data: Vec<(File, String)> = test_files.into_iter()
+        let expected_data: Vec<(File, String)> = test_files
+            .into_iter()
             .map(|test_file| (test_file.temp_file, test_file.expected_data))
             .collect();
 
