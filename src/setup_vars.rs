@@ -11,7 +11,7 @@
 use config::{Env, PiholeFile};
 use setup_validate::{validate_ftl_config, validate_setup_vars};
 use std::io::prelude::*;
-use std::io::BufReader;
+use std::io::{BufReader, BufWriter};
 use util::{Error, ErrorKind};
 
 /// Read in a value from setupVars.conf
