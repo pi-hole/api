@@ -1,16 +1,16 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Query History Over Time Endpoint
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Query History Over Time Endpoint
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
-use ftl::{FtlConnectionType, FtlConnection};
+use ftl::{FtlConnection, FtlConnectionType};
 use rocket::State;
-use util::{Reply, Error, reply_data};
+use util::{reply_data, Error, Reply};
 
 /// Get the query history over time (separated into blocked and not blocked)
 #[get("/stats/overTime/history")]
@@ -38,7 +38,10 @@ fn get_over_time_data(ftl: &mut FtlConnection) -> Result<Vec<TimeStep>, Error> {
     for _ in 0..map_len {
         let key = ftl.read_i32()?;
         let value = ftl.read_i32()?;
-        over_time.push(TimeStep { timestamp: key, count: value });
+        over_time.push(TimeStep {
+            timestamp: key,
+            count: value
+        });
     }
 
     Ok(over_time)
@@ -53,7 +56,7 @@ struct TimeStep {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestBuilder, write_eom};
+    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_over_time_history() {
@@ -73,30 +76,16 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/overTime/history")
             .ftl("overTime", data)
-            .expect_json(
-                json!({
-                    "domains_over_time": [
-                        {
-                            "timestamp": 1520126228,
-                            "count": 10
-                        },
-                        {
-                            "timestamp": 1520126406,
-                            "count": 20
-                        }
-                    ],
-                    "blocked_over_time": [
-                        {
-                            "timestamp": 1520126228,
-                            "count": 5
-                        },
-                        {
-                            "timestamp": 1520126406,
-                            "count": 5
-                        }
-                    ]
-                })
-            )
+            .expect_json(json!({
+                "domains_over_time": [
+                    { "timestamp": 1520126228, "count": 10 },
+                    { "timestamp": 1520126406, "count": 20 }
+                ],
+                "blocked_over_time": [
+                    { "timestamp": 1520126228, "count": 5 },
+                    { "timestamp": 1520126406, "count": 5 }
+                ]
+            }))
             .test();
     }
 }

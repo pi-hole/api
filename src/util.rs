@@ -1,27 +1,28 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  General API Utilities
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// General API Utilities
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
-use serde::Serialize;
-use rocket_contrib::{Json, Value};
-use rocket::{Request, Outcome};
-use rocket::request;
-use rocket::response::{self, Response, Responder};
+use failure::{Backtrace, Context, Fail};
 use rocket::http::Status;
-use std::fmt::{self, Display};
+use rocket::request;
+use rocket::response::{self, Responder, Response};
+use rocket::{Outcome, Request};
+use rocket_contrib::{Json, Value};
+use serde::Serialize;
 use std::env;
-use failure::{Context, Fail, Backtrace};
+use std::fmt::{self, Display};
 
 /// Type alias for the most common return type of the API methods
 pub type Reply = Result<SetStatus<Json<Value>>, Error>;
 
-/// The most general reply builder. It takes in data/errors and status to construct the JSON reply.
+/// The most general reply builder. It takes in data/errors and status to
+/// construct the JSON reply.
 pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
     let json_data = match data {
         ReplyType::Data(d) => json!(d),
@@ -44,27 +45,29 @@ pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
     Ok(SetStatus(Json(json_data), status))
 }
 
-/// Create a reply from some serializable data. The reply will contain no errors and will have a
-/// status code of 200.
+/// Create a reply from some serializable data. The reply will contain no
+/// errors and will have a status code of 200.
 pub fn reply_data<D: Serialize>(data: D) -> Reply {
     reply(ReplyType::Data(data), Status::Ok)
 }
 
-/// Create a reply with an error. The data will be an empty array and the status will taken from
-/// `error.status()`.
+/// Create a reply with an error. The data will be an empty array and the
+/// status will taken from `error.status()`.
 pub fn reply_error<E: Into<Error>>(error: E) -> Reply {
     let error = error.into();
     let status = error.status();
     reply::<()>(ReplyType::Error(error), status)
 }
 
-/// Create a reply with a successful status. There are no errors and the status is 200.
+/// Create a reply with a successful status. There are no errors and the status
+/// is 200.
 pub fn reply_success() -> Reply {
     reply(ReplyType::Data(json!({ "status": "success" })), Status::Ok)
 }
 
 pub enum ReplyType<D: Serialize> {
-    Data(D), Error(Error)
+    Data(D),
+    Error(Error)
 }
 
 /// Wraps `ErrorKind` to provide context via `Context`.
@@ -75,7 +78,8 @@ pub struct Error {
     inner: Context<ErrorKind>
 }
 
-/// The `ErrorKind` enum represents all the possible errors that the API can return.
+/// The `ErrorKind` enum represents all the possible errors that the API can
+/// return.
 #[derive(Clone, Eq, PartialEq, Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "Unknown error")]
@@ -110,7 +114,8 @@ impl Error {
     pub fn print_stacktrace(&self) {
         eprintln!("Error: {}", self);
 
-        // Only print the backtrace if requested, to avoid a gap between error and causes
+        // Only print the backtrace if requested, to avoid a gap between error and
+        // causes
         let backtrace_enabled = env::var("RUST_BACKTRACE").is_ok();
         if backtrace_enabled {
             if let Some(backtrace) = self.backtrace() {
@@ -120,7 +125,7 @@ impl Error {
 
         // Print out each cause
         for (i, cause) in self.causes().skip(1).enumerate() {
-            eprintln!("Cause #{}: {}", i+1, cause);
+            eprintln!("Cause #{}: {}", i + 1, cause);
 
             if backtrace_enabled {
                 if let Some(backtrace) = cause.backtrace() {
@@ -157,8 +162,8 @@ impl Error {
 }
 
 impl ErrorKind {
-    /// Get the error key. This should be used by clients to determine the error type instead of
-    /// using the message because it will not change.
+    /// Get the error key. This should be used by clients to determine the
+    /// error type instead of using the message because it will not change.
     pub fn key(&self) -> &'static str {
         match *self {
             ErrorKind::Unknown => "unknown",
@@ -215,7 +220,9 @@ impl Display for Error {
 
 impl From<ErrorKind> for Error {
     fn from(kind: ErrorKind) -> Error {
-        Error { inner: Context::new(kind) }
+        Error {
+            inner: Context::new(kind)
+        }
     }
 }
 
@@ -227,7 +234,8 @@ impl From<Context<ErrorKind>> for Error {
 
 impl<'r> Responder<'r> for Error {
     fn respond_to(self, request: &Request) -> response::Result<'r> {
-        // This allows us to automatically use `reply_error` when we return an Error in the API
+        // This allows us to automatically use `reply_error` when we return an Error in
+        // the API
         reply_error(self).unwrap().respond_to(request)
     }
 }

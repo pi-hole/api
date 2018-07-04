@@ -1,9 +1,19 @@
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Authentication Functions And Routes
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
+
+use rocket::http::{Cookie, Cookies};
+use rocket::outcome::IntoOutcome;
 use rocket::request::{self, FromRequest, Request, State};
 use rocket::Outcome;
-use rocket::outcome::IntoOutcome;
-use rocket::http::{Cookie, Cookies};
-use std::sync::atomic::{Ordering, AtomicUsize};
-use util::{Reply, Error, ErrorKind, reply_success};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use util::{reply_success, Error, ErrorKind, Reply};
 
 const USER_ATTR: &str = "user_id";
 const AUTH_HEADER: &str = "X-Pi-hole-Authenticate";
@@ -28,7 +38,9 @@ impl User {
 
         if auth_data.key_matches(input_key) {
             let user = auth_data.create_user();
-            request.cookies().add_private(Cookie::new(USER_ATTR, user.id.to_string()));
+            request
+                .cookies()
+                .add_private(Cookie::new(USER_ATTR, user.id.to_string()));
 
             Outcome::Success(user)
         } else {
@@ -41,7 +53,10 @@ impl User {
             .get_private(USER_ATTR)
             .and_then(|cookie| cookie.value().parse().ok())
             .map(|id| User { id })
-            .into_outcome((ErrorKind::Unauthorized.status(), Error::from(ErrorKind::Unauthorized)))
+            .into_outcome((
+                ErrorKind::Unauthorized.status(),
+                Error::from(ErrorKind::Unauthorized)
+            ))
     }
 
     fn logout(&self, mut cookies: Cookies) {
@@ -63,7 +78,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for User {
                 } else {
                     User::check_cookies(request.cookies())
                 }
-            },
+            }
             // No attempt to authenticate, so check cookies
             None => User::check_cookies(request.cookies())
         }
@@ -73,7 +88,10 @@ impl<'a, 'r> FromRequest<'a, 'r> for User {
 impl AuthData {
     /// Create a new API key
     pub fn new(key: String) -> AuthData {
-        AuthData { key, next_id: AtomicUsize::new(1) }
+        AuthData {
+            key,
+            next_id: AtomicUsize::new(1)
+        }
     }
 
     /// Check if the key matches the server's key
@@ -83,7 +101,9 @@ impl AuthData {
 
     /// Create a new user and increment `next_id`
     fn create_user(&self) -> User {
-        User { id: self.next_id.fetch_add(1, Ordering::Relaxed) }
+        User {
+            id: self.next_id.fetch_add(1, Ordering::Relaxed)
+        }
     }
 }
 
@@ -102,7 +122,7 @@ pub fn logout(user: User, cookies: Cookies) -> Reply {
 
 #[cfg(test)]
 mod test {
-    use rocket::http::{Status, Header};
+    use rocket::http::{Header, Status};
     use testing::TestBuilder;
 
     #[test]
@@ -136,7 +156,10 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/auth")
             .should_auth(false)
-            .header(Header::new("X-Pi-hole-Authenticate", "obviously_not_correct"))
+            .header(Header::new(
+                "X-Pi-hole-Authenticate",
+                "obviously_not_correct"
+            ))
             .expect_status(Status::Unauthorized)
             .expect_json(json!({
                 "error": {

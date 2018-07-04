@@ -1,16 +1,16 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Functions related to the setupVars.conf file
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Functions For SetupVars Configuration
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
 use config::{Env, PiholeFile};
-use std::io::BufReader;
 use std::io::prelude::*;
+use std::io::BufReader;
 use util::Error;
 
 /// Read in a value from setupVars.conf
@@ -35,7 +35,7 @@ pub fn read_setup_vars(entry: &str, env: &Env) -> Result<Option<String>, Error> 
                     .next()
                     .and_then(|item| if item.len() == 0 { None } else { Some(item) })
                     .map(|item| item.to_owned())
-            )
+            );
         }
     }
 

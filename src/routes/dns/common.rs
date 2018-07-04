@@ -1,19 +1,19 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Common functions for DNS endpoints
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Common Functions For DNS Endpoints
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
 use config::Env;
 use failure::ResultExt;
 use regex::Regex;
+use routes::dns::list::List;
 use std::process::{Command, Stdio};
 use util::{Error, ErrorKind};
-use routes::dns::list::List;
 
 /// Check if a domain is valid
 pub fn is_valid_domain(domain: &str) -> bool {

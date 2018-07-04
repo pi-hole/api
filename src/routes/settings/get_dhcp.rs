@@ -1,19 +1,19 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  DHCP configuration information
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// DHCP Configuration Settings
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
-use rocket::State;
-use setup_vars::read_setup_vars;
-use util::{Reply, reply_data};
-use config::{Env};
 use auth::User;
+use config::Env;
+use rocket::State;
 use routes::settings::common::as_bool;
+use setup_vars::read_setup_vars;
+use util::{reply_data, Reply};
 
 /// Get DHCP configuration
 #[get("/settings/dhcp")]
@@ -51,26 +51,24 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dhcp")
             .file(
-                PiholeFile::SetupVars, 
+                PiholeFile::SetupVars,
                 "DHCP_START=192.168.1.201\n\
-                DHCP_END=192.168.1.251\n\
-                DHCP_ROUTER=192.168.1.1\n\
-                DHCP_LEASETIME=24\n\
-                PIHOLE_DOMAIN=lan\n\
-                DHCP_IPv6=false\n\
-                DHCP_ACTIVE=false\n"
+                 DHCP_END=192.168.1.251\n\
+                 DHCP_ROUTER=192.168.1.1\n\
+                 DHCP_LEASETIME=24\n\
+                 PIHOLE_DOMAIN=lan\n\
+                 DHCP_IPv6=false\n\
+                 DHCP_ACTIVE=false\n"
             )
-            .expect_json(
-                json!({
-                    "active": false,
-                    "ip_start": "192.168.1.201",
-                    "ip_end": "192.168.1.251",
-                    "router_ip": "192.168.1.1",
-                    "lease_time": 24,
-                    "domain": "lan",
-                    "ipv6_support": false,
-                })
-            )
+            .expect_json(json!({
+                "active": false,
+                "ip_start": "192.168.1.201",
+                "ip_end": "192.168.1.251",
+                "router_ip": "192.168.1.1",
+                "lease_time": 24,
+                "domain": "lan",
+                "ipv6_support": false,
+            }))
             .test();
     }
 
@@ -80,17 +78,15 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dhcp")
             .file(PiholeFile::SetupVars, "")
-            .expect_json(
-                json!({
-                    "active": false,
-                    "ip_start": "",
-                    "ip_end": "",
-                    "router_ip": "",
-                    "lease_time": 24,
-                    "domain": "",
-                    "ipv6_support": false,
-                })
-            )
+            .expect_json(json!({
+                "active": false,
+                "ip_start": "",
+                "ip_end": "",
+                "router_ip": "",
+                "lease_time": 24,
+                "domain": "",
+                "ipv6_support": false,
+            }))
             .test();
     }
 }

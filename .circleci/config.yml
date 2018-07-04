@@ -39,6 +39,9 @@ version: 2
           mkdir web
           tar -xzf web.tar.gz -C web
     - run:
+        name: "Code Style Lint"
+        command: cargo fmt -- --check
+    - run:
         name: "Build"
         command: |
           time cargo build --release --target $TARGET

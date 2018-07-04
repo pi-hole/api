@@ -1,17 +1,17 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Top Clients Endpoints
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Top Clients Endpoints
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
+use auth::User;
 use ftl::FtlConnectionType;
 use rocket::State;
-use util::{Reply, ErrorKind, reply_data, reply_error};
-use auth::User;
+use util::{reply_data, reply_error, ErrorKind, Reply};
 
 /// Get the top clients with default parameters
 #[get("/stats/top_clients")]
@@ -21,7 +21,11 @@ pub fn top_clients(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
 
 /// Get the top clients with specified parameters
 #[get("/stats/top_clients?<params>")]
-pub fn top_clients_params(_auth: User, ftl: State<FtlConnectionType>, params: TopClientParams) -> Reply {
+pub fn top_clients_params(
+    _auth: User,
+    ftl: State<FtlConnectionType>,
+    params: TopClientParams
+) -> Reply {
     get_top_clients(&ftl, params)
 }
 
@@ -58,8 +62,16 @@ fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> Reply {
     let command = format!(
         "top-clients ({}){}{}",
         params.limit.unwrap_or(default_limit),
-        if params.inactive.unwrap_or(false) { " withzero" } else { "" },
-        if params.ascending.unwrap_or(false) { " asc" } else { "" }
+        if params.inactive.unwrap_or(false) {
+            " withzero"
+        } else {
+            ""
+        },
+        if params.ascending.unwrap_or(false) {
+            " asc"
+        } else {
+            ""
+        }
     );
 
     // Connect to FTL
@@ -104,7 +116,7 @@ fn get_top_clients(ftl: &FtlConnectionType, params: TopClientParams) -> Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestBuilder, write_eom};
+    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_top_clients() {
@@ -124,28 +136,14 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_clients")
             .ftl("top-clients (10)", data)
-            .expect_json(
-                json!({
-                    "top_clients": [
-                        {
-                            "name": "client1",
-                            "ip": "10.1.1.1",
-                            "count": 30
-                        },
-                        {
-                            "name": "",
-                            "ip": "10.1.1.2",
-                            "count": 20
-                        },
-                        {
-                            "name": "client3",
-                            "ip": "10.1.1.3",
-                            "count": 10
-                        }
-                    ],
-                    "total_queries": 100
-                })
-            )
+            .expect_json(json!({
+                "top_clients": [
+                    { "name": "client1", "ip": "10.1.1.1", "count": 30 },
+                    { "name": "",        "ip": "10.1.1.2", "count": 20 },
+                    { "name": "client3", "ip": "10.1.1.3", "count": 10 }
+                ],
+                "total_queries": 100
+            }))
             .test();
     }
 
@@ -164,23 +162,13 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_clients?limit=2")
             .ftl("top-clients (2)", data)
-            .expect_json(
-                json!({
-                    "top_clients": [
-                        {
-                            "name": "client1",
-                            "ip": "10.1.1.1",
-                            "count": 30
-                        },
-                        {
-                            "name": "",
-                            "ip": "10.1.1.2",
-                            "count": 20
-                        }
-                    ],
-                    "total_queries": 100
-                })
-            )
+            .expect_json(json!({
+                "top_clients": [
+                    { "name": "client1", "ip": "10.1.1.1", "count": 30 },
+                    { "name": "",        "ip": "10.1.1.2", "count": 20 }
+                ],
+                "total_queries": 100
+            }))
             .test();
     }
 }

@@ -1,17 +1,17 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Clients Endpoint
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Clients Endpoint
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
+use auth::User;
 use ftl::FtlConnectionType;
 use rocket::State;
-use util::{Reply, Error, ErrorKind, reply_data, reply_error};
-use auth::User;
+use util::{reply_data, reply_error, Error, ErrorKind, Reply};
 
 /// Get the names of clients
 #[get("/stats/clients")]
@@ -61,7 +61,7 @@ pub struct Client {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestBuilder, write_eom};
+    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_clients() {
@@ -77,22 +77,11 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/clients")
             .ftl("client-names", data)
-            .expect_json(
-                json!([
-                    {
-                        "name": "client1",
-                        "ip": "10.1.1.1"
-                    },
-                    {
-                        "name": "",
-                        "ip": "10.1.1.2"
-                    },
-                    {
-                        "name": "client3",
-                        "ip": "10.1.1.3"
-                    }
-                ])
-            )
+            .expect_json(json!([
+                { "name": "client1", "ip": "10.1.1.1" },
+                { "name": "",        "ip": "10.1.1.2" },
+                { "name": "client3", "ip": "10.1.1.3" }
+            ]))
             .test();
     }
 }

@@ -7,3 +7,5 @@ RUN apt-get update && \
     export PATH="/root/.cargo/bin:$PATH"
 
 ENV PATH="/root/.cargo/bin:$PATH"
+
+RUN rustup component add rustfmt-preview

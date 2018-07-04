@@ -1,17 +1,17 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Query Types Endpoint
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Query Types Endpoint
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
+use auth::User;
 use ftl::FtlConnectionType;
 use rocket::State;
-use util::{Reply, ErrorKind, reply_data, reply_error};
-use auth::User;
+use util::{reply_data, reply_error, ErrorKind, Reply};
 
 /// Get the query types
 #[get("/stats/query_types")]
@@ -55,7 +55,7 @@ struct QueryType {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestBuilder, write_eom};
+    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_query_types() {
@@ -79,38 +79,15 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/query_types")
             .ftl("querytypes", data)
-            .expect_json(
-                json!([
-                    {
-                        "name": "A (IPv4)",
-                        "percent": 0.10000000149011612
-                    },
-                    {
-                        "name": "AAAA (IPv6)",
-                        "percent": 0.20000000298023225
-                    },
-                    {
-                        "name": "ANY",
-                        "percent": 0.30000001192092898
-                    },
-                    {
-                        "name": "SRV",
-                        "percent": 0.4000000059604645
-                    },
-                    {
-                        "name": "SOA",
-                        "percent": 0.5
-                    },
-                    {
-                        "name": "PTR",
-                        "percent": 0.6000000238418579
-                    },
-                    {
-                        "name": "TXT",
-                        "percent": 0.699999988079071
-                    }
-                ])
-            )
+            .expect_json(json!([
+                { "name": "A (IPv4)", "percent": 0.10000000149011612 },
+                { "name": "AAAA (IPv6)", "percent": 0.20000000298023225 },
+                { "name": "ANY", "percent": 0.30000001192092898 },
+                { "name": "SRV", "percent": 0.4000000059604645 },
+                { "name": "SOA", "percent": 0.5 },
+                { "name": "PTR", "percent": 0.6000000238418579 },
+                { "name": "TXT", "percent": 0.699999988079071 }
+            ]))
             .test();
     }
 }
