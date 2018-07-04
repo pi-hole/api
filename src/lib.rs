@@ -36,8 +36,8 @@ mod config;
 mod ftl;
 mod routes;
 mod setup;
-mod setup_vars;
 mod setup_validate;
+mod setup_vars;
 mod util;
 
 #[cfg(test)]

@@ -2,11 +2,11 @@
 // (c) 2018 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
-//  API
-//  Validation tests for SetupVars & FTL Configuration
+// API
+// Validation tests for SetupVars & FTL Configuration
 //
-//  This file is copyright under the latest version of the EUPL.
-//  Please see LICENSE file for your rights under this license. */
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
 use regex::Regex;
 
@@ -18,82 +18,92 @@ pub fn validate_setup_vars(entry: &str, setting: &str) -> bool {
         "PIHOLE_INTERFACE" => {
             let domain = Regex::new(r"^([a-zA-Z]|[a-zA-Z0-9][a-zA-Z0-9]*[a-zA-Z0-9])$").unwrap();
             domain.is_match(&setting)
-        },
+        }
         // Alphanumeric (or hyphenated) word (or null string)
         "CONDITIONAL_FORWARDING_DOMAIN" | "PIHOLE_DOMAIN" => {
-            if setting == "" { return true };
-            let domain = Regex::new(r"^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])$").unwrap();
+            if setting == "" {
+                return true;
+            };
+            let domain =
+                Regex::new(r"^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])$").unwrap();
             domain.is_match(&setting)
-        },
+        }
         // Booleans (or null string)
-        "API_PRIVACY_MODE" | "CONDITIONAL_FORWARDING" |
-        "DHCP_ACTIVE" | "DHCP_IPv6" | "DNS_BOGUS_PRIV" | "DNS_FQDN_REQUIRED" |
-        "DNSSEC" | "INSTALL_WEB_INTERFACE" | "INSTALL_WEB_SERVER" | "QUERY_LOGGING" |
-        "WEB_ENABLED" => { // WEB_ENABLED as replacement for LIGHTTPD_ENABLED
+        "API_PRIVACY_MODE"
+        | "CONDITIONAL_FORWARDING"
+        | "DHCP_ACTIVE"
+        | "DHCP_IPv6"
+        | "DNS_BOGUS_PRIV"
+        | "DNS_FQDN_REQUIRED"
+        | "DNSSEC"
+        | "INSTALL_WEB_INTERFACE"
+        | "INSTALL_WEB_SERVER"
+        | "QUERY_LOGGING"
+        | "WEB_ENABLED" => {
+            // WEB_ENABLED as replacement for LIGHTTPD_ENABLED
             match setting {
-                "true"|"false"|"" => true,
+                "true" | "false" | "" => true,
                 _ => false
             }
-        },
+        }
         // Integer - One to four digits
         "DHCP_LEASETIME" => {
             let lease_time = Regex::new(r"^\d{1,4}$").unwrap();
             lease_time.is_match(&setting)
-        },
+        }
         // IPv4 - 4 octets (or null string)
-        "DHCP_END" | "DHCP_ROUTER" | "DHCP_START" | 
-        "CONDITIONAL_FORWARDING_IP" => {
-            if setting == "" { return true };
+        "DHCP_END" | "DHCP_ROUTER" | "DHCP_START" | "CONDITIONAL_FORWARDING_IP" => {
+            if setting == "" {
+                return true;
+            };
             let ipv4 = Regex::new(r"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$").unwrap();
             ipv4.is_match(&setting)
-        },
+        }
         // IPv4 - 4 octets, with mask
-        "IPV4_ADDRESS" => { 
+        "IPV4_ADDRESS" => {
             let ipv4 = Regex::new(r"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/[0-9]+$").unwrap();
             ipv4.is_match(&setting)
-        },
+        }
         // IPv6 addresses (or null string)
         "IPV6_ADDRESS" => {
-            if setting == "" { return true };
+            if setting == "" {
+                return true;
+            };
             let ipv6 = Regex::new(r"^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))").unwrap();
             ipv6.is_match(&setting)
-        },
+        }
         // Specific test - Query logging options
-        "API_QUERY_LOG_SHOW" => {
-            match setting {
-                "all"|"" => return true,
-                _ => return false
-            }
+        "API_QUERY_LOG_SHOW" => match setting {
+            "all" | "" => return true,
+            _ => return false
         },
         // Specific test - Conditional forwarding reverse domain
         "CONDITIONAL_FORWARDING_REVERSE" => {
-            let reverse = Regex::new(r"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}([a-zA-Z0-9\-\.])+$").unwrap();
-                reverse.is_match(&setting)
-            },
+            let reverse = Regex::new(
+                r"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}([a-zA-Z0-9\-\.])+$"
+            ).unwrap();
+            reverse.is_match(&setting)
+        }
         // Specific test - Dnsmasq listening options
-        "DNSMASQ_LISTENING" => {
-            match setting {
-                "all"|"lan"|"single"|"" => return true,
-                _ => return false
-            }
+        "DNSMASQ_LISTENING" => match setting {
+            "all" | "lan" | "single" | "" => return true,
+            _ => return false
         },
         // Specific test - Boxed Layout
-        "WEBUIBOXEDLAYOUT" => {
-            match setting {
-                "boxed"|"" => return true,
-                _ => return false
-            }
+        "WEBUIBOXEDLAYOUT" => match setting {
+            "boxed" | "" => return true,
+            _ => return false
         },
         // Webpassword prohibited
-        "WEBPASSWORD" => false, 
+        "WEBPASSWORD" => false,
         _ => {
             let pihole_dns = Regex::new(r"^PIHOLE_DNS_[0-9]+$").unwrap();
-            // IPv4 address, unmasked.  
+            // IPv4 address, unmasked.
             if pihole_dns.is_match(&entry) {
                 let ipv4 = Regex::new(r"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$").unwrap();
-                return ipv4.is_match(&setting)
+                return ipv4.is_match(&setting);
             }
-            false 
+            false
         }
     }
 }
@@ -103,59 +113,64 @@ pub fn validate_setup_vars(entry: &str, setting: &str) -> bool {
 pub fn validate_ftl_config(entry: &str, setting: &str) -> bool {
     match entry {
         // yes or no will do
-        "AAAA_QUERY_ANALYSIS" | "IGNORE_LOCALHOST" | "RESOLVE_IPV4" |
-        "RESOLVE_IPV6" | "QUERY_DISPLAY" => { 
-            match setting {
-                "yes"|"no" => true,
-                _ => false
-            }
+        "AAAA_QUERY_ANALYSIS"
+        | "IGNORE_LOCALHOST"
+        | "RESOLVE_IPV4"
+        | "RESOLVE_IPV6"
+        | "QUERY_DISPLAY" => match setting {
+            "yes" | "no" => true,
+            _ => false
         },
         // Specific to BLOCKINGMODE
-        "BLOCKINGMODE" => { 
-            match setting {
-                "NULL"|"IP-AAAA-NODATA"|"IP"|"NXDOMAIN" => true,
-                _ => false
-            }
+        "BLOCKINGMODE" => match setting {
+            "NULL" | "IP-AAAA-NODATA" | "IP" | "NXDOMAIN" => true,
+            _ => false
         },
         // Filename (or null)
         "DBFILE" => {
-            if setting == "" { return true };
+            if setting == "" {
+                return true;
+            };
             // Filename regex here
             let filename = Regex::new(r"^(/(\S)+)+$").unwrap();
-            if filename.is_match(&setting) { return true };
+            if filename.is_match(&setting) {
+                return true;
+            };
             false
-        },
+        }
         // Decimal
         "DBINTERVAL" | "MAXLOGAGE" => {
             let decimal = Regex::new(r"^(\d)+(\.)?(\d)*$").unwrap();
-            if decimal.is_match(&setting) { return true };
-            false 
-        },
+            if decimal.is_match(&setting) {
+                return true;
+            };
+            false
+        }
         // Integer
         "MAXDBDAYS" => {
             let intnum = Regex::new(r"^(\d)+$").unwrap();
-            if intnum.is_match(&setting) { return true };
+            if intnum.is_match(&setting) {
+                return true;
+            };
             false
-        },
+        }
         // Port number (0-65535)
         "FTLPORT" => {
             let port = Regex::new(r"^((6553[0-5])|(655[0-2][0-9])|(65[0-4][0-9]{2})|(6[0-4][0-9]{3})|([1-5][0-9]{4})|([0-5]{0,5})|([0-9]{1,4}))$").unwrap();
-            if port.is_match(&setting) { return true };
+            if port.is_match(&setting) {
+                return true;
+            };
             false
-        },
+        }
         // Specific to PRIVACYLEVEL
-        "PRIVACYLEVEL" => { 
-            match setting {
-                "0"|"1"|"2"|"3" => true,
-                _ => false
-            }
+        "PRIVACYLEVEL" => match setting {
+            "0" | "1" | "2" | "3" => true,
+            _ => false
         },
         // Specific to SOCKET_LISTENING
-        "SOCKET_LISTENING" => {
-            match setting {
-                "localonly"|"all" => true,
-                _ => false
-            }
+        "SOCKET_LISTENING" => match setting {
+            "localonly" | "all" => true,
+            _ => false
         },
         _ => false
     }
@@ -163,7 +178,7 @@ pub fn validate_ftl_config(entry: &str, setting: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use setup_validate::{validate_setup_vars, validate_ftl_config};
+    use setup_validate::{validate_ftl_config, validate_setup_vars};
 
     #[test]
     fn test_validate_setup_vars_valid() {
@@ -176,7 +191,11 @@ mod tests {
             ("CONDITIONAL_FORWARDING", "true", true),
             ("CONDITIONAL_FORWARDING_DOMAIN", "hub", true),
             ("CONDITIONAL_FORWARDING_IP", "192.168.1.1", true),
-            ("CONDITIONAL_FORWARDING_REVERSE", "1.168.192.in-addr.arpa", true),
+            (
+                "CONDITIONAL_FORWARDING_REVERSE",
+                "1.168.192.in-addr.arpa",
+                true
+            ),
             ("DHCP_ACTIVE", "false", true),
             ("DHCP_END", "199.199.1.255", true),
             ("DHCP_IPv6", "false", true),
@@ -213,7 +232,11 @@ mod tests {
             ("CONDITIONAL_FORWARDING", "disabled", false),
             ("CONDITIONAL_FORWARDING_DOMAIN", "%%@)#", false),
             ("CONDITIONAL_FORWARDING_IP", "192.1.1", false),
-            ("CONDITIONAL_FORWARDING_REVERSE", "in-addr.arpa.1.1.1", false),
+            (
+                "CONDITIONAL_FORWARDING_REVERSE",
+                "in-addr.arpa.1.1.1",
+                false
+            ),
             ("DHCP_ACTIVE", "active", false),
             ("DHCP_END", "2001:470:66:d5f:114b:a1b9:2a13:c7d9", false),
             ("DHCP_IPv6", "ipv4", false),
@@ -241,9 +264,15 @@ mod tests {
 
     #[test]
     fn test_validate_setup_vars_disabled() {
-        // Disabled / disallowed options 
+        // Disabled / disallowed options
         // Webpassword disallowed - must report false.
-        assert_eq!(validate_setup_vars("WEBPASSWORD", "B350486529B6022919491965A235157110B12437514315201184143ABBB37A14"), false);
+        assert_eq!(
+            validate_setup_vars(
+                "WEBPASSWORD",
+                "B350486529B6022919491965A235157110B12437514315201184143ABBB37A14"
+            ),
+            false
+        );
     }
 
     #[test]
