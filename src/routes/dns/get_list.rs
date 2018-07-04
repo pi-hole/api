@@ -1,17 +1,17 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Endpoints for reading domain lists
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Endpoints For Reading Domain Lists
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
 use config::Env;
-use routes::dns::list::List;
 use rocket::State;
-use util::{Reply, reply_data};
+use routes::dns::list::List;
+use util::{reply_data, Reply};
 
 /// Get the Whitelist domains
 #[get("/dns/whitelist")]
@@ -41,12 +41,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/dns/whitelist")
             .file(PiholeFile::Whitelist, "example.com\nexample.net\n")
-            .expect_json(
-                json!([
-                    "example.com",
-                    "example.net"
-                ])
-            )
+            .expect_json(json!(["example.com", "example.net"]))
             .test();
     }
 
@@ -55,12 +50,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/dns/blacklist")
             .file(PiholeFile::Blacklist, "example.com\nexample.net\n")
-            .expect_json(
-                json!([
-                    "example.com",
-                    "example.net"
-                ])
-            )
+            .expect_json(json!(["example.com", "example.net"]))
             .test();
     }
 
@@ -69,12 +59,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/dns/regexlist")
             .file(PiholeFile::Regexlist, "^.*example.com$\nexample.net\n")
-            .expect_json(
-                json!([
-                    "^.*example.com$",
-                    "example.net"
-                ])
-            )
+            .expect_json(json!(["^.*example.com$", "example.net"]))
             .test();
     }
 }

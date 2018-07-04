@@ -1,27 +1,28 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Environment Structure
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Environment Structure
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
+use config::Config;
+use config::PiholeFile;
+use failure::ResultExt;
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
-use config::Config;
-use config::PiholeFile;
-use util::{Error, ErrorKind};
-use failure::ResultExt;
 use tempfile::NamedTempFile;
+use util::{Error, ErrorKind};
 
-/// Environment of the Pi-hole API. Stores the config and abstracts away some systems to make
-/// testing easier.
+/// Environment of the Pi-hole API. Stores the config and abstracts away some
+/// systems to make testing easier.
 pub enum Env {
-    Production(Config), Test(Config, HashMap<PiholeFile, NamedTempFile>)
+    Production(Config),
+    Test(Config, HashMap<PiholeFile, NamedTempFile>)
 }
 
 impl Env {
@@ -48,32 +49,23 @@ impl Env {
                 File::open(file_location)
                     .context(ErrorKind::FileRead(file_location.to_owned()))
                     .map_err(Error::from)
-            },
-            Env::Test(_, ref map) => {
-                match map.get(&file) {
-                    Some(data) => data,
-                    None => return Err(ErrorKind::NotFound.into())
-                }
-                    .reopen()
-                    .context(ErrorKind::Unknown)
-                    .map_err(Error::from)
             }
+            Env::Test(_, ref map) => match map.get(&file) {
+                Some(data) => data,
+                None => return Err(ErrorKind::NotFound.into())
+            }.reopen()
+                .context(ErrorKind::Unknown)
+                .map_err(Error::from)
         }
     }
 
-    /// Open a file for writing. If `append` is false, the file will be truncated.
-    pub fn write_file(
-        &self,
-        file: PiholeFile,
-        append: bool
-    ) -> Result<File, Error> {
+    /// Open a file for writing. If `append` is false, the file will be
+    /// truncated.
+    pub fn write_file(&self, file: PiholeFile, append: bool) -> Result<File, Error> {
         match *self {
             Env::Production(_) => {
                 let mut open_options = OpenOptions::new();
-                open_options
-                    .create(true)
-                    .write(true)
-                    .mode(0o644);
+                open_options.create(true).write(true).mode(0o644);
 
                 if append {
                     open_options.append(true);
@@ -82,21 +74,20 @@ impl Env {
                 }
 
                 let file_location = self.file_location(file);
-                open_options.open(file_location)
+                open_options
+                    .open(file_location)
                     .context(ErrorKind::FileWrite(file_location.to_owned()))
                     .map_err(Error::from)
-            },
+            }
             Env::Test(_, ref map) => {
                 let file = match map.get(&file) {
                     Some(data) => data,
                     None => return Err(ErrorKind::NotFound.into())
-                }
-                    .reopen()
+                }.reopen()
                     .context(ErrorKind::Unknown)?;
 
                 if !append {
-                    file.set_len(0)
-                        .context(ErrorKind::Unknown)?;
+                    file.set_len(0).context(ErrorKind::Unknown)?;
                 }
 
                 Ok(file)
@@ -108,12 +99,8 @@ impl Env {
     #[allow(unused)]
     pub fn file_exists(&self, file: PiholeFile) -> bool {
         match *self {
-            Env::Production(_) => {
-                Path::new(self.file_location(file)).is_file()
-            },
-            Env::Test(_, ref map) => {
-                map.contains_key(&file)
-            }
+            Env::Production(_) => Path::new(self.file_location(file)).is_file(),
+            Env::Test(_, ref map) => map.contains_key(&file)
         }
     }
 

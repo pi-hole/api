@@ -8,3 +8,5 @@ RUN apt-get update && \
     rustup target add i686-unknown-linux-gnu
 
 ENV PATH="/root/.cargo/bin:$PATH"
+
+RUN rustup component add rustfmt-preview

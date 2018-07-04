@@ -1,17 +1,17 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Top Domains/Blocked Endpoints
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Top Domains/Blocked Endpoints
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
+use auth::User;
 use ftl::FtlConnectionType;
 use rocket::State;
-use util::{Reply, ErrorKind, reply_data, reply_error};
-use auth::User;
+use util::{reply_data, reply_error, ErrorKind, Reply};
 
 /// Return the top domains with default parameters
 #[get("/stats/top_domains")]
@@ -37,12 +37,13 @@ pub fn top_blocked_params(_auth: User, ftl: State<FtlConnectionType>, params: To
     get_top_domains(&ftl, true, params)
 }
 
-/// Represents the possible GET parameters on `/stats/top_domains` and `/stats/top_blocked`
+/// Represents the possible GET parameters on `/stats/top_domains` and
+/// `/stats/top_blocked`
 #[derive(FromForm)]
 pub struct TopParams {
     limit: Option<usize>,
     audit: Option<bool>,
-    ascending: Option<bool>,
+    ascending: Option<bool>
 }
 
 impl Default for TopParams {
@@ -51,7 +52,7 @@ impl Default for TopParams {
         TopParams {
             limit: Some(10),
             audit: Some(false),
-            ascending: Some(false),
+            ascending: Some(false)
         }
     }
 }
@@ -130,7 +131,7 @@ fn get_top_domains(ftl: &FtlConnectionType, blocked: bool, params: TopParams) ->
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestBuilder, write_eom};
+    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_top_domains() {
@@ -145,21 +146,19 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains")
             .ftl("top-domains (10)", data)
-            .expect_json(
-                json!({
-                    "top_domains": [
-                        {
-                            "domain": "example.com",
-                            "count": 7
-                        },
-                        {
-                            "domain": "example.net",
-                            "count": 3
-                        }
-                    ],
-                    "total_queries": 10
-                })
-            )
+            .expect_json(json!({
+                "top_domains": [
+                    {
+                        "domain": "example.com",
+                        "count": 7
+                    },
+                    {
+                        "domain": "example.net",
+                        "count": 3
+                    }
+                ],
+                "total_queries": 10
+            }))
             .test();
     }
 
@@ -174,17 +173,15 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains?limit=1")
             .ftl("top-domains (1)", data)
-            .expect_json(
-                json!({
-                    "top_domains": [
-                        {
-                            "domain": "example.com",
-                            "count": 7
-                        }
-                    ],
-                    "total_queries": 10
-                })
-            )
+            .expect_json(json!({
+                "top_domains": [
+                    {
+                        "domain": "example.com",
+                        "count": 7
+                    }
+                ],
+                "total_queries": 10
+            }))
             .test();
     }
 }

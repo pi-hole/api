@@ -1,17 +1,17 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Unknown Queries Endpoint
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Unknown Queries Endpoint
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
+use auth::User;
 use ftl::FtlConnectionType;
 use rocket::State;
-use util::{Reply, ErrorKind, reply_data, reply_error};
-use auth::User;
+use util::{reply_data, reply_error, ErrorKind, Reply};
 
 /// Represents a query returned in `/stats/unknown_queries`
 #[derive(Serialize)]
@@ -50,13 +50,7 @@ pub fn unknown_queries(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
         let complete = con.read_bool()?;
 
         queries.push(UnknownQuery(
-            timestamp,
-            id,
-            query_type,
-            domain,
-            client,
-            status,
-            complete,
+            timestamp, id, query_type, domain, client, status, complete,
         ));
     }
 
@@ -66,7 +60,7 @@ pub fn unknown_queries(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
 #[cfg(test)]
 mod test {
     use rmp::encode;
-    use testing::{TestBuilder, write_eom};
+    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_unknown_queries() {
@@ -90,28 +84,10 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/unknown_queries")
             .ftl("unknown", data)
-            .expect_json(
-                json!([
-                    [
-                        1520126228,
-                        0,
-                        "IPv4",
-                        "example.com",
-                        "client1",
-                        2,
-                        false
-                    ],
-                    [
-                        1520126406,
-                        1,
-                        "IPv6",
-                        "doubleclick.com",
-                        "client2",
-                        1,
-                        true
-                    ]
-                ])
-            )
+            .expect_json(json!([
+                [1520126228, 0, "IPv4", "example.com", "client1", 2, false],
+                [1520126406, 1, "IPv6", "doubleclick.com", "client2", 1, true]
+            ]))
             .test();
     }
 }

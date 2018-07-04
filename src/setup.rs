@@ -1,26 +1,26 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Server Setup Functions
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Server Setup Functions
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
 use auth::{self, AuthData};
-use config::{Env, PiholeFile, Config};
+use config::{Config, Env, PiholeFile};
 use ftl::FtlConnectionType;
 use rocket;
 use rocket::config::{ConfigBuilder, Environment};
 use rocket::local::Client;
-use rocket_cors::{Cors};
-use setup_vars::read_setup_vars;
+use rocket_cors::Cors;
 use routes::{dns, settings, stats, version, web};
+use setup_vars::read_setup_vars;
 use std::collections::HashMap;
+use tempfile::NamedTempFile;
 use toml;
 use util::{Error, ErrorKind};
-use tempfile::NamedTempFile;
 
 const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
 
@@ -46,7 +46,8 @@ pub fn start() -> Result<(), Error> {
                 .address(env.config().address())
                 .port(env.config().port() as u16)
                 .log_level(env.config().log_level())
-                .finalize().unwrap(),
+                .finalize()
+                .unwrap(),
             // TODO: Add option to turn off logs
             true
         ),
@@ -68,7 +69,7 @@ pub fn test(
             ConfigBuilder::new(Environment::Development)
                 .finalize()
                 .unwrap(),
-            false,
+            false
         ),
         FtlConnectionType::Test(ftl_data),
         Env::Test(toml::from_str("").unwrap(), env_data),

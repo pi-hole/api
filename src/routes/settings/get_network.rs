@@ -1,19 +1,19 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Local network information
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Local Network Settings
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
+use auth::User;
+use config::Env;
+use hostname::get_hostname;
 use rocket::State;
 use setup_vars::read_setup_vars;
-use util::{Reply, reply_data};
-use config::{Env};
-use hostname::get_hostname;
-use auth::User;
+use util::{reply_data, Reply};
 
 /// Get Pi-hole local network information
 #[get("/settings/network")]
@@ -34,8 +34,8 @@ pub fn get_network(env: State<Env>, _auth: User) -> Reply {
 #[cfg(test)]
 mod test {
     use config::PiholeFile;
-    use testing::TestBuilder;
     use hostname::get_hostname;
+    use testing::TestBuilder;
 
     /// Basic test for reported settings
     #[test]
@@ -47,17 +47,15 @@ mod test {
             .file(
                 PiholeFile::SetupVars,
                 "IPV4_ADDRESS=192.168.1.205/24\n\
-                IPV6_ADDRESS=fd06:fb62:d251:9033:0:0:0:33\n\
-                PIHOLE_INTERFACE=eth0\n"
+                 IPV6_ADDRESS=fd06:fb62:d251:9033:0:0:0:33\n\
+                 PIHOLE_INTERFACE=eth0\n"
             )
-            .expect_json(
-                json!({
-                    "interface": "eth0",
-                    "ipv4_address": "192.168.1.205",
-                    "ipv6_address": "fd06:fb62:d251:9033:0:0:0:33",
-                    "hostname": current_host
-                })
-            )
+            .expect_json(json!({
+                "interface": "eth0",
+                "ipv4_address": "192.168.1.205",
+                "ipv6_address": "fd06:fb62:d251:9033:0:0:0:33",
+                "hostname": current_host
+            }))
             .test();
     }
 
@@ -71,17 +69,15 @@ mod test {
             .file(
                 PiholeFile::SetupVars,
                 "IPV4_ADDRESS=192.168.1.205/24\n\
-                IPV6_ADDRESS=\n\
-                PIHOLE_INTERFACE=eth0\n"
+                 IPV6_ADDRESS=\n\
+                 PIHOLE_INTERFACE=eth0\n"
             )
-            .expect_json(
-                json!({
-                    "interface": "eth0",
-                    "ipv4_address": "192.168.1.205",
-                    "ipv6_address": "",
-                    "hostname": current_host
-                })
-            )
+            .expect_json(json!({
+                "interface": "eth0",
+                "ipv4_address": "192.168.1.205",
+                "ipv6_address": "",
+                "hostname": current_host
+            }))
             .test();
     }
 }

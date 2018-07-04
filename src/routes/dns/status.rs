@@ -1,18 +1,18 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Blocking Status Endpoint
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Blocking Status Endpoint
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
 use config::{Env, PiholeFile};
-use std::io::{BufRead, BufReader};
-use std::fs::File;
 use rocket::State;
-use util::{Reply, reply_data};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+use util::{reply_data, Reply};
 
 /// Get the DNS blocking status
 #[get("/dns/status")]
@@ -24,12 +24,11 @@ pub fn status(env: State<Env>) -> Reply {
         Err(_) => "unknown"
     };
 
-    reply_data(json!({
-        "status": status
-    }))
+    reply_data(json!({ "status": status }))
 }
 
-/// Check a file for the `addn-hosts=/.../gravity.list` line and return the blocking status
+/// Check a file for the `addn-hosts=/.../gravity.list` line and return the
+/// blocking status
 fn check_for_gravity(file: File) -> &'static str {
     // Read the file through a buffer
     let reader = BufReader::new(file);
@@ -55,12 +54,11 @@ mod test {
     fn test_status_enabled() {
         TestBuilder::new()
             .endpoint("/admin/api/dns/status")
-            .file(PiholeFile::DnsmasqMainConfig, "addn-hosts=/etc/pihole/gravity.list")
-            .expect_json(
-                json!({
-                    "status": "enabled"
-                })
+            .file(
+                PiholeFile::DnsmasqMainConfig,
+                "addn-hosts=/etc/pihole/gravity.list"
             )
+            .expect_json(json!({ "status": "enabled" }))
             .test();
     }
 
@@ -68,12 +66,11 @@ mod test {
     fn test_status_disabled() {
         TestBuilder::new()
             .endpoint("/admin/api/dns/status")
-            .file(PiholeFile::DnsmasqMainConfig, "#addn-hosts=/etc/pihole/gravity.list")
-            .expect_json(
-                json!({
-                    "status": "disabled"
-                })
+            .file(
+                PiholeFile::DnsmasqMainConfig,
+                "#addn-hosts=/etc/pihole/gravity.list"
             )
+            .expect_json(json!({ "status": "disabled" }))
             .test();
     }
 
@@ -82,11 +79,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/dns/status")
             .file(PiholeFile::DnsmasqMainConfig, "random data...")
-            .expect_json(
-                json!({
-                    "status": "unknown"
-                })
-            )
+            .expect_json(json!({ "status": "unknown" }))
             .test();
     }
 }

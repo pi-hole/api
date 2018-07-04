@@ -1,20 +1,17 @@
-/* Pi-hole: A black hole for Internet advertisements
-*  (c) 2018 Pi-hole, LLC (https://pi-hole.net)
-*  Network-wide ad blocking via your own hardware.
-*
-*  API
-*  Functions related to the setupVars.conf file
-*  and the pihole-FTL.conf file
-*
-*  This file is copyright under the latest version of the EUPL.
-*  Please see LICENSE file for your rights under this license. */
+// Pi-hole: A black hole for Internet advertisements
+// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// Network-wide ad blocking via your own hardware.
+//
+// API
+// Functions For SetupVars & FTL Configuration
+//
+// This file is copyright under the latest version of the EUPL.
+// Please see LICENSE file for your rights under this license.
 
 use config::{Env, PiholeFile};
-use std::io::{BufReader, BufWriter};
 use std::io::prelude::*;
+use std::io::BufReader;
 use util::{Error, ErrorKind};
-//use util::reply_error;
-//use util::ErrorKind::Unknown;
 use setup_validate::{validate_setup_vars, validate_ftl_config};
 
 /// Read in a value from setupVars.conf
@@ -72,7 +69,7 @@ fn read_setup_file(entry: &str, env: &Env, piholesetupfile: PiholeFile) -> Resul
                     .next()
                     .and_then(|item| if item.len() == 0 { None } else { Some(item) })
                     .map(|item| item.to_owned())
-            )
+            );
         }
     }
     Ok(None)
