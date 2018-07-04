@@ -3,7 +3,7 @@
 *  Network-wide ad blocking via your own hardware.
 *
 *  API
-*  Validation tests for setupVars.conf entries
+*  Validation tests for setupVars.conf & pihole-FTL.conf entries
 *
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
@@ -12,7 +12,7 @@ use regex::Regex;
 
 /// Contains per entry checks for allowable values of setupVars.conf entries
 #[allow(unused)]
-pub fn validate_setupvars (entry: &str, setting: &str) -> bool {
+pub fn validate_setup_vars(entry: &str, setting: &str) -> bool {
     match entry {
         // Alphanumeric word
         "PIHOLE_INTERFACE" => {
@@ -86,30 +86,21 @@ pub fn validate_setupvars (entry: &str, setting: &str) -> bool {
         },
         // Webpassword prohibited
         "WEBPASSWORD" => false, 
-/* Is temperature going to be implemented? - disabled for the moment
-        // Unit options, or null
-        "TEMPERATUREUNIT" => {
-            match setting {
-                "C"|"F"|"K"|"" => return true,
-                _ => return false
-            }
-        } */
         _ => {
             let pihole_dns = Regex::new(r"^PIHOLE_DNS_[0-9]+$").unwrap();
             // IPv4 address, unmasked.  
             if pihole_dns.is_match(&entry) {
                 let ipv4 = Regex::new(r"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$").unwrap();
-                ipv4.is_match(&setting)
-                } else {
-                false 
+                return ipv4.is_match(&setting)
             }
+            false 
         }
     }
 }
 
 /// Contains per entry checks for allowable values of FTL.conf entries
 #[allow(unused)]
-pub fn validate_ftlconf (entry: &str, setting: &str) -> bool {
+pub fn validate_ftl_config(entry: &str, setting: &str) -> bool {
     match entry {
         // yes or no will do
         "AAAA_QUERY_ANALYSIS" | "IGNORE_LOCALHOST" | "RESOLVE_IPV4" |
@@ -130,26 +121,26 @@ pub fn validate_ftlconf (entry: &str, setting: &str) -> bool {
         "DBFILE" => {
             if setting == "" { return true };
             // Filename regex here
-            let filename = Regex::new(r"^(\/(\S)+)+$").unwrap();
-            if filename.is_match(&entry) { return true };
+            let filename = Regex::new(r"^(/(\S)+)+$").unwrap();
+            if filename.is_match(&setting) { return true };
             false
         },
         // Decimal
         "DBINTERVAL" | "MAXLOGAGE" => {
             let decimal = Regex::new(r"^(\d)+(\.)?(\d)*$").unwrap();
-            if decimal.is_match(&entry) { return true };
+            if decimal.is_match(&setting) { return true };
             false 
         },
         // Integer
         "MAXDBDAYS" => {
             let intnum = Regex::new(r"^(\d)+$").unwrap();
-            if intnum.is_match(&entry) { return true };
+            if intnum.is_match(&setting) { return true };
             false
         },
         // Port number (0-65535)
         "FTLPORT" => {
             let port = Regex::new(r"^((6553[0-5])|(655[0-2][0-9])|(65[0-4][0-9]{2})|(6[0-4][0-9]{3})|([1-5][0-9]{4})|([0-5]{0,5})|([0-9]{1,4}))$").unwrap();
-            if port.is_match(&entry) { return true };
+            if port.is_match(&setting) { return true };
             false
         },
         // Specific to PRIVACYLEVEL
@@ -172,102 +163,132 @@ pub fn validate_ftlconf (entry: &str, setting: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use setup_validate::{validate_setupvars, validate_ftlconf};
+    use setup_validate::{validate_setup_vars, validate_ftl_config};
 
     #[test]
-    fn test_validatesetupvars() {
-        // Acceptable parameters
-        assert_eq!(validate_setupvars("API_QUERY_LOG_SHOW","all"), true);
-        assert_eq!(validate_setupvars("API_PRIVACY_MODE","false"), true);
-        assert_eq!(validate_setupvars("DNS_BOGUS_PRIV","true"), true);
-        assert_eq!(validate_setupvars("DNS_FQDN_REQUIRED","true"), true);
-        assert_eq!(validate_setupvars("CONDITIONAL_FORWARDING","true"), true);
-        assert_eq!(validate_setupvars("CONDITIONAL_FORWARDING_DOMAIN","hub"), true);
-        assert_eq!(validate_setupvars("CONDITIONAL_FORWARDING_IP","192.168.1.1"), true);
-        assert_eq!(validate_setupvars("CONDITIONAL_FORWARDING_REVERSE","1.168.192.in-addr.arpa"), true);
-        assert_eq!(validate_setupvars("DHCP_ACTIVE","false"), true);
-        assert_eq!(validate_setupvars("DHCP_END","199.199.1.255"), true);
-        assert_eq!(validate_setupvars("DHCP_IPv6","false"), true);
-        assert_eq!(validate_setupvars("DHCP_LEASETIME","24"), true);
-        assert_eq!(validate_setupvars("DHCP_START","199.199.1.0"), true);
-        assert_eq!(validate_setupvars("DHCP_ROUTER","192.168.1.1"), true);
-        assert_eq!(validate_setupvars("DNSMASQ_LISTENING","all"), true);
-        assert_eq!(validate_setupvars("DNSSEC","false"), true);
-        assert_eq!(validate_setupvars("INSTALL_WEB_SERVER","true"), true);
-        assert_eq!(validate_setupvars("INSTALL_WEB_INTERFACE","true"), true);
-        assert_eq!(validate_setupvars("IPV4_ADDRESS","192.168.1.205/24"), true);
-        assert_eq!(validate_setupvars("IPV6_ADDRESS","2001:470:66:d5f:114b:a1b9:2a13:c7d9"), true);
-        assert_eq!(validate_setupvars("PIHOLE_DNS_1","8.8.8.8"), true);
-        assert_eq!(validate_setupvars("PIHOLE_DNS_2","8.8.4.4"), true);
-        assert_eq!(validate_setupvars("PIHOLE_DOMAIN","lan"), true);
-        assert_eq!(validate_setupvars("PIHOLE_INTERFACE","enp0s3"), true);
-        assert_eq!(validate_setupvars("QUERY_LOGGING","true"), true);
-        assert_eq!(validate_setupvars("WEBUIBOXEDLAYOUT","boxed"), true);
-        assert_eq!(validate_setupvars("WEB_ENABLED","false"), true);
-        // Nonsensical parameters
-        assert_eq!(validate_setupvars("API_QUERY_LOG_SHOW","41"), false);
-        assert_eq!(validate_setupvars("API_PRIVACY_MODE","off"), false);
-        assert_eq!(validate_setupvars("DNS_BOGUS_PRIV","on"), false);
-        assert_eq!(validate_setupvars("DNS_FQDN_REQUIRED","probably"), false);
-        assert_eq!(validate_setupvars("CONDITIONAL_FORWARDING","disabled"), false);
-        assert_eq!(validate_setupvars("CONDITIONAL_FORWARDING_DOMAIN","%%@)#"), false);
-        assert_eq!(validate_setupvars("CONDITIONAL_FORWARDING_IP","192.1.1"), false);
-        assert_eq!(validate_setupvars("CONDITIONAL_FORWARDING_REVERSE","in-addr.arpa.1.1.1"), false);
-        assert_eq!(validate_setupvars("DHCP_ACTIVE","active"), false);
-        assert_eq!(validate_setupvars("DHCP_END","2001:470:66:d5f:114b:a1b9:2a13:c7d9"), false);
-        assert_eq!(validate_setupvars("DHCP_IPv6","ipv4"), false);
-        assert_eq!(validate_setupvars("DHCP_LEASETIME","hours"), false);
-        assert_eq!(validate_setupvars("DHCP_START","199199.1.0"), false);
-        assert_eq!(validate_setupvars("DHCP_ROUTER","192.1681.1"), false);
-        assert_eq!(validate_setupvars("DNSMASQ_LISTENING","dnsmasq"), false);
-        assert_eq!(validate_setupvars("DNSSEC","enabled"), false);
-        assert_eq!(validate_setupvars("INSTALL_WEB_SERVER","yes"), false);
-        assert_eq!(validate_setupvars("INSTALL_WEB_INTERFACE","no"), false);
-        assert_eq!(validate_setupvars("IPV4_ADDRESS","192.168.1.205"), false);
-        assert_eq!(validate_setupvars("IPV6_ADDRESS","192.168.1.205"), false);
-        assert_eq!(validate_setupvars("PIHOLE_DNS_1","www.pi-hole.net"), false);
-        assert_eq!(validate_setupvars("PIHOLE_DNS_2","4.5"), false);
-        assert_eq!(validate_setupvars("PIHOLE_DOMAIN","too many words"), false);
-        assert_eq!(validate_setupvars("PIHOLE_INTERFACE","/dev/net/eth1"), false);
-        assert_eq!(validate_setupvars("QUERY_LOGGING","disabled"), false);
-        assert_eq!(validate_setupvars("WEBUIBOXEDLAYOUT","unboxed"), false);
-        assert_eq!(validate_setupvars("WEB_ENABLED","457"), false);
-        // Disabled / disallowed options - will report false.
-        // Webpassword disallowed
-        assert_eq!(validate_setupvars("WEBPASSWORD","B350486529B6022919491965A235157110B12437514315201184143ABBB37A14"), false);
-        // Temperatureunit is not enabled
-        assert_eq!(validate_setupvars("TEMPERATUREUNIT","K"), false);
+    fn test_validate_setup_vars_valid() {
+        let tests = [
+            // Acceptable parameters
+            ("API_QUERY_LOG_SHOW", "all", true),
+            ("API_PRIVACY_MODE", "false", true),
+            ("DNS_BOGUS_PRIV", "true", true),
+            ("DNS_FQDN_REQUIRED", "true", true),
+            ("CONDITIONAL_FORWARDING", "true", true),
+            ("CONDITIONAL_FORWARDING_DOMAIN", "hub", true),
+            ("CONDITIONAL_FORWARDING_IP", "192.168.1.1", true),
+            ("CONDITIONAL_FORWARDING_REVERSE", "1.168.192.in-addr.arpa", true),
+            ("DHCP_ACTIVE", "false", true),
+            ("DHCP_END", "199.199.1.255", true),
+            ("DHCP_IPv6", "false", true),
+            ("DHCP_LEASETIME", "24", true),
+            ("DHCP_START", "199.199.1.0", true),
+            ("DHCP_ROUTER", "192.168.1.1", true),
+            ("DNSMASQ_LISTENING", "all", true),
+            ("DNSSEC", "false", true),
+            ("INSTALL_WEB_SERVER", "true", true),
+            ("INSTALL_WEB_INTERFACE", "true", true),
+            ("IPV4_ADDRESS", "192.168.1.205/24", true),
+            ("IPV6_ADDRESS", "2001:470:66:d5f:114b:a1b9:2a13:c7d9", true),
+            ("PIHOLE_DNS_1", "8.8.8.8", true),
+            ("PIHOLE_DNS_2", "8.8.4.4", true),
+            ("PIHOLE_DOMAIN", "lan", true),
+            ("PIHOLE_INTERFACE", "enp0s3", true),
+            ("QUERY_LOGGING", "true", true),
+            ("WEBUIBOXEDLAYOUT", "boxed", true),
+            ("WEB_ENABLED", "false", true)
+        ];
+        for (setting, value, result) in tests.iter() {
+            assert_eq!(&validate_setup_vars(setting, value), result);
+        }
     }
 
     #[test]
-    fn test_validate_ftlconf() {
-        // Acceptable paramaters
-        assert_eq!(validate_ftlconf("SOCKET_LISTENING","localonly"), true);
-        assert_eq!(validate_ftlconf("QUERY_DISPLAY","yes"), true);
-        assert_eq!(validate_ftlconf("AAAA_QUERY_ANALYSIS","no"), true);
-        assert_eq!(validate_ftlconf("RESOLVE_IPV6","yes"), true);
-        assert_eq!(validate_ftlconf("RESOLVE_IPV4","no"), true);
-        assert_eq!(validate_ftlconf("MAXDBDAYS","3"), true);
-        assert_eq!(validate_ftlconf("DBINTERVAL","5.0"), true);
-        assert_eq!(validate_ftlconf("DBFILE","/etc/pihole/FTL.conf"), true);
-        assert_eq!(validate_ftlconf("MAXLOGAGE","8"), true);
-        assert_eq!(validate_ftlconf("FTLPORT","64738"), true);
-        assert_eq!(validate_ftlconf("PRIVACYLEVEL","2"), true);
-        assert_eq!(validate_ftlconf("IGNORE_LOCALHOST","yes"), true);
-        assert_eq!(validate_ftlconf("BLOCKINGMODE","NULL"), true);
-        // Nonsensical parameters
-        assert_eq!(validate_ftlconf("SOCKET_LISTENING","5"), false);
-        assert_eq!(validate_ftlconf("QUERY_DISPLAY","true"), false);
-        assert_eq!(validate_ftlconf("AAAA_QUERY_ANALYSIS",""), false);
-        assert_eq!(validate_ftlconf("RESOLVE_IPV6","-1"), false);
-        assert_eq!(validate_ftlconf("RESOLVE_IPV4","127.0.0.1"), false);
-        assert_eq!(validate_ftlconf("MAXDBDAYS","nine"), false);
-        assert_eq!(validate_ftlconf("DBINTERVAL","5.0.0"), false);
-        assert_eq!(validate_ftlconf("DBFILE","http://www.pi-hole.net"), false);
-        assert_eq!(validate_ftlconf("MAXLOGAGE","enabled"), false);
-        assert_eq!(validate_ftlconf("FTLPORT","any"), false);
-        assert_eq!(validate_ftlconf("PRIVACYLEVEL","high"), false);
-        assert_eq!(validate_ftlconf("IGNORE_LOCALHOST","127.0.0.1"), false);
-        assert_eq!(validate_ftlconf("BLOCKINGMODE","enabled"), false);
+    fn test_validate_setup_vars_invalid() {
+        let tests = [
+            // Nonsensical parameters
+            ("API_QUERY_LOG_SHOW", "41", false),
+            ("API_PRIVACY_MODE", "off", false),
+            ("DNS_BOGUS_PRIV", "on", false),
+            ("DNS_FQDN_REQUIRED", "probably", false),
+            ("CONDITIONAL_FORWARDING", "disabled", false),
+            ("CONDITIONAL_FORWARDING_DOMAIN", "%%@)#", false),
+            ("CONDITIONAL_FORWARDING_IP", "192.1.1", false),
+            ("CONDITIONAL_FORWARDING_REVERSE", "in-addr.arpa.1.1.1", false),
+            ("DHCP_ACTIVE", "active", false),
+            ("DHCP_END", "2001:470:66:d5f:114b:a1b9:2a13:c7d9", false),
+            ("DHCP_IPv6", "ipv4", false),
+            ("DHCP_LEASETIME", "hours", false),
+            ("DHCP_START", "199199.1.0", false),
+            ("DHCP_ROUTER", "192.1681.1", false),
+            ("DNSMASQ_LISTENING", "dnsmasq", false),
+            ("DNSSEC", "enabled", false),
+            ("INSTALL_WEB_SERVER", "yes", false),
+            ("INSTALL_WEB_INTERFACE", "no", false),
+            ("IPV4_ADDRESS", "192.168.1.205", false),
+            ("IPV6_ADDRESS", "192.168.1.205", false),
+            ("PIHOLE_DNS_1", "www.pi-hole.net", false),
+            ("PIHOLE_DNS_2", "4.5", false),
+            ("PIHOLE_DOMAIN", "too many words", false),
+            ("PIHOLE_INTERFACE", "/dev/net/eth1", false),
+            ("QUERY_LOGGING", "disabled", false),
+            ("WEBUIBOXEDLAYOUT", "unboxed", false),
+            ("WEB_ENABLED", "457", false)
+        ];
+        for (setting, value, result) in tests.iter() {
+            assert_eq!(&validate_setup_vars(setting, value), result);
+        }
+    }
+
+    #[test]
+    fn test_validate_setup_vars_disabled() {
+        // Disabled / disallowed options 
+        // Webpassword disallowed - must report false.
+        assert_eq!(validate_setup_vars("WEBPASSWORD", "B350486529B6022919491965A235157110B12437514315201184143ABBB37A14"), false);
+    }
+
+    #[test]
+    fn test_validate_ftl_conf_valid() {
+        let tests = [
+            // Acceptable paramaters
+            ("SOCKET_LISTENING", "localonly", true),
+            ("QUERY_DISPLAY", "yes", true),
+            ("AAAA_QUERY_ANALYSIS", "no", true),
+            ("RESOLVE_IPV6", "yes", true),
+            ("RESOLVE_IPV4", "no", true),
+            ("MAXDBDAYS", "3", true),
+            ("DBINTERVAL", "5.0", true),
+            ("DBFILE", "/etc/pihole/FTL.conf", true),
+            ("MAXLOGAGE", "8", true),
+            ("FTLPORT", "64738", true),
+            ("PRIVACYLEVEL", "2", true),
+            ("IGNORE_LOCALHOST", "yes", true),
+            ("BLOCKINGMODE", "NULL", true)
+        ];
+        for (setting, value, result) in tests.iter() {
+            assert_eq!(&validate_ftl_config(setting, value), result);
+        }
+    }
+
+    #[test]
+    fn test_validate_ftl_conf_invalid() {
+        let tests = [
+            // Nonsensical parameters
+            ("SOCKET_LISTENING", "5", false),
+            ("QUERY_DISPLAY", "true", false),
+            ("AAAA_QUERY_ANALYSIS", "", false),
+            ("RESOLVE_IPV6", "-1", false),
+            ("RESOLVE_IPV4", "127.0.0.1", false),
+            ("MAXDBDAYS", "nine", false),
+            ("DBINTERVAL", "5.0.0", false),
+            ("DBFILE", "http://www.pi-hole.net", false),
+            ("MAXLOGAGE", "enabled", false),
+            ("FTLPORT", "any", false),
+            ("PRIVACYLEVEL", "high", false),
+            ("IGNORE_LOCALHOST", "127.0.0.1", false),
+            ("BLOCKINGMODE", "enabled", false)
+        ];
+        for (setting, value, result) in tests.iter() {
+            assert_eq!(&validate_ftl_config(setting, value), result);
+        }
     }
 }

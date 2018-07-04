@@ -16,7 +16,7 @@ pub enum PiholeFile {
     Blacklist,
     Regexlist,
     SetupVars,
-    FTLConf,
+    FTLConfig,
     LocalVersions,
     LocalBranches
 }
@@ -30,7 +30,7 @@ impl PiholeFile {
             PiholeFile::Blacklist => "/etc/pihole/blacklist.txt",
             PiholeFile::Regexlist => "/etc/pihole/regex.list",
             PiholeFile::SetupVars => "/etc/pihole/setupVars.conf",
-            PiholeFile::FTLConf => "/etc/pihole/pihole-FTL.conf",
+            PiholeFile::FTLConfig => "/etc/pihole/pihole-FTL.conf",
             PiholeFile::LocalVersions => "/etc/pihole/localversions",
             PiholeFile::LocalBranches => "/etc/pihole/localbranches"
         }

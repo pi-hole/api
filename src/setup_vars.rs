@@ -12,8 +12,10 @@
 use config::{Env, PiholeFile};
 use std::io::{BufReader, BufWriter};
 use std::io::prelude::*;
-use util::{Error};
-use setup_validate::{validate_setupvars, validate_ftlconf};
+use util::{Error, ErrorKind};
+//use util::reply_error;
+//use util::ErrorKind::Unknown;
+use setup_validate::{validate_setup_vars, validate_ftl_config};
 
 /// Read in a value from setupVars.conf
 #[allow(unused)]
@@ -24,23 +26,27 @@ pub fn read_setup_vars(entry: &str, env: &Env) -> Result<Option<String>, Error> 
 /// Read in a value from pihole-FTL.conf
 #[allow(unused)]
 pub fn read_ftl_conf(entry: &str, env: &Env) -> Result<Option<String>, Error> {
-    read_setup_file(&entry, &env, PiholeFile::FTLConf)
+    read_setup_file(&entry, &env, PiholeFile::FTLConfig)
 }
 
 /// Write a value to setupVars.conf
 #[allow(unused)]
-pub fn write_setup_vars(entry: &str, setting: &str, env: &Env) -> Result<Option<String>, Error> {
+pub fn write_setup_vars(entry: &str, setting: &str, env: &Env) -> Result<(), Error> {
 //    if !validate_setupvars(&entry, &setting) { return Err("Invalid setting")};
-    if !validate_setupvars(&entry, &setting) { return Ok(Some("Invalid setting".to_owned())) };    
-    write_setup_file(&entry, &setting, &env, PiholeFile::SetupVars)
+    if validate_setup_vars(&entry, &setting) {
+        write_setup_file(&entry, &setting, &env, PiholeFile::SetupVars)
+    } else { Err(ErrorKind::Unknown.into()) };
+    Ok(())
 }
 
 /// Write a value to pihole-FTL.conf
 #[allow(unused)]
-pub fn write_ftl_conf(entry: &str, setting: &str, env: &Env) -> Result<Option<String>, Error> {
+pub fn write_ftl_conf(entry: &str, setting: &str, env: &Env) -> Result<(), Error> {
 //    if !validate_ftlconf(&entry, &setting) { return Err("Invalid setting")};
-    if !validate_ftlconf(&entry, &setting) { return Ok(Some("Invalid setting".to_owned())) };    
-    write_setup_file(&entry, &setting, &env, PiholeFile::FTLConf)
+    if validate_ftl_config(&entry, &setting) {    
+        write_setup_file(&entry, &setting, &env, PiholeFile::FTLConfig)
+    } else { Err(ErrorKind::Unknown.into()) };
+    Ok(())
 }
 
 /// Read in a value from specified setup file
@@ -74,26 +80,25 @@ fn read_setup_file(entry: &str, env: &Env, piholesetupfile: PiholeFile) -> Resul
 
 /// Write a value to specified setup file
 #[allow(unused)]
-fn write_setup_file(entry: &str, setting: &str, env: &Env, piholesetupfile: PiholeFile) -> Result<Option<String>, Error> {
-
+fn write_setup_file(entry: &str, setting: &str, env: &Env, piholesetupfile: PiholeFile) -> Result<(), Error> {
     // Read specified file, removing any line matching setting to be written
     let mut setup_vars = Vec::new();
     let file_read = BufReader::new(env.read_file(piholesetupfile)?);
-    for line in file_read.lines().filter_map(|ln| ln.ok()) {
-        if !line.contains(entry) {
-            setup_vars.push(format!("{}\n",line));
-        }
-    }
+    setup_vars = file_read
+        .lines()
+        .filter_map(Result::ok)
+        .filter(|line| !line.contains(entry))
+        .collect();
     // Append entry to working copy
-    let new_entry = format!("{}={}\n", &entry, &setting);
+    let new_entry = format!("{}={}", &entry, &setting);
     setup_vars.push(new_entry);
-
-    // Open setupVars.conf to be overwritten
+    // Open setupVars.conf to be overwritten and write 
     let mut file_write = BufWriter::new(env.write_file(piholesetupfile, false)?);
-    for line_out in &setup_vars {
-      &file_write.write(line_out.as_bytes()).expect("Unable to write data");
+    for line_out in setup_vars {
+        file_write.write(line_out.as_bytes());
+        file_write.write(b"\n");
     }
-    file_write.flush().expect("Unable to close file");
-    Ok(None)
+    file_write.flush();
+    Ok(())
 }
 
