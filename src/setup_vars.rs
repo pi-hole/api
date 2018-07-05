@@ -9,7 +9,6 @@
 // Please see LICENSE file for your rights under this license.
 
 use config::{Env, PiholeFile};
-use config_files::SetupVarsEntry::PiholeDns;
 use config_files::*;
 use std::io::prelude::*;
 use std::io::{BufReader, BufWriter};
@@ -28,14 +27,14 @@ pub fn read_ftl_conf(entry: FTLConfEntry, env: &Env) -> Result<Option<String>, E
 
 /// Read in a numberd dns value from setupVars.conf
 pub fn read_upstream_dns(entrynumber: &str, env: &Env) -> Result<Option<String>, Error> {
-    let key = format!("{}{}", PiholeDns.key(), &entrynumber);
+    let key = format!("{}{}", SetupVarsEntry::PiholeDns.key(), &entrynumber);
     read_setup_file(&key, &env, PiholeFile::SetupVars)
 }
 
 /// Write a value to setupVars.conf
 #[allow(dead_code)]
 pub fn write_setup_vars(entry: SetupVarsEntry, value: &str, env: &Env) -> Result<(), Error> {
-    if entry.validate(&value) {
+    if entry.is_valid(&value) {
         return write_setup_file(&entry.key(), &value, &env, PiholeFile::SetupVars);
     } else {
         return Err(ErrorKind::Unknown.into());
@@ -45,8 +44,8 @@ pub fn write_setup_vars(entry: SetupVarsEntry, value: &str, env: &Env) -> Result
 /// Write a numbered dns value to setupVars.conf
 #[allow(dead_code)]
 pub fn write_upstream_dns(entrynumber: &str, value: &str, env: &Env) -> Result<(), Error> {
-    if PiholeDns.validate(&value) {
-        let key = format!("{}{}", PiholeDns.key(), &entrynumber);
+    if SetupVarsEntry::PiholeDns.is_valid(&value) {
+        let key = format!("{}{}", SetupVarsEntry::PiholeDns.key(), &entrynumber);
         return write_setup_file(&key, &value, &env, PiholeFile::SetupVars);
     } else {
         return Err(ErrorKind::Unknown.into());
