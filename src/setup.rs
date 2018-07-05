@@ -10,6 +10,7 @@
 
 use auth::{self, AuthData};
 use config::{Config, Env, PiholeFile};
+use config_files::SetupVarsEntry::WebPassword;
 use ftl::FtlConnectionType;
 use rocket;
 use rocket::config::{ConfigBuilder, Environment};
@@ -21,7 +22,6 @@ use std::collections::HashMap;
 use tempfile::NamedTempFile;
 use toml;
 use util::{Error, ErrorKind};
-use config_files::SetupVarsEntry::WebPassword;
 
 const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
 

@@ -10,11 +10,11 @@
 
 use auth::User;
 use config::Env;
+use config_files::SetupVarsEntry::*;
 use rocket::State;
 use routes::settings::common::as_bool;
 use setup_vars::read_setup_vars;
 use util::{reply_data, Reply};
-use config_files::SetupVarsEntry::*;
 
 /// Get DHCP configuration
 #[get("/settings/dhcp")]

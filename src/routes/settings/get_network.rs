@@ -10,11 +10,11 @@
 
 use auth::User;
 use config::Env;
+use config_files::SetupVarsEntry::*;
 use hostname::get_hostname;
 use rocket::State;
 use setup_vars::read_setup_vars;
 use util::{reply_data, Reply};
-use config_files::SetupVarsEntry::*;
 
 /// Get Pi-hole local network information
 #[get("/settings/network")]

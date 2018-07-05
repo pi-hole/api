@@ -10,11 +10,11 @@
 
 use auth::User;
 use config::Env;
+use config_files::SetupVarsEntry::*;
 use rocket::State;
 use routes::settings::common::as_bool;
 use setup_vars::{read_setup_vars, read_setup_vars_dns};
 use util::{reply_data, Error, Reply};
-use config_files::SetupVarsEntry::*;
 
 /// Get upstream DNS servers
 fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {

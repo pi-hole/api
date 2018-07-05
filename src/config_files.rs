@@ -15,6 +15,7 @@ use std::str::FromStr;
 
 /// setupVars.conf file entries
 #[derive(Eq, PartialEq, Hash, Copy, Clone)]
+#[allow(dead_code)]
 pub enum SetupVarsEntry {
     ApiQueryLogShow,
     ApiPrivacyMode,
@@ -47,6 +48,7 @@ pub enum SetupVarsEntry {
 
 impl SetupVarsEntry {
     /// Set the setupVars.conf key for each entry
+    #[allow(dead_code)]
     pub fn key(&self) -> &'static str {
         match *self {
             SetupVarsEntry::ApiQueryLogShow => "API_QUERY_LOG_SHOW",
@@ -81,6 +83,7 @@ impl SetupVarsEntry {
         }
     }
     /// Set the acceptable value types for each entry
+    #[allow(dead_code)]
     pub fn value_type(&self) -> ValueType {
         match *self {
             SetupVarsEntry::ApiQueryLogShow => ValueType::ApiQueryLogShow,
@@ -114,12 +117,13 @@ impl SetupVarsEntry {
     }
     /// Validate format of supplied values
     pub fn validate(&self, value: &str) -> bool {
-        validate_setting_value(self.value_type(), value)        
+        validate_setting_value(self.value_type(), value)
     }
 }
 
 /// pihole-FTL.conf settings file entries
 #[derive(Eq, PartialEq, Hash, Copy, Clone)]
+#[allow(dead_code)]
 pub enum FTLConfEntry {
     AaaaQueryAnalysis,
     BlockingMode,
@@ -138,6 +142,7 @@ pub enum FTLConfEntry {
 
 impl FTLConfEntry {
     /// Set the pihole-FTL.conf key strings
+    #[allow(dead_code)]
     pub fn key(&self) -> &'static str {
         match *self {
             FTLConfEntry::SocketListening => "SOCKET_LISTENING",
@@ -156,6 +161,7 @@ impl FTLConfEntry {
         }
     }
     /// Set the acceptable value types for each entry
+    #[allow(dead_code)]
     pub fn value_type(&self) -> ValueType {
         match *self {
             FTLConfEntry::SocketListening => ValueType::SocketListening,
@@ -174,13 +180,15 @@ impl FTLConfEntry {
         }
     }
     /// Validate format of supplied values
+    #[allow(dead_code)]
     pub fn validate(&self, value: &str) -> bool {
-        validate_setting_value(self.value_type(), value)        
+        validate_setting_value(self.value_type(), value)
     }
 }
 
 /// Categories of allowable values, shared across settings files
 #[derive(Eq, PartialEq, Hash, Copy, Clone)]
+#[allow(dead_code)]
 pub enum ValueType {
     ApiQueryLogShow,
     Booleans,
