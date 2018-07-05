@@ -35,7 +35,7 @@ pub enum SetupVarsEntry {
     InstallWebInterface,
     Ipv4Address,
     Ipv6Address,
-    PiholeDns,
+    PiholeDns(usize),
     PiholeDomain,
     PiholeInterface,
     QueryLogging,
@@ -45,38 +45,36 @@ pub enum SetupVarsEntry {
 }
 
 impl SetupVarsEntry {
-    /// Set the setupVars.conf key for each entry
-    pub fn key(&self) -> &'static str {
+    /// Get the setupVars.conf key of the entry
+    pub fn key(&self) -> String {
         match *self {
-            SetupVarsEntry::ApiQueryLogShow => "API_QUERY_LOG_SHOW",
-            SetupVarsEntry::ApiPrivacyMode => "API_PRIVACY_MODE",
-            SetupVarsEntry::DnsBogusPriv => "DNS_BOGUS_PRIV",
-            SetupVarsEntry::DnsFqdnRequired => "DNS_FQDN_REQUIRED",
-            SetupVarsEntry::ConditionalForwarding => "CONDITIONAL_FORWARDING",
-            SetupVarsEntry::ConditionalForwardingDomain => "CONDITIONAL_FORWARDING_DOMAIN",
-            SetupVarsEntry::ConditionalForwardingIp => "CONDITIONAL_FORWARDING_IP",
-            SetupVarsEntry::ConditionalForwardingReverse => "CONDITIONAL_FORWARDING_REVERSE",
-            SetupVarsEntry::DhcpActive => "DHCP_ACTIVE",
-            SetupVarsEntry::DhcpEnd => "DHCP_END",
-            SetupVarsEntry::DhcpIpv6 => "DHCP_IPv6",
-            SetupVarsEntry::DhcpLeasetime => "DHCP_LEASETIME",
-            SetupVarsEntry::DhcpStart => "DHCP_START",
-            SetupVarsEntry::DhcpRouter => "DHCP_ROUTER",
-            SetupVarsEntry::DnsmasqListening => "DNSMASQ_LISTENING",
-            SetupVarsEntry::Dnssec => "DNSSEC",
-            SetupVarsEntry::InstallWebServer => "INSTALL_WEB_SERVER",
-            SetupVarsEntry::InstallWebInterface => "INSTALL_WEB_INTERFACE",
-            SetupVarsEntry::Ipv4Address => "IPV4_ADDRESS",
-            SetupVarsEntry::Ipv6Address => "IPV6_ADDRESS",
-            SetupVarsEntry::PiholeDns => "PIHOLE_DNS_", /* This key will need to be handled as
-                                                           * a special case, replacing # as
-                                                           * needed */
-            SetupVarsEntry::PiholeDomain => "PIHOLE_DOMAIN",
-            SetupVarsEntry::PiholeInterface => "PIHOLE_INTERFACE",
-            SetupVarsEntry::QueryLogging => "QUERY_LOGGING",
-            SetupVarsEntry::WebEnabled => "WEB_ENABLED",
-            SetupVarsEntry::WebPassword => "WEBPASSWORD",
-            SetupVarsEntry::WebUiBoxedLayout => "WEBUIBOXEDLAYOUT"
+            SetupVarsEntry::ApiQueryLogShow => "API_QUERY_LOG_SHOW".to_owned(),
+            SetupVarsEntry::ApiPrivacyMode => "API_PRIVACY_MODE".to_owned(),
+            SetupVarsEntry::DnsBogusPriv => "DNS_BOGUS_PRIV".to_owned(),
+            SetupVarsEntry::DnsFqdnRequired => "DNS_FQDN_REQUIRED".to_owned(),
+            SetupVarsEntry::ConditionalForwarding => "CONDITIONAL_FORWARDING".to_owned(),
+            SetupVarsEntry::ConditionalForwardingDomain => "CONDITIONAL_FORWARDING_DOMAIN".to_owned(),
+            SetupVarsEntry::ConditionalForwardingIp => "CONDITIONAL_FORWARDING_IP".to_owned(),
+            SetupVarsEntry::ConditionalForwardingReverse => "CONDITIONAL_FORWARDING_REVERSE".to_owned(),
+            SetupVarsEntry::DhcpActive => "DHCP_ACTIVE".to_owned(),
+            SetupVarsEntry::DhcpEnd => "DHCP_END".to_owned(),
+            SetupVarsEntry::DhcpIpv6 => "DHCP_IPv6".to_owned(),
+            SetupVarsEntry::DhcpLeasetime => "DHCP_LEASETIME".to_owned(),
+            SetupVarsEntry::DhcpStart => "DHCP_START".to_owned(),
+            SetupVarsEntry::DhcpRouter => "DHCP_ROUTER".to_owned(),
+            SetupVarsEntry::DnsmasqListening => "DNSMASQ_LISTENING".to_owned(),
+            SetupVarsEntry::Dnssec => "DNSSEC".to_owned(),
+            SetupVarsEntry::InstallWebServer => "INSTALL_WEB_SERVER".to_owned(),
+            SetupVarsEntry::InstallWebInterface => "INSTALL_WEB_INTERFACE".to_owned(),
+            SetupVarsEntry::Ipv4Address => "IPV4_ADDRESS".to_owned(),
+            SetupVarsEntry::Ipv6Address => "IPV6_ADDRESS".to_owned(),
+            SetupVarsEntry::PiholeDns(num) => format!("PIHOLE_DNS_{}", num),
+            SetupVarsEntry::PiholeDomain => "PIHOLE_DOMAIN".to_owned(),
+            SetupVarsEntry::PiholeInterface => "PIHOLE_INTERFACE".to_owned(),
+            SetupVarsEntry::QueryLogging => "QUERY_LOGGING".to_owned(),
+            SetupVarsEntry::WebEnabled => "WEB_ENABLED".to_owned(),
+            SetupVarsEntry::WebPassword => "WEBPASSWORD".to_owned(),
+            SetupVarsEntry::WebUiBoxedLayout => "WEBUIBOXEDLAYOUT".to_owned()
         }
     }
 
@@ -103,7 +101,7 @@ impl SetupVarsEntry {
             SetupVarsEntry::InstallWebInterface => ValueType::Boolean,
             SetupVarsEntry::Ipv4Address => ValueType::Ipv4Mask,
             SetupVarsEntry::Ipv6Address => ValueType::Ipv6,
-            SetupVarsEntry::PiholeDns => ValueType::Ipv4,
+            SetupVarsEntry::PiholeDns(_) => ValueType::Ipv4,
             SetupVarsEntry::PiholeDomain => ValueType::Domain,
             SetupVarsEntry::PiholeInterface => ValueType::Interface,
             SetupVarsEntry::QueryLogging => ValueType::Boolean,
@@ -172,14 +170,14 @@ impl FTLConfEntry {
             FTLConfEntry::FtlPort => ValueType::PortNumber,
             FTLConfEntry::PrivacyLevel => ValueType::String(&["0", "1", "2", "3"]),
             FTLConfEntry::IgnoreLocalHost => ValueType::YesNo,
-            FTLConfEntry::BlockingMode => ValueType::String(&[
-                "NULL", "IP-AAAA-NODATA", "IP", "NXDOMAIN"
-            ])
+            FTLConfEntry::BlockingMode => {
+                ValueType::String(&["NULL", "IP-AAAA-NODATA", "IP", "NXDOMAIN"])
+            }
         }
     }
 
     /// Validate format of supplied values
-    pub fn validate(&self, value: &str) -> bool {
+    pub fn is_valid(&self, value: &str) -> bool {
         self.value_type().is_valid(value)
     }
 }
@@ -246,7 +244,8 @@ impl ValueType {
             }
             ValueType::Interface => {
                 // Single alphanumeric word
-                let domain = Regex::new(r"^([a-zA-Z]|[a-zA-Z0-9][a-zA-Z0-9]*[a-zA-Z0-9])$").unwrap();
+                let domain =
+                    Regex::new(r"^([a-zA-Z]|[a-zA-Z0-9][a-zA-Z0-9]*[a-zA-Z0-9])$").unwrap();
                 domain.is_match(value)
             }
             ValueType::Ipv4 => {
@@ -299,11 +298,11 @@ impl ValueType {
 
 #[cfg(test)]
 mod tests {
-    use config_files::{SetupVarsEntry, FTLConfEntry};
+    use config_files::{FTLConfEntry, SetupVarsEntry};
 
     #[test]
     fn test_validate_setupvars_valid() {
-        let tests = [
+        let tests = vec![
             // Acceptable parameters
             (SetupVarsEntry::ApiQueryLogShow, "all", true),
             (SetupVarsEntry::ApiPrivacyMode, "false", true),
@@ -312,7 +311,11 @@ mod tests {
             (SetupVarsEntry::ConditionalForwarding, "true", true),
             (SetupVarsEntry::ConditionalForwardingDomain, "hub", true),
             (SetupVarsEntry::ConditionalForwardingIp, "192.168.1.1", true),
-            (SetupVarsEntry::ConditionalForwardingReverse, "1.168.192.in-addr.arpa", true),
+            (
+                SetupVarsEntry::ConditionalForwardingReverse,
+                "1.168.192.in-addr.arpa",
+                true
+            ),
             (SetupVarsEntry::DhcpActive, "false", true),
             (SetupVarsEntry::DhcpEnd, "199.199.1.255", true),
             (SetupVarsEntry::DhcpIpv6, "false", true),
@@ -324,8 +327,12 @@ mod tests {
             (SetupVarsEntry::InstallWebServer, "true", true),
             (SetupVarsEntry::InstallWebInterface, "true", true),
             (SetupVarsEntry::Ipv4Address, "192.168.1.205/24", true),
-            (SetupVarsEntry::Ipv6Address, "2001:470:66:d5f:114b:a1b9:2a13:c7d9", true),
-            (SetupVarsEntry::PiholeDns, "8.8.4.4", true),
+            (
+                SetupVarsEntry::Ipv6Address,
+                "2001:470:66:d5f:114b:a1b9:2a13:c7d9",
+                true
+            ),
+            (SetupVarsEntry::PiholeDns(0), "8.8.4.4", true),
             (SetupVarsEntry::PiholeDomain, "lan", true),
             (SetupVarsEntry::PiholeInterface, "enp0s3", true),
             (SetupVarsEntry::QueryLogging, "true", true),
@@ -334,13 +341,13 @@ mod tests {
         ];
 
         for (setting, value, result) in tests {
-            assert_eq!(setting.validate(value), result);
+            assert_eq!(setting.is_valid(value), result);
         }
     }
 
     #[test]
     fn test_validate_setupvars_invalid() {
-        let tests = [
+        let tests = vec![
             // Acceptable parameters
             (SetupVarsEntry::ApiQueryLogShow, "41", false),
             (SetupVarsEntry::ApiPrivacyMode, "off", false),
@@ -349,9 +356,17 @@ mod tests {
             (SetupVarsEntry::ConditionalForwarding, "disabled", false),
             (SetupVarsEntry::ConditionalForwardingDomain, "%%@)#", false),
             (SetupVarsEntry::ConditionalForwardingIp, "192.1.1", false),
-            (SetupVarsEntry::ConditionalForwardingReverse, "in-addr.arpa.1.1.1", false),
+            (
+                SetupVarsEntry::ConditionalForwardingReverse,
+                "in-addr.arpa.1.1.1",
+                false
+            ),
             (SetupVarsEntry::DhcpActive, "active", false),
-            (SetupVarsEntry::DhcpEnd, "2001:470:66:d5f:114b:a1b9:2a13:c7d9", false),
+            (
+                SetupVarsEntry::DhcpEnd,
+                "2001:470:66:d5f:114b:a1b9:2a13:c7d9",
+                false
+            ),
             (SetupVarsEntry::DhcpIpv6, "ipv4", false),
             (SetupVarsEntry::DhcpLeasetime, "hours", false),
             (SetupVarsEntry::DhcpStart, "199199.1.0", false),
@@ -362,7 +377,7 @@ mod tests {
             (SetupVarsEntry::InstallWebInterface, "no", false),
             (SetupVarsEntry::Ipv4Address, "192.168.1.205", false),
             (SetupVarsEntry::Ipv6Address, "192.168.1.205", false),
-            (SetupVarsEntry::PiholeDns, "www.pi-hole.net", false),
+            (SetupVarsEntry::PiholeDns(0), "www.pi-hole.net", false),
             (SetupVarsEntry::PiholeDomain, "too many words", false),
             (SetupVarsEntry::PiholeInterface, "/dev/net/eth1", false),
             (SetupVarsEntry::QueryLogging, "disabled", false),
@@ -371,7 +386,7 @@ mod tests {
         ];
 
         for (setting, value, result) in tests {
-            assert_eq!(setting.validate(value), result);
+            assert_eq!(setting.is_valid(value), result);
         }
     }
 
@@ -379,16 +394,15 @@ mod tests {
     fn test_validate_setup_vars_disabled() {
         // Webpassword disallowed - must report false.
         assert_eq!(
-            SetupVarsEntry::WebPassword.is_valid(
-                "B350486529B6022919491965A235157110B12437514315201184143ABBB37A14"
-            ),
+            SetupVarsEntry::WebPassword
+                .is_valid("B350486529B6022919491965A235157110B12437514315201184143ABBB37A14"),
             false
         );
     }
 
     #[test]
     fn test_validate_ftl_config_valid() {
-        let tests = [
+        let tests = vec![
             // Acceptable paramaters
             (FTLConfEntry::AaaaQueryAnalysis, "no", true),
             (FTLConfEntry::BlockingMode, "NULL", true),
@@ -406,13 +420,13 @@ mod tests {
         ];
 
         for (setting, value, result) in tests {
-            assert_eq!(setting.validate(value), result);
+            assert_eq!(setting.is_valid(value), result);
         }
     }
 
     #[test]
     fn test_validate_ftl_conf_invalid() {
-        let tests = [
+        let tests = vec![
             // Nonsensical parameters
             (FTLConfEntry::AaaaQueryAnalysis, "", false),
             (FTLConfEntry::BlockingMode, "enabled", false),
@@ -430,7 +444,7 @@ mod tests {
         ];
 
         for (setting, value, result) in tests {
-            assert_eq!(setting.validate(value), result);
+            assert_eq!(setting.is_valid(value), result);
         }
     }
 }

@@ -10,6 +10,7 @@
 
 use config::{Env, PiholeFile};
 use config_files::*;
+use failure::ResultExt;
 use std::io::prelude::*;
 use std::io::{BufReader, BufWriter};
 use util::{Error, ErrorKind};
@@ -20,45 +21,25 @@ pub fn read_setup_vars(entry: SetupVarsEntry, env: &Env) -> Result<Option<String
 }
 
 /// Read in a value from pihole-FTL.conf
-#[allow(dead_code)]
 pub fn read_ftl_conf(entry: FTLConfEntry, env: &Env) -> Result<Option<String>, Error> {
     read_setup_file(&entry.key(), &env, PiholeFile::FTLConfig)
 }
 
-/// Read in a numberd dns value from setupVars.conf
-pub fn read_upstream_dns(entrynumber: &str, env: &Env) -> Result<Option<String>, Error> {
-    let key = format!("{}{}", SetupVarsEntry::PiholeDns.key(), &entrynumber);
-    read_setup_file(&key, &env, PiholeFile::SetupVars)
-}
-
 /// Write a value to setupVars.conf
-#[allow(dead_code)]
 pub fn write_setup_vars(entry: SetupVarsEntry, value: &str, env: &Env) -> Result<(), Error> {
     if entry.is_valid(&value) {
-        return write_setup_file(&entry.key(), &value, &env, PiholeFile::SetupVars);
+        write_setup_file(&entry.key(), &value, &env, PiholeFile::SetupVars)
     } else {
-        return Err(ErrorKind::Unknown.into());
-    }
-}
-
-/// Write a numbered dns value to setupVars.conf
-#[allow(dead_code)]
-pub fn write_upstream_dns(entrynumber: &str, value: &str, env: &Env) -> Result<(), Error> {
-    if SetupVarsEntry::PiholeDns.is_valid(&value) {
-        let key = format!("{}{}", SetupVarsEntry::PiholeDns.key(), &entrynumber);
-        return write_setup_file(&key, &value, &env, PiholeFile::SetupVars);
-    } else {
-        return Err(ErrorKind::Unknown.into());
+        Err(ErrorKind::Unknown.into())
     }
 }
 
 /// Write a value to pihole-FTL.conf
-#[allow(dead_code)]
 pub fn write_ftl_conf(entry: FTLConfEntry, value: &str, env: &Env) -> Result<(), Error> {
-    if entry.validate(&value) {
-        return write_setup_file(&entry.key(), &value, &env, PiholeFile::FTLConfig);
+    if entry.is_valid(&value) {
+        write_setup_file(&entry.key(), &value, &env, PiholeFile::FTLConfig)
     } else {
-        return Err(ErrorKind::Unknown.into());
+        Err(ErrorKind::Unknown.into())
     }
 }
 
@@ -95,7 +76,6 @@ fn read_setup_file(
 }
 
 /// Write a value to specified setup file
-#[allow(unused)]
 fn write_setup_file(
     entry: &str,
     setting: &str,
@@ -109,33 +89,25 @@ fn write_setup_file(
         .filter_map(Result::ok)
         .filter(|line| !line.contains(entry))
         .collect();
+
     // Append entry to working copy
     let new_entry = format!("{}={}", &entry, &setting);
     setup_vars.push(new_entry);
+
     // Open setupVars.conf to be overwritten and write
     let mut file_write = BufWriter::new(env.write_file(piholesetupfile, false)?);
     for line_out in setup_vars {
-        match file_write.write(line_out.as_bytes()) {
-            Ok(_) => {}
-            Err(_) => {
-                return Err(
-                    ErrorKind::FileWrite(piholesetupfile.default_location().to_owned()).into()
-                )
-            }
-        };
-        match file_write.write(b"\n") {
-            Ok(_) => {}
-            Err(_) => {
-                return Err(
-                    ErrorKind::FileWrite(piholesetupfile.default_location().to_owned()).into()
-                )
-            }
-        };
+        file_write
+            .write(line_out.as_bytes())
+            .context(ErrorKind::FileWrite(piholesetupfile.default_location().to_owned()).into())?;
+        file_write
+            .write(b"\n")
+            .context(ErrorKind::FileWrite(piholesetupfile.default_location().to_owned()).into())?;
     }
-    match file_write.flush() {
-        Ok(_) => Ok(()),
-        Err(_) => {
-            return Err(ErrorKind::FileWrite(piholesetupfile.default_location().to_owned()).into())
-        }
-    }
+
+    file_write
+        .flush()
+        .context(ErrorKind::FileWrite(piholesetupfile.default_location().to_owned()).into())?;
+
+    Ok(())
 }
