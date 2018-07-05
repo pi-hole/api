@@ -9,15 +9,11 @@
 // Please see LICENSE file for your rights under this license.
 
 use config::{Env, PiholeFile};
+use config_files::SetupVarsEntry::PiholeDns;
 use config_files::*;
 use std::io::prelude::*;
 use std::io::{BufReader, BufWriter};
 use util::{Error, ErrorKind};
-
-/// Read in a value from setupVars.conf - retained for dns
-pub fn read_setup_vars_dns(entry: &str, env: &Env) -> Result<Option<String>, Error> {
-    read_setup_file(&entry, &env, PiholeFile::SetupVars)
-}
 
 /// Read in a value from setupVars.conf
 pub fn read_setup_vars(entry: SetupVarsEntry, env: &Env) -> Result<Option<String>, Error> {
@@ -30,11 +26,28 @@ pub fn read_ftl_conf(entry: FTLConfEntry, env: &Env) -> Result<Option<String>, E
     read_setup_file(&entry.key(), &env, PiholeFile::FTLConfig)
 }
 
+/// Read in a numberd dns value from setupVars.conf
+pub fn read_upstream_dns(entrynumber: &str, env: &Env) -> Result<Option<String>, Error> {
+    let key = format!("{}{}", PiholeDns.key(), &entrynumber);
+    read_setup_file(&key, &env, PiholeFile::SetupVars)
+}
+
 /// Write a value to setupVars.conf
 #[allow(dead_code)]
-pub fn write_setup_vars(entry: SetupVarsEntry, setting: &str, env: &Env) -> Result<(), Error> {
-    if entry.validate(&setting) {
-        return write_setup_file(&entry.key(), &setting, &env, PiholeFile::SetupVars);
+pub fn write_setup_vars(entry: SetupVarsEntry, value: &str, env: &Env) -> Result<(), Error> {
+    if entry.validate(&value) {
+        return write_setup_file(&entry.key(), &value, &env, PiholeFile::SetupVars);
+    } else {
+        return Err(ErrorKind::Unknown.into());
+    }
+}
+
+/// Write a numbered dns value to setupVars.conf
+#[allow(dead_code)]
+pub fn write_upstream_dns(entrynumber: &str, value: &str, env: &Env) -> Result<(), Error> {
+    if PiholeDns.validate(&value) {
+        let key = format!("{}{}", PiholeDns.key(), &entrynumber);
+        return write_setup_file(&key, &value, &env, PiholeFile::SetupVars);
     } else {
         return Err(ErrorKind::Unknown.into());
     }
@@ -42,9 +55,9 @@ pub fn write_setup_vars(entry: SetupVarsEntry, setting: &str, env: &Env) -> Resu
 
 /// Write a value to pihole-FTL.conf
 #[allow(dead_code)]
-pub fn write_ftl_conf(entry: FTLConfEntry, setting: &str, env: &Env) -> Result<(), Error> {
-    if entry.validate(&setting) {
-        return write_setup_file(&entry.key(), &setting, &env, PiholeFile::FTLConfig);
+pub fn write_ftl_conf(entry: FTLConfEntry, value: &str, env: &Env) -> Result<(), Error> {
+    if entry.validate(&value) {
+        return write_setup_file(&entry.key(), &value, &env, PiholeFile::FTLConfig);
     } else {
         return Err(ErrorKind::Unknown.into());
     }
@@ -91,9 +104,8 @@ fn write_setup_file(
     piholesetupfile: PiholeFile
 ) -> Result<(), Error> {
     // Read specified file, removing any line matching setting to be written
-    let mut setup_vars = Vec::new();
     let file_read = BufReader::new(env.read_file(piholesetupfile)?);
-    setup_vars = file_read
+    let mut setup_vars: Vec<String> = file_read
         .lines()
         .filter_map(Result::ok)
         .filter(|line| !line.contains(entry))

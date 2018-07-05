@@ -13,16 +13,15 @@ use config::Env;
 use config_files::SetupVarsEntry::*;
 use rocket::State;
 use routes::settings::common::as_bool;
-use setup_vars::{read_setup_vars, read_setup_vars_dns};
+use setup_vars::{read_setup_vars, read_upstream_dns};
 use util::{reply_data, Error, Reply};
 
 /// Get upstream DNS servers
 fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
     let mut upstream_dns = Vec::new();
 
-    for i in 1.. {
-        let key = format!("PIHOLE_DNS_{}", i);
-        let data = read_setup_vars_dns(&key, &env)?;
+    for dnsnumber in 1.. {
+        let data = read_upstream_dns(&dnsnumber.to_string(), &env)?;
 
         if let Some(ip) = data {
             upstream_dns.push(ip);

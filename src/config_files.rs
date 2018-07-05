@@ -71,7 +71,7 @@ impl SetupVarsEntry {
             SetupVarsEntry::InstallWebInterface => "INSTALL_WEB_INTERFACE",
             SetupVarsEntry::Ipv4Address => "IPV4_ADDRESS",
             SetupVarsEntry::Ipv6Address => "IPV6_ADDRESS",
-            SetupVarsEntry::PiholeDns => "PIHOLE_DNS_#", /* This key will need to be handled as
+            SetupVarsEntry::PiholeDns => "PIHOLE_DNS_", /* This key will need to be handled as
                                                            * a special case, replacing # as
                                                            * needed */
             SetupVarsEntry::PiholeDomain => "PIHOLE_DOMAIN",
