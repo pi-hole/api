@@ -21,6 +21,7 @@ use std::collections::HashMap;
 use tempfile::NamedTempFile;
 use toml;
 use util::{Error, ErrorKind};
+use config_files::SetupVarsEntry::WebPassword;
 
 const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
 
@@ -38,7 +39,7 @@ fn unauthorized() -> Error {
 pub fn start() -> Result<(), Error> {
     let config = Config::parse(CONFIG_LOCATION)?;
     let env = Env::Production(config);
-    let key = read_setup_vars("WEBPASSWORD", &env)?.unwrap_or_default();
+    let key = read_setup_vars(WebPassword, &env)?.unwrap_or_default();
 
     setup(
         rocket::custom(

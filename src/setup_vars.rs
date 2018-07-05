@@ -9,7 +9,6 @@
 // Please see LICENSE file for your rights under this license.
 
 use config::{Env, PiholeFile};
-use config_files::validate_setting_value;
 use config_files::*;
 use std::io::prelude::*;
 use std::io::{BufReader, BufWriter};
@@ -17,20 +16,34 @@ use util::{Error, ErrorKind};
 
 /// Read in a value from setupVars.conf
 #[allow(unused)]
-pub fn read_setup_vars(entry: &str, env: &Env) -> Result<Option<String>, Error> {
+pub fn read_setup_vars_dns(entry: &str, env: &Env) -> Result<Option<String>, Error> {
     read_setup_file(&entry, &env, PiholeFile::SetupVars)
 }
-
+/*
 /// Read in a value from pihole-FTL.conf
 #[allow(unused)]
 pub fn read_ftl_conf(entry: &str, env: &Env) -> Result<Option<String>, Error> {
     read_setup_file(&entry, &env, PiholeFile::FTLConfig)
 }
+*/
+
+/// Read in a value from setupVars.conf
+#[allow(unused)]
+pub fn read_setup_vars(entry: SetupVarsEntry, env: &Env) -> Result<Option<String>, Error> {
+    read_setup_file(&entry.key(), &env, PiholeFile::SetupVars)
+}
+
+/// Read in a value from pihole-FTL.conf
+#[allow(unused)]
+pub fn read_ftl_conf(entry: FTLConfEntry, env: &Env) -> Result<Option<String>, Error> {
+    read_setup_file(&entry.key(), &env, PiholeFile::FTLConfig)
+}
+
 
 /// Write a value to setupVars.conf
 #[allow(unused)]
 pub fn write_setup_vars(entry: SetupVarsEntry, setting: &str, env: &Env) -> Result<(), Error> {
-    if validate_setting_value(entry.value_type(), &setting) {
+    if entry.validate(&setting) {
         write_setup_file(&entry.key(), &setting, &env, PiholeFile::SetupVars)
     } else {
         Err(ErrorKind::Unknown.into())
@@ -41,7 +54,7 @@ pub fn write_setup_vars(entry: SetupVarsEntry, setting: &str, env: &Env) -> Resu
 /// Write a value to pihole-FTL.conf
 #[allow(unused)]
 pub fn write_ftl_conf(entry: FTLConfEntry, setting: &str, env: &Env) -> Result<(), Error> {
-    if validate_setting_value(entry.value_type(), &setting) {
+    if entry.validate(&setting) {
         write_setup_file(&entry.key(), &setting, &env, PiholeFile::FTLConfig)
     } else {
         Err(ErrorKind::Unknown.into())

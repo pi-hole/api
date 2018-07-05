@@ -112,6 +112,10 @@ impl SetupVarsEntry {
             SetupVarsEntry::WebUiBoxedLayout => ValueType::WebUiBoxedLayout
         }
     }
+    /// Validate format of supplied values
+    pub fn validate(&self, value: &str) -> bool {
+        validate_setting_value(self.value_type(), value)        
+    }
 }
 
 /// pihole-FTL.conf settings file entries
@@ -169,6 +173,10 @@ impl FTLConfEntry {
             FTLConfEntry::BlockingMode => ValueType::BlockingMode
         }
     }
+    /// Validate format of supplied values
+    pub fn validate(&self, value: &str) -> bool {
+        validate_setting_value(self.value_type(), value)        
+    }
 }
 
 /// Categories of allowable values, shared across settings files
@@ -200,7 +208,7 @@ pub enum ValueType {
 /// NB values are validated for format, not correctness
 /// eg 0.1.2.3 is a valid IPV4, but may not be a valid upstream DNS)
 ///
-pub fn validate_setting_value(valuetype: ValueType, value: &str) -> bool {
+fn validate_setting_value(valuetype: ValueType, value: &str) -> bool {
     match valuetype {
         ApiQueryLogShow => {
             // Specific query logging options
