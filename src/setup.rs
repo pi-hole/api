@@ -10,14 +10,13 @@
 
 use auth::{self, AuthData};
 use config::{Config, Env, PiholeFile};
-use config_files::SetupVarsEntry::WebPassword;
 use ftl::FtlConnectionType;
 use rocket;
 use rocket::config::{ConfigBuilder, Environment};
 use rocket::local::Client;
 use rocket_cors::Cors;
 use routes::{dns, settings, stats, version, web};
-use setup_vars::read_setup_vars;
+use settings::{read_setup_vars, SetupVarsEntry};
 use std::collections::HashMap;
 use tempfile::NamedTempFile;
 use toml;
@@ -39,7 +38,7 @@ fn unauthorized() -> Error {
 pub fn start() -> Result<(), Error> {
     let config = Config::parse(CONFIG_LOCATION)?;
     let env = Env::Production(config);
-    let key = read_setup_vars(WebPassword, &env)?.unwrap_or_default();
+    let key = read_setup_vars(SetupVarsEntry::WebPassword, &env)?.unwrap_or_default();
 
     setup(
         rocket::custom(

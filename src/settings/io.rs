@@ -3,14 +3,14 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// Functions For SetupVars & FTL Configuration
+// IO Functions For SetupVars & FTL Configuration Files
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
 use config::{Env, PiholeFile};
-use config_files::*;
 use failure::ResultExt;
+use settings::entries::{FTLConfEntry, SetupVarsEntry};
 use std::io::prelude::*;
 use std::io::{BufReader, BufWriter};
 use util::{Error, ErrorKind};

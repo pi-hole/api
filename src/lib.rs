@@ -33,11 +33,10 @@ pub use setup::*;
 
 mod auth;
 mod config;
-mod config_files;
 mod ftl;
 mod routes;
+mod settings;
 mod setup;
-mod setup_vars;
 mod util;
 
 #[cfg(test)]
