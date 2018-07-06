@@ -53,7 +53,7 @@ impl ValueType {
                 reverse.is_match(value)
             }
             ValueType::Decimal => {
-                // Numberic, at least one leading digit, optional decimal point and trailing
+                // Numeric, at least one leading digit, optional decimal point and trailing
                 // digits.
                 let decimal = Regex::new(r"^(\d)+(\.)?(\d)*$").unwrap();
                 decimal.is_match(value)
@@ -118,7 +118,7 @@ impl ValueType {
                 }
             }
             ValueType::WebPassword => {
-                // Webpassword is a valid key, but altering it is disallowed
+                // Web password is a valid key, but altering it is disallowed
                 false
             }
             ValueType::String(strings) => strings.contains(&value)

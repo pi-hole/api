@@ -192,7 +192,7 @@ mod tests {
     #[test]
     fn test_validate_setupvars_valid() {
         let tests = vec![
-            // Acceptable parameters
+            // Valid parameters
             (SetupVarsEntry::ApiQueryLogShow, "all", true),
             (SetupVarsEntry::ApiPrivacyMode, "false", true),
             (SetupVarsEntry::DnsBogusPriv, "true", true),
@@ -237,7 +237,7 @@ mod tests {
     #[test]
     fn test_validate_setupvars_invalid() {
         let tests = vec![
-            // Acceptable parameters
+            // Valid parameters
             (SetupVarsEntry::ApiQueryLogShow, "41", false),
             (SetupVarsEntry::ApiPrivacyMode, "off", false),
             (SetupVarsEntry::DnsBogusPriv, "on", false),
@@ -281,7 +281,7 @@ mod tests {
 
     #[test]
     fn test_validate_setup_vars_disabled() {
-        // Webpassword disallowed - must report false.
+        // Setting the web password is not allowed - must report false.
         assert_eq!(
             SetupVarsEntry::WebPassword
                 .is_valid("B350486529B6022919491965A235157110B12437514315201184143ABBB37A14"),
@@ -292,7 +292,7 @@ mod tests {
     #[test]
     fn test_validate_ftl_config_valid() {
         let tests = vec![
-            // Acceptable paramaters
+            // Valid values
             (FTLConfEntry::AaaaQueryAnalysis, "no", true),
             (FTLConfEntry::BlockingMode, "NULL", true),
             (FTLConfEntry::DbInterval, "5.0", true),
@@ -316,7 +316,7 @@ mod tests {
     #[test]
     fn test_validate_ftl_conf_invalid() {
         let tests = vec![
-            // Nonsensical parameters
+            // Invalid values
             (FTLConfEntry::AaaaQueryAnalysis, "", false),
             (FTLConfEntry::BlockingMode, "enabled", false),
             (FTLConfEntry::DbInterval, "true", false),

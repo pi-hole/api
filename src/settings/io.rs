@@ -44,13 +44,9 @@ pub fn write_ftl_conf(entry: FTLConfEntry, value: &str, env: &Env) -> Result<(),
 }
 
 /// Read in a value from specified setup file
-fn read_setup_file(
-    entry: &str,
-    env: &Env,
-    piholesetupfile: PiholeFile
-) -> Result<Option<String>, Error> {
+fn read_setup_file(entry: &str, env: &Env, file: PiholeFile) -> Result<Option<String>, Error> {
     // Open file
-    let reader = BufReader::new(env.read_file(piholesetupfile)?);
+    let reader = BufReader::new(env.read_file(file)?);
 
     // Check every line for the key (filter out lines which could not be read)
     for line in reader.lines().filter_map(|item| item.ok()) {
@@ -67,26 +63,22 @@ fn read_setup_file(
                 // Get the right hand side if it exists and is not empty
                 split
                     .next()
-                    .and_then(|item| if item.len() == 0 { None } else { Some(item) })
+                    .and_then(|item| if item.is_empty() { None } else { Some(item) })
                     .map(|item| item.to_owned())
             );
         }
     }
+
     Ok(None)
 }
 
 /// Write a value to specified setup file
-fn write_setup_file(
-    entry: &str,
-    setting: &str,
-    env: &Env,
-    piholesetupfile: PiholeFile
-) -> Result<(), Error> {
+fn write_setup_file(entry: &str, setting: &str, env: &Env, file: PiholeFile) -> Result<(), Error> {
     // Read specified file, removing any line matching setting to be written
-    let file_read = BufReader::new(env.read_file(piholesetupfile)?);
+    let file_read = BufReader::new(env.read_file(file)?);
     let mut setup_vars: Vec<String> = file_read
         .lines()
-        .filter_map(Result::ok)
+        .filter_map(|item| item.ok())
         .filter(|line| !line.contains(entry))
         .collect();
 
@@ -94,20 +86,17 @@ fn write_setup_file(
     let new_entry = format!("{}={}", &entry, &setting);
     setup_vars.push(new_entry);
 
-    // Open setupVars.conf to be overwritten and write
-    let mut file_write = BufWriter::new(env.write_file(piholesetupfile, false)?);
-    for line_out in setup_vars {
+    // Open setupVars.conf to be overwritten
+    let mut file_write = BufWriter::new(env.write_file(file, false)?);
+    let context = ErrorKind::FileWrite(file.default_location().to_owned());
+    for line in setup_vars {
         file_write
-            .write(line_out.as_bytes())
-            .context(ErrorKind::FileWrite(piholesetupfile.default_location().to_owned()).into())?;
-        file_write
-            .write(b"\n")
-            .context(ErrorKind::FileWrite(piholesetupfile.default_location().to_owned()).into())?;
+            .write(line.as_bytes())
+            .context(context.clone().into())?;
+        file_write.write(b"\n").context(context.clone().into())?;
     }
 
-    file_write
-        .flush()
-        .context(ErrorKind::FileWrite(piholesetupfile.default_location().to_owned()).into())?;
+    file_write.flush().context(context.into())?;
 
     Ok(())
 }
