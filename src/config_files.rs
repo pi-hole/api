@@ -9,6 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 use regex::Regex;
+use std::borrow::Cow;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 
@@ -46,35 +47,39 @@ pub enum SetupVarsEntry {
 
 impl SetupVarsEntry {
     /// Get the setupVars.conf key of the entry
-    pub fn key(&self) -> String {
+    pub fn key(&self) -> Cow<'static, str> {
         match *self {
-            SetupVarsEntry::ApiQueryLogShow => "API_QUERY_LOG_SHOW".to_owned(),
-            SetupVarsEntry::ApiPrivacyMode => "API_PRIVACY_MODE".to_owned(),
-            SetupVarsEntry::DnsBogusPriv => "DNS_BOGUS_PRIV".to_owned(),
-            SetupVarsEntry::DnsFqdnRequired => "DNS_FQDN_REQUIRED".to_owned(),
-            SetupVarsEntry::ConditionalForwarding => "CONDITIONAL_FORWARDING".to_owned(),
-            SetupVarsEntry::ConditionalForwardingDomain => "CONDITIONAL_FORWARDING_DOMAIN".to_owned(),
-            SetupVarsEntry::ConditionalForwardingIp => "CONDITIONAL_FORWARDING_IP".to_owned(),
-            SetupVarsEntry::ConditionalForwardingReverse => "CONDITIONAL_FORWARDING_REVERSE".to_owned(),
-            SetupVarsEntry::DhcpActive => "DHCP_ACTIVE".to_owned(),
-            SetupVarsEntry::DhcpEnd => "DHCP_END".to_owned(),
-            SetupVarsEntry::DhcpIpv6 => "DHCP_IPv6".to_owned(),
-            SetupVarsEntry::DhcpLeasetime => "DHCP_LEASETIME".to_owned(),
-            SetupVarsEntry::DhcpStart => "DHCP_START".to_owned(),
-            SetupVarsEntry::DhcpRouter => "DHCP_ROUTER".to_owned(),
-            SetupVarsEntry::DnsmasqListening => "DNSMASQ_LISTENING".to_owned(),
-            SetupVarsEntry::Dnssec => "DNSSEC".to_owned(),
-            SetupVarsEntry::InstallWebServer => "INSTALL_WEB_SERVER".to_owned(),
-            SetupVarsEntry::InstallWebInterface => "INSTALL_WEB_INTERFACE".to_owned(),
-            SetupVarsEntry::Ipv4Address => "IPV4_ADDRESS".to_owned(),
-            SetupVarsEntry::Ipv6Address => "IPV6_ADDRESS".to_owned(),
-            SetupVarsEntry::PiholeDns(num) => format!("PIHOLE_DNS_{}", num),
-            SetupVarsEntry::PiholeDomain => "PIHOLE_DOMAIN".to_owned(),
-            SetupVarsEntry::PiholeInterface => "PIHOLE_INTERFACE".to_owned(),
-            SetupVarsEntry::QueryLogging => "QUERY_LOGGING".to_owned(),
-            SetupVarsEntry::WebEnabled => "WEB_ENABLED".to_owned(),
-            SetupVarsEntry::WebPassword => "WEBPASSWORD".to_owned(),
-            SetupVarsEntry::WebUiBoxedLayout => "WEBUIBOXEDLAYOUT".to_owned()
+            SetupVarsEntry::ApiQueryLogShow => Cow::Borrowed("API_QUERY_LOG_SHOW"),
+            SetupVarsEntry::ApiPrivacyMode => Cow::Borrowed("API_PRIVACY_MODE"),
+            SetupVarsEntry::DnsBogusPriv => Cow::Borrowed("DNS_BOGUS_PRIV"),
+            SetupVarsEntry::DnsFqdnRequired => Cow::Borrowed("DNS_FQDN_REQUIRED"),
+            SetupVarsEntry::ConditionalForwarding => Cow::Borrowed("CONDITIONAL_FORWARDING"),
+            SetupVarsEntry::ConditionalForwardingDomain => {
+                Cow::Borrowed("CONDITIONAL_FORWARDING_DOMAIN")
+            }
+            SetupVarsEntry::ConditionalForwardingIp => Cow::Borrowed("CONDITIONAL_FORWARDING_IP"),
+            SetupVarsEntry::ConditionalForwardingReverse => {
+                Cow::Borrowed("CONDITIONAL_FORWARDING_REVERSE")
+            }
+            SetupVarsEntry::DhcpActive => Cow::Borrowed("DHCP_ACTIVE"),
+            SetupVarsEntry::DhcpEnd => Cow::Borrowed("DHCP_END"),
+            SetupVarsEntry::DhcpIpv6 => Cow::Borrowed("DHCP_IPv6"),
+            SetupVarsEntry::DhcpLeasetime => Cow::Borrowed("DHCP_LEASETIME"),
+            SetupVarsEntry::DhcpStart => Cow::Borrowed("DHCP_START"),
+            SetupVarsEntry::DhcpRouter => Cow::Borrowed("DHCP_ROUTER"),
+            SetupVarsEntry::DnsmasqListening => Cow::Borrowed("DNSMASQ_LISTENING"),
+            SetupVarsEntry::Dnssec => Cow::Borrowed("DNSSEC"),
+            SetupVarsEntry::InstallWebServer => Cow::Borrowed("INSTALL_WEB_SERVER"),
+            SetupVarsEntry::InstallWebInterface => Cow::Borrowed("INSTALL_WEB_INTERFACE"),
+            SetupVarsEntry::Ipv4Address => Cow::Borrowed("IPV4_ADDRESS"),
+            SetupVarsEntry::Ipv6Address => Cow::Borrowed("IPV6_ADDRESS"),
+            SetupVarsEntry::PiholeDns(num) => Cow::Owned(format!("PIHOLE_DNS_{}", num)),
+            SetupVarsEntry::PiholeDomain => Cow::Borrowed("PIHOLE_DOMAIN"),
+            SetupVarsEntry::PiholeInterface => Cow::Borrowed("PIHOLE_INTERFACE"),
+            SetupVarsEntry::QueryLogging => Cow::Borrowed("QUERY_LOGGING"),
+            SetupVarsEntry::WebEnabled => Cow::Borrowed("WEB_ENABLED"),
+            SetupVarsEntry::WebPassword => Cow::Borrowed("WEBPASSWORD"),
+            SetupVarsEntry::WebUiBoxedLayout => Cow::Borrowed("WEBUIBOXEDLAYOUT")
         }
     }
 
@@ -337,7 +342,7 @@ mod tests {
             (SetupVarsEntry::PiholeInterface, "enp0s3", true),
             (SetupVarsEntry::QueryLogging, "true", true),
             (SetupVarsEntry::WebUiBoxedLayout, "boxed", true),
-            (SetupVarsEntry::WebEnabled, "false", true)
+            (SetupVarsEntry::WebEnabled, "false", true),
         ];
 
         for (setting, value, result) in tests {
@@ -382,7 +387,7 @@ mod tests {
             (SetupVarsEntry::PiholeInterface, "/dev/net/eth1", false),
             (SetupVarsEntry::QueryLogging, "disabled", false),
             (SetupVarsEntry::WebUiBoxedLayout, "true", false),
-            (SetupVarsEntry::WebEnabled, "457", false)
+            (SetupVarsEntry::WebEnabled, "457", false),
         ];
 
         for (setting, value, result) in tests {
@@ -416,7 +421,7 @@ mod tests {
             (FTLConfEntry::QueryDisplay, "yes", true),
             (FTLConfEntry::ResolveIpv6, "yes", true),
             (FTLConfEntry::ResolveIpv4, "no", true),
-            (FTLConfEntry::SocketListening, "localonly", true)
+            (FTLConfEntry::SocketListening, "localonly", true),
         ];
 
         for (setting, value, result) in tests {
@@ -440,7 +445,7 @@ mod tests {
             (FTLConfEntry::QueryDisplay, "disabled", false),
             (FTLConfEntry::ResolveIpv6, "true", false),
             (FTLConfEntry::ResolveIpv4, "false", false),
-            (FTLConfEntry::SocketListening, "eth0", false)
+            (FTLConfEntry::SocketListening, "eth0", false),
         ];
 
         for (setting, value, result) in tests {
