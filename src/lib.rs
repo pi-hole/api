@@ -32,7 +32,7 @@ extern crate tempfile;
 pub use setup::*;
 
 mod auth;
-mod config;
+mod env;
 mod ftl;
 mod routes;
 mod settings;

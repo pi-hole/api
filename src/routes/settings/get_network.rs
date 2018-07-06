@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 use auth::User;
-use config::Env;
+use env::Env;
 use hostname::get_hostname;
 use rocket::State;
 use settings::{read_setup_vars, SetupVarsEntry};
@@ -33,7 +33,7 @@ pub fn get_network(env: State<Env>, _auth: User) -> Reply {
 
 #[cfg(test)]
 mod test {
-    use config::PiholeFile;
+    use env::PiholeFile;
     use hostname::get_hostname;
     use testing::TestBuilder;
 

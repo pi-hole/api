@@ -8,7 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use config::PiholeFile;
+use env::PiholeFile;
 use failure::Fail;
 use rocket::config::LoggingLevel;
 use std::fs::File;

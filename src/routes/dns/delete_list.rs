@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 use auth::User;
-use config::Env;
+use env::Env;
 use ftl::FtlConnectionType;
 use rocket::State;
 use routes::dns::common::reload_gravity;
@@ -47,7 +47,7 @@ pub fn delete_regexlist(
 
 #[cfg(test)]
 mod test {
-    use config::PiholeFile;
+    use env::PiholeFile;
     use rocket::http::Method;
     use testing::{write_eom, TestBuilder};
 

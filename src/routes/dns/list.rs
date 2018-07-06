@@ -8,7 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use config::{Env, PiholeFile};
+use env::{Env, PiholeFile};
 use failure::ResultExt;
 use routes::dns::common::{is_valid_domain, is_valid_regex};
 use std::io::prelude::*;

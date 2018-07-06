@@ -10,7 +10,7 @@
 
 extern crate serde_json;
 
-use config::PiholeFile;
+use env::PiholeFile;
 use rocket::http::{ContentType, Header, Method, Status};
 use setup;
 use std::collections::HashMap;

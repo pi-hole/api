@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 use auth::{self, AuthData};
-use config::{Config, Env, PiholeFile};
+use env::{Config, Env, PiholeFile};
 use ftl::FtlConnectionType;
 use rocket;
 use rocket::config::{ConfigBuilder, Environment};
