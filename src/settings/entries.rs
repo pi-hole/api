@@ -223,7 +223,7 @@ mod tests {
             ),
             (SetupVarsEntry::PiholeDns(0), "8.8.4.4", true),
             (SetupVarsEntry::PiholeDomain, "lan", true),
-            (SetupVarsEntry::PiholeInterface, "enp0s3", true),
+            (SetupVarsEntry::PiholeInterface, "lo", true),
             (SetupVarsEntry::QueryLogging, "true", true),
             (SetupVarsEntry::WebUiBoxedLayout, "boxed", true),
             (SetupVarsEntry::WebEnabled, "false", true),
