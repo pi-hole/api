@@ -296,7 +296,7 @@ mod tests {
             (FTLConfEntry::AaaaQueryAnalysis, "no", true),
             (FTLConfEntry::BlockingMode, "NULL", true),
             (FTLConfEntry::DbInterval, "5.0", true),
-            (FTLConfEntry::DbFile, "/etc/pihole/FTL.conf", true),
+            (FTLConfEntry::DbFile, "/etc/test.conf", true),
             (FTLConfEntry::FtlPort, "64738", true),
             (FTLConfEntry::IgnoreLocalHost, "yes", true),
             (FTLConfEntry::MaxDbDays, "3", true),
