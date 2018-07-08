@@ -26,6 +26,7 @@ extern crate failure;
 extern crate toml;
 #[macro_use]
 extern crate failure_derive;
+extern crate get_if_addrs;
 extern crate hostname;
 extern crate tempfile;
 

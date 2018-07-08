@@ -12,6 +12,7 @@ use regex::Regex;
 use std::path::Path;
 //use std::io::prelude::*;
 //use std::io::BufReader;
+use get_if_addrs::get_if_addrs;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 
@@ -85,10 +86,13 @@ impl ValueType {
                 intnum.is_match(value)
             }
             ValueType::Interface => {
-                // Interface - device listed in /proc/net/dev
-                // (Single alphanumeric word)
-                let interface_re = Regex::new(r"^([a-zA-Z][a-zA-Z0-9-]*)$").unwrap();
-                interface_re.is_match(value)
+                // Interface - device present on system
+                for interface in get_if_addrs().unwrap_or_default() {
+                    if interface.name == value {
+                        return true;
+                    };
+                }
+                false
             }
             ValueType::Ipv4 => {
                 // Ipv4 - valid and in allowable range
