@@ -9,8 +9,9 @@
 // Please see LICENSE file for your rights under this license.
 
 use regex::Regex;
-use std::io::prelude::*;
-use std::io::BufReader;
+use std::path::Path;
+//use std::io::prelude::*;
+//use std::io::BufReader;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 
@@ -75,11 +76,8 @@ impl ValueType {
                 if value.is_empty() {
                     return true;
                 };
-                // test if allowable filename
-                if !value.contains("\0") {
-                    return true;
-                }
-                false
+                let file = Path::new(value);
+                file.file_name().is_some()
             }
             ValueType::Integer => {
                 // Numeric - any number of digits
@@ -90,10 +88,7 @@ impl ValueType {
                 // Interface - device listed in /proc/net/dev
                 // (Single alphanumeric word)
                 let interface_re = Regex::new(r"^([a-zA-Z][a-zA-Z0-9-]*)$").unwrap();
-                if !interface_re.is_match(value) {
-                    return false;
-                };
-                true
+                interface_re.is_match(value)
             }
             ValueType::Ipv4 => {
                 // Ipv4 - valid and in allowable range
@@ -123,10 +118,7 @@ impl ValueType {
                         // Prohibited address ranges :
                         // Multicast & Unspecified
                         // (all others permitted)
-                        if !ipv6.is_multicast() && !ipv6.is_unspecified() {
-                            return true;
-                        }
-                        return false;
+                        !ipv6.is_multicast() && !ipv6.is_unspecified()
                     }
                     Err(_) => return false
                 }
@@ -137,15 +129,8 @@ impl ValueType {
                     return true;
                 };
                 // test if a path and filename has been specified
-                let pathname = Regex::new(r"^/(.)+$").unwrap();
-                if !pathname.is_match(value) {
-                    return false;
-                }
-                let (_directory, filename) = value.split_at(value.rfind("/").unwrap_or_default());
-                if filename != "/" {
-                    return true;
-                };
-                false
+                let path = Path::new(value);
+                path.file_name().is_some() && path.is_absolute() && !path.ends_with("/")
             }
             ValueType::PortNumber => {
                 // Port number, 0 - 65535
@@ -175,15 +160,11 @@ fn is_ipv4_allowable(value: &str) -> bool {
             // Prohibited address ranges
             // Broadcast, Documentation, Link-local, Multicast & Unspecified
             // (all others permitted)
-            if !ipv4.is_broadcast()
+            !ipv4.is_broadcast()
                 && !ipv4.is_documentation()
                 && !ipv4.is_link_local()
                 && !ipv4.is_multicast()
                 && !ipv4.is_unspecified()
-            {
-                return true;
-            };
-            return false;
         }
         Err(_) => return false
     }
