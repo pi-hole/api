@@ -168,7 +168,7 @@ impl FTLConfEntry {
             FTLConfEntry::ResolveIpv4 => ValueType::YesNo,
             FTLConfEntry::MaxDbDays => ValueType::Integer,
             FTLConfEntry::DbInterval => ValueType::Decimal,
-            FTLConfEntry::DbFile => ValueType::Filename,
+            FTLConfEntry::DbFile => ValueType::Pathname,
             FTLConfEntry::MaxLogAge => ValueType::Decimal,
             FTLConfEntry::FtlPort => ValueType::PortNumber,
             FTLConfEntry::PrivacyLevel => ValueType::String(&["0", "1", "2", "3"]),
