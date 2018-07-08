@@ -9,7 +9,6 @@
 // Please see LICENSE file for your rights under this license.
 
 use regex::Regex;
-use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -94,7 +93,7 @@ impl ValueType {
                 if !interface_re.is_match(value) {
                     return false;
                 };
-                get_interfaces().iter().any(|interface| interface == value)
+                true
             }
             ValueType::Ipv4 => {
                 // Ipv4 - valid and in allowable range
@@ -167,34 +166,6 @@ impl ValueType {
             ValueType::String(strings) => strings.contains(&value)
         }
     }
-}
-
-/// Interface - get the current list of network interfaces
-/// (from /proc/net/dev)
-fn get_interfaces() -> Vec<String> {
-    let mut interfaces = Vec::new();
-
-    // Parse output of /proc/net/dev - entries are terminated by a colon,
-    // found at the start of a line but may have prepended spaces
-    // eg: "\n    eth0: 000 001" "\nvirbr0: 000 001"
-    // If unable to read device list, return null array.
-    match File::open("/proc/net/dev") {
-        Ok(f) => {
-            let file = BufReader::new(f);
-            let devlist = file
-                .lines()
-                .filter_map(|item| item.ok())
-                .filter(|line| line.contains(':'));
-            for line in devlist {
-                let device = line[0..line.find(':').unwrap_or_default()]
-                    .trim_left()
-                    .to_string();
-                interfaces.push(device);
-            }
-        }
-        _ => {}
-    };
-    interfaces
 }
 
 /// IPv4 - Check that specified address is allowable
