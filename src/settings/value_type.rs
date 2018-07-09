@@ -85,15 +85,11 @@ impl ValueType {
                 let intnum = Regex::new(r"^(\d)+$").unwrap();
                 intnum.is_match(value)
             }
-            ValueType::Interface => {
-                // Interface - device present on system
-                for interface in get_if_addrs().unwrap_or_default() {
-                    if interface.name == value {
-                        return true;
-                    };
-                }
-                false
-            }
+            ValueType::Interface => get_if_addrs()
+                // Interface present on system
+                .unwrap_or_default()
+                .iter()
+                .any(|interface| interface.name == value),
             ValueType::Ipv4 => {
                 // Ipv4 - valid and in allowable range
                 // (4 octets, or null)
