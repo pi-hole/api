@@ -44,7 +44,7 @@ pub enum SetupVarsEntry {
 }
 
 impl SetupVarsEntry {
-    /// Get the setupVars.conf key of the entry
+    /// Get the setupVars.conf key
     pub fn key(&self) -> Cow<'static, str> {
         match *self {
             SetupVarsEntry::ApiQueryLogShow => Cow::Borrowed("API_QUERY_LOG_SHOW"),
@@ -81,7 +81,7 @@ impl SetupVarsEntry {
         }
     }
 
-    /// Set the acceptable value types for each entry
+    /// Get the acceptable value type
     pub fn value_type(&self) -> ValueType {
         match *self {
             SetupVarsEntry::ApiQueryLogShow => ValueType::String(&["all", ""]),
@@ -114,7 +114,7 @@ impl SetupVarsEntry {
         }
     }
 
-    /// Validate format of supplied values
+    /// Check if the value is valid for this entry
     pub fn is_valid(&self, value: &str) -> bool {
         self.value_type().is_valid(value)
     }
@@ -139,7 +139,7 @@ pub enum FTLConfEntry {
 }
 
 impl FTLConfEntry {
-    /// Set the pihole-FTL.conf key strings
+    /// Get the pihole-FTL.conf key
     pub fn key(&self) -> &'static str {
         match *self {
             FTLConfEntry::SocketListening => "SOCKET_LISTENING",
@@ -158,7 +158,7 @@ impl FTLConfEntry {
         }
     }
 
-    /// Set the acceptable value types for each entry
+    /// Get the acceptable value type
     pub fn value_type(&self) -> ValueType {
         match *self {
             FTLConfEntry::SocketListening => ValueType::String(&["localonly", "all"]),
@@ -179,7 +179,7 @@ impl FTLConfEntry {
         }
     }
 
-    /// Validate format of supplied values
+    /// Check if the value is valid for this entry
     pub fn is_valid(&self, value: &str) -> bool {
         self.value_type().is_valid(value)
     }
@@ -190,7 +190,7 @@ mod tests {
     use super::{FTLConfEntry, SetupVarsEntry};
 
     #[test]
-    fn test_validate_setupvars_valid() {
+    fn test_validate_setup_vars_valid() {
         let tests = vec![
             // Valid parameters
             (SetupVarsEntry::ApiQueryLogShow, "all", true),
@@ -235,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_setupvars_invalid() {
+    fn test_validate_setup_vars_invalid() {
         let tests = vec![
             // Valid parameters
             (SetupVarsEntry::ApiQueryLogShow, "41", false),
