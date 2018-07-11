@@ -12,7 +12,7 @@ use settings::value_type::ValueType;
 use std::borrow::Cow;
 
 /// setupVars.conf file entries
-#[derive(Eq, PartialEq, Hash, Copy, Clone)]
+#[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub enum SetupVarsEntry {
     ApiQueryLogShow,
     ApiPrivacyMode,
@@ -121,7 +121,7 @@ impl SetupVarsEntry {
 }
 
 /// pihole-FTL.conf settings file entries
-#[derive(Eq, PartialEq, Hash, Copy, Clone)]
+#[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub enum FTLConfEntry {
     AaaaQueryAnalysis,
     BlockingMode,
@@ -230,7 +230,14 @@ mod tests {
         ];
 
         for (setting, value, result) in tests {
-            assert_eq!(setting.is_valid(value), result);
+            assert_eq!(
+                setting.is_valid(value),
+                result,
+                "{:?}.is_valid({:?}) == {}",
+                setting,
+                value,
+                result
+            );
         }
     }
 
@@ -275,7 +282,14 @@ mod tests {
         ];
 
         for (setting, value, result) in tests {
-            assert_eq!(setting.is_valid(value), result);
+            assert_eq!(
+                setting.is_valid(value),
+                result,
+                "{:?}.is_valid({:?}) == {}",
+                setting,
+                value,
+                result
+            );
         }
     }
 
@@ -309,7 +323,14 @@ mod tests {
         ];
 
         for (setting, value, result) in tests {
-            assert_eq!(setting.is_valid(value), result);
+            assert_eq!(
+                setting.is_valid(value),
+                result,
+                "{:?}.is_valid({:?}) == {}",
+                setting,
+                value,
+                result
+            );
         }
     }
 
@@ -333,7 +354,14 @@ mod tests {
         ];
 
         for (setting, value, result) in tests {
-            assert_eq!(setting.is_valid(value), result);
+            assert_eq!(
+                setting.is_valid(value),
+                result,
+                "{:?}.is_valid({:?}) == {}",
+                setting,
+                value,
+                result
+            );
         }
     }
 }
