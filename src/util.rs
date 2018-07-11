@@ -107,7 +107,9 @@ pub enum ErrorKind {
     #[fail(display = "Error writing to {}", _0)]
     FileWrite(String),
     #[fail(display = "Error parsing the config")]
-    ConfigParsingError
+    ConfigParsingError,
+    #[fail(display = "Invalid setting value")]
+    InvalidSettingValue
 }
 
 impl Error {
@@ -178,7 +180,8 @@ impl ErrorKind {
             ErrorKind::Unauthorized => "unauthorized",
             ErrorKind::FileRead(_) => "file_read",
             ErrorKind::FileWrite(_) => "file_write",
-            ErrorKind::ConfigParsingError => "config_parsing_error"
+            ErrorKind::ConfigParsingError => "config_parsing_error",
+            ErrorKind::InvalidSettingValue => "invalid_setting_value"
         }
     }
 
@@ -197,7 +200,8 @@ impl ErrorKind {
             ErrorKind::Unauthorized => Status::Unauthorized,
             ErrorKind::FileRead(_) => Status::InternalServerError,
             ErrorKind::FileWrite(_) => Status::InternalServerError,
-            ErrorKind::ConfigParsingError => Status::InternalServerError
+            ErrorKind::ConfigParsingError => Status::InternalServerError,
+            ErrorKind::InvalidSettingValue => Status::BadRequest
         }
     }
 }

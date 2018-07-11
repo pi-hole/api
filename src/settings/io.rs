@@ -30,7 +30,7 @@ pub fn write_setup_vars(entry: SetupVarsEntry, value: &str, env: &Env) -> Result
     if entry.is_valid(&value) {
         write_setup_file(&entry.key(), &value, &env, PiholeFile::SetupVars)
     } else {
-        Err(ErrorKind::Unknown.into())
+        Err(ErrorKind::InvalidSettingValue.into())
     }
 }
 
@@ -39,7 +39,7 @@ pub fn write_ftl_conf(entry: FTLConfEntry, value: &str, env: &Env) -> Result<(),
     if entry.is_valid(&value) {
         write_setup_file(&entry.key(), &value, &env, PiholeFile::FTLConfig)
     } else {
-        Err(ErrorKind::Unknown.into())
+        Err(ErrorKind::InvalidSettingValue.into())
     }
 }
 
@@ -75,11 +75,12 @@ fn read_setup_file(entry: &str, env: &Env, file: PiholeFile) -> Result<Option<St
 /// Write a value to specified setup file
 fn write_setup_file(entry: &str, setting: &str, env: &Env, file: PiholeFile) -> Result<(), Error> {
     // Read specified file, removing any line matching setting to be written
+    let entry_equals = format!("{}=", entry);
     let file_read = BufReader::new(env.read_file(file)?);
     let mut setup_vars: Vec<String> = file_read
         .lines()
         .filter_map(|item| item.ok())
-        .filter(|line| !line.contains(entry))
+        .filter(|line| !line.starts_with(&entry_equals))
         .collect();
 
     // Append entry to working copy
@@ -99,4 +100,32 @@ fn write_setup_file(entry: &str, setting: &str, env: &Env, file: PiholeFile) -> 
     file_write.flush().context(context.into())?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::write_setup_vars;
+    use env::{Config, Env, PiholeFile};
+    use settings::entries::SetupVarsEntry;
+    use testing::TestEnvBuilder;
+
+    /// Test to make sure when writing a setting, a similar setting does not
+    /// get deleted. Example: Adding PIHOLE_DNS_1 should not delete
+    /// PIHOLE_DNS_10
+    #[test]
+    fn write_similar_keys() {
+        let env_builder = TestEnvBuilder::new().file_expect(
+            PiholeFile::SetupVars,
+            "PIHOLE_DNS_10=1.1.1.1\n",
+            "PIHOLE_DNS_10=1.1.1.1\n\
+             PIHOLE_DNS_1=2.2.2.2\n"
+        );
+        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
+        let env = Env::Test(Config::default(), env_builder.build());
+
+        write_setup_vars(SetupVarsEntry::PiholeDns(1), "2.2.2.2", &env).unwrap();
+
+        let mut buffer = String::new();
+        test_file.assert_expected(&mut buffer);
+    }
 }
