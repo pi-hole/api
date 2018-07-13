@@ -128,4 +128,66 @@ mod tests {
         let mut buffer = String::new();
         test_file.assert_expected(&mut buffer);
     }
+
+    #[test]
+    fn write_null_value() {
+        let env_builder = TestEnvBuilder::new().file_expect(
+            PiholeFile::SetupVars,
+            "PIHOLE_DNS_1=1.2.3.4\n",
+            "PIHOLE_DNS_1=\n"
+        );
+        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
+        let env = Env::Test(Config::default(), env_builder.build());
+
+        write_setup_vars(SetupVarsEntry::PiholeDns(1), "", &env).unwrap();
+
+        let mut buffer = String::new();
+        test_file.assert_expected(&mut buffer);
+    }
+
+    #[test]
+    fn write_over_duplicate_keys() {
+        let env_builder = TestEnvBuilder::new().file_expect(
+            PiholeFile::SetupVars,
+            "PIHOLE_DNS_1=2.2.2.2\n\
+             PIHOLE_DNS_1=1.2.3.4\n",
+            "PIHOLE_DNS_1=5.6.7.8\n"
+        );
+        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
+        let env = Env::Test(Config::default(), env_builder.build());
+
+        write_setup_vars(SetupVarsEntry::PiholeDns(1), "5.6.7.8", &env).unwrap();
+
+        let mut buffer = String::new();
+        test_file.assert_expected(&mut buffer);
+    }
+
+    #[test]
+    fn write_over_null_value() {
+        let env_builder = TestEnvBuilder::new().file_expect(
+            PiholeFile::SetupVars,
+            "PIHOLE_DNS_1=\n",
+            "PIHOLE_DNS_1=1.2.3.4\n"
+        );
+        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
+        let env = Env::Test(Config::default(), env_builder.build());
+
+        write_setup_vars(SetupVarsEntry::PiholeDns(1), "1.2.3.4", &env).unwrap();
+
+        let mut buffer = String::new();
+        test_file.assert_expected(&mut buffer);
+    }
+
+    #[test]
+    fn write_to_empty_file() {
+        let env_builder =
+            TestEnvBuilder::new().file_expect(PiholeFile::SetupVars, "", "PIHOLE_DNS_1=1.1.1.1\n");
+        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
+        let env = Env::Test(Config::default(), env_builder.build());
+
+        write_setup_vars(SetupVarsEntry::PiholeDns(1), "1.1.1.1", &env).unwrap();
+
+        let mut buffer = String::new();
+        test_file.assert_expected(&mut buffer);
+    }
 }
