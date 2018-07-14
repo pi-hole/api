@@ -89,7 +89,7 @@ fn write_setup_file(entry: &str, setting: &str, env: &Env, file: PiholeFile) -> 
 
     // Open setupVars.conf to be overwritten
     let mut file_write = BufWriter::new(env.write_file(file, false)?);
-    let context = ErrorKind::FileWrite(file.default_location().to_owned());
+    let context = ErrorKind::FileWrite(env.file_location(file).to_owned());
     for line in setup_vars {
         file_write
             .write(line.as_bytes())
