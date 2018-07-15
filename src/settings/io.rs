@@ -22,7 +22,7 @@ pub fn read_setup_vars(entry: SetupVarsEntry, env: &Env) -> Result<Option<String
 
 /// Read in a value from pihole-FTL.conf
 pub fn read_ftl_conf(entry: FtlConfEntry, env: &Env) -> Result<Option<String>, Error> {
-    read_setup_file(&entry.key(), &env, PiholeFile::FTLConfig)
+    read_setup_file(&entry.key(), &env, PiholeFile::FtlConfig)
 }
 
 /// Write a value to setupVars.conf
@@ -37,7 +37,7 @@ pub fn write_setup_vars(entry: SetupVarsEntry, value: &str, env: &Env) -> Result
 /// Write a value to pihole-FTL.conf
 pub fn write_ftl_conf(entry: FtlConfEntry, value: &str, env: &Env) -> Result<(), Error> {
     if entry.is_valid(&value) {
-        write_setup_file(&entry.key(), &value, &env, PiholeFile::FTLConfig)
+        write_setup_file(&entry.key(), &value, &env, PiholeFile::FtlConfig)
     } else {
         Err(ErrorKind::InvalidSettingValue.into())
     }

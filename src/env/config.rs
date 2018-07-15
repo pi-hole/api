@@ -57,7 +57,7 @@ impl Config {
             PiholeFile::Blacklist => &self.file_locations.blacklist,
             PiholeFile::Regexlist => &self.file_locations.regexlist,
             PiholeFile::SetupVars => &self.file_locations.setup_vars,
-            PiholeFile::FTLConfig => &self.file_locations.ftl_config,
+            PiholeFile::FtlConfig => &self.file_locations.ftl_config,
             PiholeFile::LocalVersions => &self.file_locations.local_versions,
             PiholeFile::LocalBranches => &self.file_locations.local_branches
         }
@@ -133,7 +133,7 @@ default!(default_whitelist, Whitelist);
 default!(default_blacklist, Blacklist);
 default!(default_regexlist, Regexlist);
 default!(default_setup_vars, SetupVars);
-default!(default_ftl_config, FTLConfig);
+default!(default_ftl_config, FtlConfig);
 default!(default_local_versions, LocalVersions);
 default!(default_local_branches, LocalBranches);
 
