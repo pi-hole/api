@@ -122,7 +122,7 @@ impl SetupVarsEntry {
 
 /// pihole-FTL.conf settings file entries
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
-pub enum FTLConfEntry {
+pub enum FtlConfEntry {
     AaaaQueryAnalysis,
     BlockingMode,
     ResolveIpv6,
@@ -138,42 +138,42 @@ pub enum FTLConfEntry {
     SocketListening
 }
 
-impl FTLConfEntry {
+impl FtlConfEntry {
     /// Get the pihole-FTL.conf key
     pub fn key(&self) -> &'static str {
         match *self {
-            FTLConfEntry::SocketListening => "SOCKET_LISTENING",
-            FTLConfEntry::QueryDisplay => "QUERY_DISPLAY",
-            FTLConfEntry::AaaaQueryAnalysis => "AAAA_QUERY_ANALYSIS",
-            FTLConfEntry::ResolveIpv6 => "RESOLVE_IPV6",
-            FTLConfEntry::ResolveIpv4 => "RESOLVE_IPV6",
-            FTLConfEntry::MaxDbDays => "MAXDBDAYS",
-            FTLConfEntry::DbInterval => "DBINTERVAL",
-            FTLConfEntry::DbFile => "DBFILE",
-            FTLConfEntry::MaxLogAge => "MAXLOGAGE",
-            FTLConfEntry::FtlPort => "FTLPORT",
-            FTLConfEntry::PrivacyLevel => "PRIVACYLEVEL",
-            FTLConfEntry::IgnoreLocalHost => "IGNORE_LOCALHOST",
-            FTLConfEntry::BlockingMode => "BLOCKINGMODE"
+            FtlConfEntry::SocketListening => "SOCKET_LISTENING",
+            FtlConfEntry::QueryDisplay => "QUERY_DISPLAY",
+            FtlConfEntry::AaaaQueryAnalysis => "AAAA_QUERY_ANALYSIS",
+            FtlConfEntry::ResolveIpv6 => "RESOLVE_IPV6",
+            FtlConfEntry::ResolveIpv4 => "RESOLVE_IPV6",
+            FtlConfEntry::MaxDbDays => "MAXDBDAYS",
+            FtlConfEntry::DbInterval => "DBINTERVAL",
+            FtlConfEntry::DbFile => "DBFILE",
+            FtlConfEntry::MaxLogAge => "MAXLOGAGE",
+            FtlConfEntry::FtlPort => "FTLPORT",
+            FtlConfEntry::PrivacyLevel => "PRIVACYLEVEL",
+            FtlConfEntry::IgnoreLocalHost => "IGNORE_LOCALHOST",
+            FtlConfEntry::BlockingMode => "BLOCKINGMODE"
         }
     }
 
     /// Get the acceptable value type
     pub fn value_type(&self) -> ValueType {
         match *self {
-            FTLConfEntry::SocketListening => ValueType::String(&["localonly", "all"]),
-            FTLConfEntry::QueryDisplay => ValueType::YesNo,
-            FTLConfEntry::AaaaQueryAnalysis => ValueType::YesNo,
-            FTLConfEntry::ResolveIpv6 => ValueType::YesNo,
-            FTLConfEntry::ResolveIpv4 => ValueType::YesNo,
-            FTLConfEntry::MaxDbDays => ValueType::Integer,
-            FTLConfEntry::DbInterval => ValueType::Decimal,
-            FTLConfEntry::DbFile => ValueType::Pathname,
-            FTLConfEntry::MaxLogAge => ValueType::Decimal,
-            FTLConfEntry::FtlPort => ValueType::PortNumber,
-            FTLConfEntry::PrivacyLevel => ValueType::String(&["0", "1", "2", "3"]),
-            FTLConfEntry::IgnoreLocalHost => ValueType::YesNo,
-            FTLConfEntry::BlockingMode => {
+            FtlConfEntry::SocketListening => ValueType::String(&["localonly", "all"]),
+            FtlConfEntry::QueryDisplay => ValueType::YesNo,
+            FtlConfEntry::AaaaQueryAnalysis => ValueType::YesNo,
+            FtlConfEntry::ResolveIpv6 => ValueType::YesNo,
+            FtlConfEntry::ResolveIpv4 => ValueType::YesNo,
+            FtlConfEntry::MaxDbDays => ValueType::Integer,
+            FtlConfEntry::DbInterval => ValueType::Decimal,
+            FtlConfEntry::DbFile => ValueType::Pathname,
+            FtlConfEntry::MaxLogAge => ValueType::Decimal,
+            FtlConfEntry::FtlPort => ValueType::PortNumber,
+            FtlConfEntry::PrivacyLevel => ValueType::String(&["0", "1", "2", "3"]),
+            FtlConfEntry::IgnoreLocalHost => ValueType::YesNo,
+            FtlConfEntry::BlockingMode => {
                 ValueType::String(&["NULL", "IP-AAAA-NODATA", "IP", "NXDOMAIN"])
             }
         }

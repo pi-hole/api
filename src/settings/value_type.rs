@@ -75,7 +75,7 @@ impl ValueType {
                 }
 
                 let file = Path::new(value);
-                file.file_name().is_some()
+                file.file_name().is_some() && !value.ends_with("/")
             }
             ValueType::Integer => {
                 // At least one digit
@@ -130,7 +130,7 @@ impl ValueType {
 
                 // Test if a path and filename have been specified
                 let path = Path::new(value);
-                path.file_name().is_some() && path.is_absolute() && !path.ends_with("/")
+                path.file_name().is_some() && path.is_absolute() && !value.ends_with("/")
             }
             ValueType::PortNumber => {
                 // Number from 0 to 65535
@@ -172,47 +172,34 @@ fn is_ipv4_valid(value: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use settings::value_type::is_ipv4_valid;
-    use settings::{FTLConfEntry, SetupVarsEntry};
+    use settings::value_type::{is_ipv4_valid, ValueType};
+    //    use settings::{FTLConfEntry, SetupVarsEntry};
 
     #[test]
-    fn test_validate_setup_vars_valid() {
+    fn test_valuetype_valid() {
         let tests = vec![
-            // Valid parameters
-            (SetupVarsEntry::ApiQueryLogShow, "all", true),
-            (SetupVarsEntry::ApiPrivacyMode, "false", true),
-            (SetupVarsEntry::DnsBogusPriv, "true", true),
-            (SetupVarsEntry::DnsFqdnRequired, "true", true),
-            (SetupVarsEntry::ConditionalForwarding, "true", true),
-            (SetupVarsEntry::ConditionalForwardingDomain, "hub", true),
-            (SetupVarsEntry::ConditionalForwardingIp, "192.168.1.1", true),
+            (ValueType::Boolean, "false", true),
             (
-                SetupVarsEntry::ConditionalForwardingReverse,
+                ValueType::ConditionalForwardingReverse,
                 "1.168.192.in-addr.arpa",
                 true
             ),
-            (SetupVarsEntry::DhcpActive, "false", true),
-            (SetupVarsEntry::DhcpEnd, "199.199.1.255", true),
-            (SetupVarsEntry::DhcpIpv6, "false", true),
-            (SetupVarsEntry::DhcpLeasetime, "24", true),
-            (SetupVarsEntry::DhcpStart, "199.199.1.0", true),
-            (SetupVarsEntry::DhcpRouter, "192.168.1.1", true),
-            (SetupVarsEntry::DnsmasqListening, "all", true),
-            (SetupVarsEntry::Dnssec, "false", true),
-            (SetupVarsEntry::InstallWebServer, "true", true),
-            (SetupVarsEntry::InstallWebInterface, "true", true),
-            (SetupVarsEntry::Ipv4Address, "192.168.1.205/24", true),
+            (ValueType::Decimal, "3.14", true),
+            (ValueType::Domain, "domain", true),
+            (ValueType::Filename, "c3po", true),
+            (ValueType::Integer, "8675309", true),
+            (ValueType::Interface, "lo", true),
+            (ValueType::Ipv4, "192.168.2.9", true),
+            (ValueType::Ipv4Mask, "192.168.0.3/24", true),
             (
-                SetupVarsEntry::Ipv6Address,
-                "2001:470:66:d5f:114b:a1b9:2a13:c7d9",
+                ValueType::Ipv6,
+                "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c",
                 true
             ),
-            (SetupVarsEntry::PiholeDns(0), "8.8.4.4", true),
-            (SetupVarsEntry::PiholeDomain, "lan", true),
-            (SetupVarsEntry::PiholeInterface, "lo", true),
-            (SetupVarsEntry::QueryLogging, "true", true),
-            (SetupVarsEntry::WebUiBoxedLayout, "boxed", true),
-            (SetupVarsEntry::WebEnabled, "false", true),
+            (ValueType::Pathname, "/tmp/directory/file.ext", true),
+            (ValueType::PortNumber, "9000", true),
+            (ValueType::YesNo, "yes", true),
+            (ValueType::String(&["boxed", ""]), "boxed", true),
         ];
 
         for (setting, value, result) in tests {
@@ -228,115 +215,26 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_setup_vars_invalid() {
+    fn test_valuetype_invalid() {
         let tests = vec![
-            // Valid parameters
-            (SetupVarsEntry::ApiQueryLogShow, "41", false),
-            (SetupVarsEntry::ApiPrivacyMode, "off", false),
-            (SetupVarsEntry::DnsBogusPriv, "on", false),
-            (SetupVarsEntry::DnsFqdnRequired, "1", false),
-            (SetupVarsEntry::ConditionalForwarding, "disabled", false),
-            (SetupVarsEntry::ConditionalForwardingDomain, "%%@)#", false),
-            (SetupVarsEntry::ConditionalForwardingIp, "192.1.1", false),
+            (ValueType::Boolean, "yes", false),
             (
-                SetupVarsEntry::ConditionalForwardingReverse,
-                "in-addr.arpa.1.1.1",
+                ValueType::ConditionalForwardingReverse,
+                "www.pi-hole.net",
                 false
             ),
-            (SetupVarsEntry::DhcpActive, "active", false),
-            (
-                SetupVarsEntry::DhcpEnd,
-                "2001:470:66:d5f:114b:a1b9:2a13:c7d9",
-                false
-            ),
-            (SetupVarsEntry::DhcpIpv6, "ipv4", false),
-            (SetupVarsEntry::DhcpLeasetime, "hours", false),
-            (SetupVarsEntry::DhcpStart, "199199.1.0", false),
-            (SetupVarsEntry::DhcpRouter, "192.1681.1", false),
-            (SetupVarsEntry::DnsmasqListening, "dnsmasq", false),
-            (SetupVarsEntry::Dnssec, "1", false),
-            (SetupVarsEntry::InstallWebServer, "yes", false),
-            (SetupVarsEntry::InstallWebInterface, "no", false),
-            (SetupVarsEntry::Ipv4Address, "192.168.1.205", false),
-            (SetupVarsEntry::Ipv6Address, "192.168.1.205", false),
-            (SetupVarsEntry::PiholeDns(0), "www.pi-hole.net", false),
-            (SetupVarsEntry::PiholeDomain, "too many words", false),
-            (SetupVarsEntry::PiholeInterface, "/dev/net/eth1", false),
-            (SetupVarsEntry::QueryLogging, "disabled", false),
-            (SetupVarsEntry::WebUiBoxedLayout, "true", false),
-            (SetupVarsEntry::WebEnabled, "457", false),
-        ];
-
-        for (setting, value, result) in tests {
-            assert_eq!(
-                setting.is_valid(value),
-                result,
-                "{:?}.is_valid({:?}) == {}",
-                setting,
-                value,
-                result
-            );
-        }
-    }
-
-    #[test]
-    fn test_validate_setup_vars_disabled() {
-        // Setting the web password is not allowed - must report false.
-        assert_eq!(
-            SetupVarsEntry::WebPassword
-                .is_valid("B350486529B6022919491965A235157110B12437514315201184143ABBB37A14"),
-            false
-        );
-    }
-
-    #[test]
-    fn test_validate_ftl_config_valid() {
-        let tests = vec![
-            // Valid values
-            (FTLConfEntry::AaaaQueryAnalysis, "no", true),
-            (FTLConfEntry::BlockingMode, "NULL", true),
-            (FTLConfEntry::DbInterval, "5.0", true),
-            (FTLConfEntry::DbFile, "/etc/test.conf", true),
-            (FTLConfEntry::FtlPort, "64738", true),
-            (FTLConfEntry::IgnoreLocalHost, "yes", true),
-            (FTLConfEntry::MaxDbDays, "3", true),
-            (FTLConfEntry::MaxLogAge, "8", true),
-            (FTLConfEntry::PrivacyLevel, "2", true),
-            (FTLConfEntry::QueryDisplay, "yes", true),
-            (FTLConfEntry::ResolveIpv6, "yes", true),
-            (FTLConfEntry::ResolveIpv4, "no", true),
-            (FTLConfEntry::SocketListening, "localonly", true),
-        ];
-
-        for (setting, value, result) in tests {
-            assert_eq!(
-                setting.is_valid(value),
-                result,
-                "{:?}.is_valid({:?}) == {}",
-                setting,
-                value,
-                result
-            );
-        }
-    }
-
-    #[test]
-    fn test_validate_ftl_conf_invalid() {
-        let tests = vec![
-            // Invalid values
-            (FTLConfEntry::AaaaQueryAnalysis, "", false),
-            (FTLConfEntry::BlockingMode, "enabled", false),
-            (FTLConfEntry::DbInterval, "true", false),
-            (FTLConfEntry::DbFile, "FTL.conf", false),
-            (FTLConfEntry::FtlPort, "65537", false),
-            (FTLConfEntry::IgnoreLocalHost, "OK", false),
-            (FTLConfEntry::MaxDbDays, "null", false),
-            (FTLConfEntry::MaxLogAge, "enabled", false),
-            (FTLConfEntry::PrivacyLevel, ">9000", false),
-            (FTLConfEntry::QueryDisplay, "disabled", false),
-            (FTLConfEntry::ResolveIpv6, "true", false),
-            (FTLConfEntry::ResolveIpv4, "false", false),
-            (FTLConfEntry::SocketListening, "eth0", false),
+            (ValueType::Decimal, "3/4", false),
+            (ValueType::Domain, "D0#A!N", false),
+            (ValueType::Filename, "c3p0/", false),
+            (ValueType::Integer, "9.9", false),
+            (ValueType::Interface, "/dev/net/ev9d9", false),
+            (ValueType::Ipv4, "192.168.0.3/24", false),
+            (ValueType::Ipv4Mask, "192.168.2.9", false),
+            (ValueType::Ipv6, "192.168.0.3", false),
+            (ValueType::Pathname, "~/tmp/directory/file.ext", false),
+            (ValueType::PortNumber, "65536", false),
+            (ValueType::YesNo, "true", false),
+            (ValueType::String(&["boxed", ""]), "lan", false),
         ];
 
         for (setting, value, result) in tests {

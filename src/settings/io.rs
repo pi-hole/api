@@ -10,7 +10,7 @@
 
 use env::{Env, PiholeFile};
 use failure::ResultExt;
-use settings::entries::{FTLConfEntry, SetupVarsEntry};
+use settings::entries::{FtlConfEntry, SetupVarsEntry};
 use std::io::prelude::*;
 use std::io::{BufReader, BufWriter};
 use util::{Error, ErrorKind};
@@ -21,7 +21,7 @@ pub fn read_setup_vars(entry: SetupVarsEntry, env: &Env) -> Result<Option<String
 }
 
 /// Read in a value from pihole-FTL.conf
-pub fn read_ftl_conf(entry: FTLConfEntry, env: &Env) -> Result<Option<String>, Error> {
+pub fn read_ftl_conf(entry: FtlConfEntry, env: &Env) -> Result<Option<String>, Error> {
     read_setup_file(&entry.key(), &env, PiholeFile::FTLConfig)
 }
 
@@ -35,7 +35,7 @@ pub fn write_setup_vars(entry: SetupVarsEntry, value: &str, env: &Env) -> Result
 }
 
 /// Write a value to pihole-FTL.conf
-pub fn write_ftl_conf(entry: FTLConfEntry, value: &str, env: &Env) -> Result<(), Error> {
+pub fn write_ftl_conf(entry: FtlConfEntry, value: &str, env: &Env) -> Result<(), Error> {
     if entry.is_valid(&value) {
         write_setup_file(&entry.key(), &value, &env, PiholeFile::FTLConfig)
     } else {
