@@ -45,7 +45,7 @@ pub enum SetupVarsEntry {
 
 impl SetupVarsEntry {
     /// Get the setupVars.conf key
-    pub fn key(&self) -> Cow<'static, str> {
+    pub fn key(&self) -> Cow<str> {
         match *self {
             SetupVarsEntry::ApiQueryLogShow => Cow::Borrowed("API_QUERY_LOG_SHOW"),
             SetupVarsEntry::ApiPrivacyMode => Cow::Borrowed("API_PRIVACY_MODE"),

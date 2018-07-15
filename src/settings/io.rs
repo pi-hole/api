@@ -17,18 +17,18 @@ use util::{Error, ErrorKind};
 
 /// Read in a value from setupVars.conf
 pub fn read_setup_vars(entry: SetupVarsEntry, env: &Env) -> Result<Option<String>, Error> {
-    read_setup_file(&entry.key(), &env, PiholeFile::SetupVars)
+    read_setup_file(&entry.key(), env, PiholeFile::SetupVars)
 }
 
 /// Read in a value from pihole-FTL.conf
 pub fn read_ftl_conf(entry: FtlConfEntry, env: &Env) -> Result<Option<String>, Error> {
-    read_setup_file(&entry.key(), &env, PiholeFile::FtlConfig)
+    read_setup_file(entry.key(), env, PiholeFile::FtlConfig)
 }
 
 /// Write a value to setupVars.conf
 pub fn write_setup_vars(entry: SetupVarsEntry, value: &str, env: &Env) -> Result<(), Error> {
-    if entry.is_valid(&value) {
-        write_setup_file(&entry.key(), &value, &env, PiholeFile::SetupVars)
+    if entry.is_valid(value) {
+        write_setup_file(&entry.key(), value, env, PiholeFile::SetupVars)
     } else {
         Err(ErrorKind::InvalidSettingValue.into())
     }
@@ -36,8 +36,8 @@ pub fn write_setup_vars(entry: SetupVarsEntry, value: &str, env: &Env) -> Result
 
 /// Write a value to pihole-FTL.conf
 pub fn write_ftl_conf(entry: FtlConfEntry, value: &str, env: &Env) -> Result<(), Error> {
-    if entry.is_valid(&value) {
-        write_setup_file(&entry.key(), &value, &env, PiholeFile::FtlConfig)
+    if entry.is_valid(value) {
+        write_setup_file(entry.key(), value, env, PiholeFile::FtlConfig)
     } else {
         Err(ErrorKind::InvalidSettingValue.into())
     }
@@ -61,10 +61,13 @@ fn read_setup_file(entry: &str, env: &Env, file: PiholeFile) -> Result<Option<St
         if split.next().map_or(false, |section| section == entry) {
             return Ok(
                 // Get the right hand side if it exists and is not empty
-                split
-                    .next()
-                    .and_then(|item| if item.is_empty() { None } else { Some(item) })
-                    .map(|item| item.to_owned())
+                split.next().and_then(|item| {
+                    if item.is_empty() {
+                        None
+                    } else {
+                        Some(item.to_owned())
+                    }
+                })
             );
         }
     }
@@ -84,7 +87,7 @@ fn write_setup_file(entry: &str, setting: &str, env: &Env, file: PiholeFile) -> 
         .collect();
 
     // Append entry to working copy
-    let new_entry = format!("{}={}", &entry, &setting);
+    let new_entry = format!("{}={}", entry, setting);
     setup_vars.push(new_entry);
 
     // Open setupVars.conf to be overwritten
@@ -92,9 +95,9 @@ fn write_setup_file(entry: &str, setting: &str, env: &Env, file: PiholeFile) -> 
     let context = ErrorKind::FileWrite(env.file_location(file).to_owned());
     for line in setup_vars {
         file_write
-            .write(line.as_bytes())
+            .write_all(line.as_bytes())
             .context(context.clone().into())?;
-        file_write.write(b"\n").context(context.clone().into())?;
+        file_write.write_all(b"\n").context(context.clone().into())?;
     }
 
     file_write.flush().context(context.into())?;
