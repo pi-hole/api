@@ -27,7 +27,7 @@ pub enum ValueType {
     Ipv4,
     Ipv4Mask,
     Ipv6,
-    Pathname,
+    Path,
     PortNumber,
     YesNo,
     WebPassword,
@@ -122,8 +122,8 @@ impl ValueType {
                     Err(_) => return false
                 }
             }
-            ValueType::Pathname => {
-                // Valid full pathname, or null
+            ValueType::Path => {
+                // Valid full Path, or null
                 if value.is_empty() {
                     return true;
                 }
@@ -173,10 +173,9 @@ fn is_ipv4_valid(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use settings::value_type::{is_ipv4_valid, ValueType};
-    //    use settings::{FTLConfEntry, SetupVarsEntry};
 
     #[test]
-    fn test_valuetype_valid() {
+    fn test_value_type_valid() {
         let tests = vec![
             (ValueType::Boolean, "false", true),
             (
@@ -196,7 +195,7 @@ mod tests {
                 "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c",
                 true
             ),
-            (ValueType::Pathname, "/tmp/directory/file.ext", true),
+            (ValueType::Path, "/tmp/directory/file.ext", true),
             (ValueType::PortNumber, "9000", true),
             (ValueType::YesNo, "yes", true),
             (ValueType::String(&["boxed", ""]), "boxed", true),
@@ -215,7 +214,7 @@ mod tests {
     }
 
     #[test]
-    fn test_valuetype_invalid() {
+    fn test_value_type_invalid() {
         let tests = vec![
             (ValueType::Boolean, "yes", false),
             (
@@ -231,7 +230,7 @@ mod tests {
             (ValueType::Ipv4, "192.168.0.3/24", false),
             (ValueType::Ipv4Mask, "192.168.2.9", false),
             (ValueType::Ipv6, "192.168.0.3", false),
-            (ValueType::Pathname, "~/tmp/directory/file.ext", false),
+            (ValueType::Path, "~/tmp/directory/file.ext", false),
             (ValueType::PortNumber, "65536", false),
             (ValueType::YesNo, "true", false),
             (ValueType::String(&["boxed", ""]), "lan", false),
