@@ -9,19 +9,18 @@
 // Please see LICENSE file for your rights under this license.
 
 use auth::User;
-use config::Env;
+use env::Env;
 use rocket::State;
 use routes::settings::common::as_bool;
-use setup_vars::read_setup_vars;
+use settings::{read_setup_vars, SetupVarsEntry};
 use util::{reply_data, Error, Reply};
 
 /// Get upstream DNS servers
 fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
     let mut upstream_dns = Vec::new();
 
-    for i in 1.. {
-        let key = format!("PIHOLE_DNS_{}", i);
-        let data = read_setup_vars(&key, &env)?;
+    for num in 1.. {
+        let data = read_setup_vars(SetupVarsEntry::PiholeDns(num), &env)?;
 
         if let Some(ip) = data {
             upstream_dns.push(ip);
@@ -36,19 +35,20 @@ fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
 /// Get DNS Configuration
 #[get("/settings/dns")]
 pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
-    let fqdn_required = read_setup_vars("DNS_FQDN_REQUIRED", &env)?
+    let fqdn_required = read_setup_vars(SetupVarsEntry::DnsFqdnRequired, &env)?
         .map(|s| as_bool(&s))
         .unwrap_or(false);
-    let bogus_priv = read_setup_vars("DNS_BOGUS_PRIV", &env)?
+    let bogus_priv = read_setup_vars(SetupVarsEntry::DnsBogusPriv, &env)?
         .map(|s| as_bool(&s))
         .unwrap_or(false);
-    let dnssec = read_setup_vars("DNSSEC", &env)?
+    let dnssec = read_setup_vars(SetupVarsEntry::Dnssec, &env)?
         .map(|s| as_bool(&s))
         .unwrap_or(false);
-    let cf_enabled = read_setup_vars("CONDITIONAL_FORWARDING", &env)?
+    let cf_enabled = read_setup_vars(SetupVarsEntry::ConditionalForwarding, &env)?
         .map(|s| as_bool(&s))
         .unwrap_or(false);
-    let listening_type = read_setup_vars("DNSMASQ_LISTENING", &env)?.unwrap_or("single".to_owned());
+    let listening_type =
+        read_setup_vars(SetupVarsEntry::DnsmasqListening, &env)?.unwrap_or("single".to_owned());
 
     reply_data(json!({
         "upstream_dns": get_upstream_dns(&env)?,
@@ -60,15 +60,15 @@ pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
         },
         "conditional_forwarding": {
             "enabled": cf_enabled,
-            "router_ip": read_setup_vars("CONDITIONAL_FORWARDING_IP", &env)?.unwrap_or_default(),
-            "domain": read_setup_vars("CONDITIONAL_FORWARDING_DOMAIN", &env)?.unwrap_or_default(),
+            "router_ip": read_setup_vars(SetupVarsEntry::ConditionalForwardingIp, &env)?.unwrap_or_default(),
+            "domain": read_setup_vars(SetupVarsEntry::ConditionalForwardingDomain, &env)?.unwrap_or_default(),
         }
     }))
 }
 
 #[cfg(test)]
 mod test {
-    use config::PiholeFile;
+    use env::PiholeFile;
     use testing::TestBuilder;
 
     /// Basic test for reported settings

@@ -8,7 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use config::{Env, PiholeFile};
+use env::{Env, PiholeFile};
 use rocket::State;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -47,7 +47,7 @@ fn check_for_gravity(file: File) -> &'static str {
 
 #[cfg(test)]
 mod test {
-    use config::PiholeFile;
+    use env::PiholeFile;
     use testing::TestBuilder;
 
     #[test]

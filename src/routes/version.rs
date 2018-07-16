@@ -8,7 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use config::{Env, PiholeFile};
+use env::{Env, PiholeFile};
 use failure::ResultExt;
 use ftl::FtlConnectionType;
 use rocket::State;
@@ -140,7 +140,7 @@ struct Version {
 #[cfg(test)]
 mod tests {
     use super::{parse_git_version, parse_web_version, read_ftl_version, Version};
-    use config::{Config, Env, PiholeFile};
+    use env::{Config, Env, PiholeFile};
     use ftl::FtlConnectionType;
     use rmp::encode;
     use routes::version::read_core_version;

@@ -10,7 +10,7 @@
 
 extern crate serde_json;
 
-use config::PiholeFile;
+use env::PiholeFile;
 use rocket::http::{ContentType, Header, Method, Status};
 use setup;
 use std::collections::HashMap;
@@ -77,7 +77,7 @@ impl TestEnvBuilder {
     }
 
     /// Get a copy of the inner test files for later verification
-    fn get_test_files(&self) -> Vec<TestFile<File>> {
+    pub fn get_test_files(&self) -> Vec<TestFile<File>> {
         let mut test_files = Vec::new();
 
         for test_file in &self.test_files {
@@ -95,14 +95,14 @@ impl TestEnvBuilder {
 
 /// Represents a mocked file along with the initial and expected data. The `T`
 /// generic is the type of temporary file, usually `NamedTempFile` or `File`.
-struct TestFile<T> {
+pub struct TestFile<T: Seek + Read> {
     pihole_file: PiholeFile,
     temp_file: T,
     initial_data: String,
     expected_data: String
 }
 
-impl<T> TestFile<T> {
+impl<T: Seek + Read> TestFile<T> {
     /// Create a new `TestFile`
     fn new(
         pihole_file: PiholeFile,
@@ -116,6 +116,17 @@ impl<T> TestFile<T> {
             initial_data,
             expected_data
         }
+    }
+
+    /// Asserts that the contents of the file matches the expected contents.
+    /// `buffer` is used to read the file into memory, and will be cleared at
+    /// the end.
+    pub fn assert_expected(&mut self, buffer: &mut String) {
+        self.temp_file.seek(SeekFrom::Start(0)).unwrap();
+        self.temp_file.read_to_string(buffer).unwrap();
+
+        assert_eq!(*buffer, self.expected_data);
+        buffer.clear();
     }
 }
 
@@ -256,22 +267,10 @@ impl TestBuilder {
         // Check that is is the same as the expected JSON
         assert_eq!(self.expected_json, parsed);
 
-        // Verify files are as expected at the end
-        let mut buffer = String::new();
-
-        // Get the file handles and expected data
-        let expected_data: Vec<(File, String)> = test_files
-            .into_iter()
-            .map(|test_file| (test_file.temp_file, test_file.expected_data))
-            .collect();
-
         // Check the files against the expected data
-        for (mut file, expected) in expected_data {
-            file.seek(SeekFrom::Start(0)).unwrap();
-            file.read_to_string(&mut buffer).unwrap();
-
-            assert_eq!(buffer, expected);
-            buffer.clear();
+        let mut buffer = String::new();
+        for mut test_file in test_files {
+            test_file.assert_expected(&mut buffer);
         }
     }
 }

@@ -8,8 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use config::Config;
-use config::PiholeFile;
+use env::{Config, PiholeFile};
 use failure::ResultExt;
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};

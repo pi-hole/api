@@ -8,7 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use config::Env;
+use env::Env;
 use rocket::State;
 use routes::dns::list::List;
 use util::{reply_data, Reply};
@@ -33,7 +33,7 @@ pub fn get_regexlist(env: State<Env>) -> Reply {
 
 #[cfg(test)]
 mod test {
-    use config::PiholeFile;
+    use env::PiholeFile;
     use testing::TestBuilder;
 
     #[test]
