@@ -178,7 +178,7 @@ impl FtlConfEntry {
             FtlConfEntry::BlockingMode => {
                 ValueType::String(&["NULL", "IP-AAAA-NODATA", "IP", "NXDOMAIN"])
             }
-            FtlConfEntry::RegexDebugMode => ValueType::YesNo
+            FtlConfEntry::RegexDebugMode => ValueType::Boolean
         }
     }
 
