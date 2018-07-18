@@ -268,6 +268,7 @@ pub enum FtlConfEntry {
     MaxLogAge,
     PrivacyLevel,
     QueryDisplay,
+    RegexDebugMode,
     SocketListening
 }
 
@@ -290,7 +291,8 @@ impl ConfigEntry for FtlConfEntry {
             FtlConfEntry::FtlPort => "FTLPORT",
             FtlConfEntry::PrivacyLevel => "PRIVACYLEVEL",
             FtlConfEntry::IgnoreLocalHost => "IGNORE_LOCALHOST",
-            FtlConfEntry::BlockingMode => "BLOCKINGMODE"
+            FtlConfEntry::BlockingMode => "BLOCKINGMODE",
+            FtlConfEntry::RegexDebugMode => "REGEX_DEBUGMODE"
         })
     }
 
@@ -311,6 +313,7 @@ impl ConfigEntry for FtlConfEntry {
             FtlConfEntry::BlockingMode => {
                 ValueType::String(&["NULL", "IP-AAAA-NODATA", "IP", "NXDOMAIN"])
             }
+            FtlConfEntry::RegexDebugMode => ValueType::Boolean
         }
     }
 
