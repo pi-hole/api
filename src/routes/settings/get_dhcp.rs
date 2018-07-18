@@ -20,7 +20,8 @@ use util::{reply_data, Reply};
 pub fn get_dhcp(env: State<Env>, _auth: User) -> Reply {
     let dhcp_active = as_bool(&SetupVarsEntry::DhcpActive.read(&env)?);
     let ipv6_support = as_bool(&SetupVarsEntry::DhcpIpv6.read(&env)?);
-    let lease_time: i32 = SetupVarsEntry::DhcpLeasetime.read(&env)?
+    let lease_time: i32 = SetupVarsEntry::DhcpLeasetime
+        .read(&env)?
         .parse()
         .unwrap_or(SetupVarsEntry::DhcpLeasetime.get_default().parse().unwrap());
 

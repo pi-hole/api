@@ -8,14 +8,14 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use env::Env;
 use env::PiholeFile;
+use failure::Fail;
 use settings::value_type::ValueType;
 use std::borrow::Cow;
-use util::{Error, ErrorKind};
-use env::Env;
 use std::io::prelude::*;
 use std::io::{self, BufReader, BufWriter};
-use failure::Fail;
+use util::{Error, ErrorKind};
 
 /// Common functions for a configuration entry
 pub trait ConfigEntry {
@@ -55,13 +55,16 @@ pub trait ConfigEntry {
             if split.next().map_or(false, |section| section == key) {
                 return Ok(
                     // Get the right hand side if it exists and is not empty
-                    split.next().map_or_else(|| self.get_default().to_owned(), |item| {
-                        if item.is_empty() {
-                            self.get_default().to_owned()
-                        } else {
-                            item.to_owned()
+                    split.next().map_or_else(
+                        || self.get_default().to_owned(),
+                        |item| {
+                            if item.is_empty() {
+                                self.get_default().to_owned()
+                            } else {
+                                item.to_owned()
+                            }
                         }
-                    })
+                    )
                 );
             }
         }

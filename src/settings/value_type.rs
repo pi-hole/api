@@ -172,7 +172,7 @@ fn is_ipv4_valid(value: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{ValueType, is_ipv4_valid, get_if_addrs};
+    use super::{get_if_addrs, is_ipv4_valid, ValueType};
 
     #[test]
     fn test_value_type_valid() {
