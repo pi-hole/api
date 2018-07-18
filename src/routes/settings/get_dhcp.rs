@@ -12,30 +12,25 @@ use auth::User;
 use env::Env;
 use rocket::State;
 use routes::settings::common::as_bool;
-use settings::{read_setup_vars, SetupVarsEntry};
+use settings::{ConfigEntry, SetupVarsEntry};
 use util::{reply_data, Reply};
 
 /// Get DHCP configuration
 #[get("/settings/dhcp")]
 pub fn get_dhcp(env: State<Env>, _auth: User) -> Reply {
-    let dhcp_active = read_setup_vars(SetupVarsEntry::DhcpActive, &env)?
-        .map(|s| as_bool(&s))
-        .unwrap_or(false);
-    let ipv6_support = read_setup_vars(SetupVarsEntry::DhcpIpv6, &env)?
-        .map(|s| as_bool(&s))
-        .unwrap_or(false);
-    let lease_time = read_setup_vars(SetupVarsEntry::DhcpLeasetime, &env)?
-        .unwrap_or_default()
-        .parse::<i32>()
-        .unwrap_or(24);
+    let dhcp_active = as_bool(&SetupVarsEntry::DhcpActive.read(&env)?);
+    let ipv6_support = as_bool(&SetupVarsEntry::DhcpIpv6.read(&env)?);
+    let lease_time: i32 = SetupVarsEntry::DhcpLeasetime.read(&env)?
+        .parse()
+        .unwrap_or(SetupVarsEntry::DhcpLeasetime.get_default().parse().unwrap());
 
     reply_data(json!({
       "active": dhcp_active,
-      "ip_start": read_setup_vars(SetupVarsEntry::DhcpStart, &env)?.unwrap_or_default(),
-      "ip_end": read_setup_vars(SetupVarsEntry::DhcpEnd, &env)?.unwrap_or_default(),
-      "router_ip": read_setup_vars(SetupVarsEntry::DhcpRouter, &env)?.unwrap_or_default(),
+      "ip_start": SetupVarsEntry::DhcpStart.read(&env)?,
+      "ip_end": SetupVarsEntry::DhcpEnd.read(&env)?,
+      "router_ip": SetupVarsEntry::DhcpRouter.read(&env)?,
       "lease_time": lease_time,
-      "domain": read_setup_vars(SetupVarsEntry::PiholeDomain, &env)?.unwrap_or_default(),
+      "domain": SetupVarsEntry::PiholeDomain.read(&env)?,
       "ipv6_support": ipv6_support
     }))
 }

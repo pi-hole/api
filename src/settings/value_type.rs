@@ -172,10 +172,16 @@ fn is_ipv4_valid(value: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use settings::value_type::{is_ipv4_valid, ValueType};
+    use super::{ValueType, is_ipv4_valid, get_if_addrs};
 
     #[test]
     fn test_value_type_valid() {
+        let available_interface = get_if_addrs()
+            .ok()
+            .and_then(|interfaces| interfaces.into_iter().next())
+            .map(|interface| interface.name)
+            .unwrap_or_else(|| "lo".to_owned());
+
         let tests = vec![
             (ValueType::Boolean, "false", true),
             (
@@ -187,7 +193,7 @@ mod tests {
             (ValueType::Domain, "domain", true),
             (ValueType::Filename, "c3po", true),
             (ValueType::Integer, "8675309", true),
-            (ValueType::Interface, "lo", true),
+            (ValueType::Interface, &available_interface, true),
             (ValueType::Ipv4, "192.168.2.9", true),
             (ValueType::Ipv4Mask, "192.168.0.3/24", true),
             (

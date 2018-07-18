@@ -12,7 +12,7 @@ use auth::User;
 use env::Env;
 use rocket::State;
 use routes::settings::common::as_bool;
-use settings::{read_setup_vars, SetupVarsEntry};
+use settings::{ConfigEntry, SetupVarsEntry};
 use util::{reply_data, Error, Reply};
 
 /// Get upstream DNS servers
@@ -20,9 +20,9 @@ fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
     let mut upstream_dns = Vec::new();
 
     for num in 1.. {
-        let data = read_setup_vars(SetupVarsEntry::PiholeDns(num), &env)?;
+        let ip = SetupVarsEntry::PiholeDns(num).read(&env)?;
 
-        if let Some(ip) = data {
+        if !ip.is_empty() {
             upstream_dns.push(ip);
         } else {
             break;
@@ -35,20 +35,11 @@ fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
 /// Get DNS Configuration
 #[get("/settings/dns")]
 pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
-    let fqdn_required = read_setup_vars(SetupVarsEntry::DnsFqdnRequired, &env)?
-        .map(|s| as_bool(&s))
-        .unwrap_or(false);
-    let bogus_priv = read_setup_vars(SetupVarsEntry::DnsBogusPriv, &env)?
-        .map(|s| as_bool(&s))
-        .unwrap_or(false);
-    let dnssec = read_setup_vars(SetupVarsEntry::Dnssec, &env)?
-        .map(|s| as_bool(&s))
-        .unwrap_or(false);
-    let cf_enabled = read_setup_vars(SetupVarsEntry::ConditionalForwarding, &env)?
-        .map(|s| as_bool(&s))
-        .unwrap_or(false);
-    let listening_type =
-        read_setup_vars(SetupVarsEntry::DnsmasqListening, &env)?.unwrap_or("single".to_owned());
+    let fqdn_required = as_bool(&SetupVarsEntry::DnsFqdnRequired.read(&env)?);
+    let bogus_priv = as_bool(&SetupVarsEntry::DnsBogusPriv.read(&env)?);
+    let dnssec = as_bool(&SetupVarsEntry::Dnssec.read(&env)?);
+    let cf_enabled = as_bool(&SetupVarsEntry::ConditionalForwarding.read(&env)?);
+    let listening_type = &SetupVarsEntry::DnsmasqListening.read(&env)?;
 
     reply_data(json!({
         "upstream_dns": get_upstream_dns(&env)?,
@@ -60,8 +51,8 @@ pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
         },
         "conditional_forwarding": {
             "enabled": cf_enabled,
-            "router_ip": read_setup_vars(SetupVarsEntry::ConditionalForwardingIp, &env)?.unwrap_or_default(),
-            "domain": read_setup_vars(SetupVarsEntry::ConditionalForwardingDomain, &env)?.unwrap_or_default(),
+            "router_ip": SetupVarsEntry::ConditionalForwardingIp.read(&env)?,
+            "domain": SetupVarsEntry::ConditionalForwardingDomain.read(&env)?,
         }
     }))
 }
@@ -134,9 +125,9 @@ mod test {
                     "router_ip": ""
                 },
                 "options": {
-                    "bogus_priv": false,
+                    "bogus_priv": true,
                     "dnssec": false,
-                    "fqdn_required": false,
+                    "fqdn_required": true,
                     "listening_type": "single"
                 },
                 "upstream_dns": []
