@@ -331,7 +331,8 @@ impl ConfigEntry for FtlConfEntry {
             FtlConfEntry::FtlPort => "4711",
             FtlConfEntry::PrivacyLevel => "0",
             FtlConfEntry::IgnoreLocalHost => "no",
-            FtlConfEntry::BlockingMode => "NULL"
+            FtlConfEntry::BlockingMode => "NULL",
+            FtlConfEntry::RegexDebugMode => "false"
         }
     }
 }
