@@ -11,44 +11,43 @@
 use auth::User;
 use env::Env;
 use rocket::State;
+use routes::settings::common::as_bool;
 use settings::{ConfigEntry, FtlConfEntry};
-use routes::settings::common::as_bool; 
 use util::{reply_data, Reply};
 
 /// Read FTL's settings
 #[get("/settings/ftl")]
 pub fn get_ftl(env: State<Env>, _auth: User) -> Reply {
     // if setting is not present, report default
-    let socket_listening =
-        FtlConfEntry::SocketListening.read(&env)?;
-    let query_display =
-        FtlConfEntry::QueryDisplay.read(&env)?;
-    let aaaa_query_analysis =
-        FtlConfEntry::AaaaQueryAnalysis.read(&env)?;
+    let socket_listening = FtlConfEntry::SocketListening.read(&env)?;
+    let query_display = FtlConfEntry::QueryDisplay.read(&env)?;
+    let aaaa_query_analysis = FtlConfEntry::AaaaQueryAnalysis.read(&env)?;
     let resolve_ipv6 = FtlConfEntry::ResolveIpv6.read(&env)?;
     let resolve_ipv4 = FtlConfEntry::ResolveIpv4.read(&env)?;
-    let max_db_days :i32 = FtlConfEntry::MaxDbDays.read(&env)?
+    let max_db_days: i32 = FtlConfEntry::MaxDbDays
+        .read(&env)?
         .parse()
         .unwrap_or_default();
-    let db_interval: f32 = FtlConfEntry::DbInterval.read(&env)?
+    let db_interval: f32 = FtlConfEntry::DbInterval
+        .read(&env)?
         .parse()
         .unwrap_or_default();
     let db_file = FtlConfEntry::DbFile.read(&env)?;
-    let max_log_age: f32 = FtlConfEntry::MaxLogAge.read(&env)?
+    let max_log_age: f32 = FtlConfEntry::MaxLogAge
+        .read(&env)?
         .parse()
         .unwrap_or_default();
-    let ftl_port: i16 = FtlConfEntry::FtlPort.read(&env)?
+    let ftl_port: i16 = FtlConfEntry::FtlPort
+        .read(&env)?
         .parse()
         .unwrap_or_default();
-    let privacy_level: i32 = FtlConfEntry::PrivacyLevel.read(&env)?
+    let privacy_level: i32 = FtlConfEntry::PrivacyLevel
+        .read(&env)?
         .parse()
         .unwrap_or_default();
-    let ignore_local_host =
-        FtlConfEntry::IgnoreLocalHost.read(&env)?;
-    let blocking_mode =
-        FtlConfEntry::BlockingMode.read(&env)?;
-    let regex_debug_mode =
-        as_bool(&FtlConfEntry::RegexDebugMode.read(&env)?);
+    let ignore_local_host = FtlConfEntry::IgnoreLocalHost.read(&env)?;
+    let blocking_mode = FtlConfEntry::BlockingMode.read(&env)?;
+    let regex_debug_mode = as_bool(&FtlConfEntry::RegexDebugMode.read(&env)?);
 
     reply_data(json!({
         "socket_listening": socket_listening,
