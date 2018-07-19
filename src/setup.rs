@@ -16,7 +16,7 @@ use rocket::config::{ConfigBuilder, Environment};
 use rocket::local::Client;
 use rocket_cors::Cors;
 use routes::{dns, settings, stats, version, web};
-use settings::{read_setup_vars, SetupVarsEntry};
+use settings::{ConfigEntry, SetupVarsEntry};
 use std::collections::HashMap;
 use tempfile::NamedTempFile;
 use toml;
@@ -38,7 +38,7 @@ fn unauthorized() -> Error {
 pub fn start() -> Result<(), Error> {
     let config = Config::parse(CONFIG_LOCATION)?;
     let env = Env::Production(config);
-    let key = read_setup_vars(SetupVarsEntry::WebPassword, &env)?.unwrap_or_default();
+    let key = SetupVarsEntry::WebPassword.read(&env)?;
 
     setup(
         rocket::custom(

@@ -9,9 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 mod entries;
-mod io;
 mod value_type;
 
 pub use self::entries::*;
-pub use self::io::*;
 pub use self::value_type::*;
