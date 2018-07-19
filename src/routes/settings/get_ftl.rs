@@ -11,7 +11,8 @@
 use auth::User;
 use env::Env;
 use rocket::State;
-use settings::{read_ftl_conf, FtlConfEntry};
+use settings::{ConfigEntry, FtlConfEntry};
+use routes::settings::common::as_bool; 
 use util::{reply_data, Reply};
 
 /// Read FTL's settings
@@ -19,38 +20,35 @@ use util::{reply_data, Reply};
 pub fn get_ftl(env: State<Env>, _auth: User) -> Reply {
     // if setting is not present, report default
     let socket_listening =
-        read_ftl_conf(FtlConfEntry::SocketListening, &env)?.unwrap_or("localonly".to_owned());
+        FtlConfEntry::SocketListening.read(&env)?;
     let query_display =
-        read_ftl_conf(FtlConfEntry::QueryDisplay, &env)?.unwrap_or("yes".to_owned());
+        FtlConfEntry::QueryDisplay.read(&env)?;
     let aaaa_query_analysis =
-        read_ftl_conf(FtlConfEntry::AaaaQueryAnalysis, &env)?.unwrap_or("yes".to_owned());
-    let resolve_ipv6 = read_ftl_conf(FtlConfEntry::ResolveIpv6, &env)?.unwrap_or("yes".to_owned());
-    let resolve_ipv4 = read_ftl_conf(FtlConfEntry::ResolveIpv4, &env)?.unwrap_or("yes".to_owned());
-    let max_db_days: i32 = read_ftl_conf(FtlConfEntry::MaxDbDays, &env)?
-        .unwrap_or("365".to_owned())
+        FtlConfEntry::AaaaQueryAnalysis.read(&env)?;
+    let resolve_ipv6 = FtlConfEntry::ResolveIpv6.read(&env)?;
+    let resolve_ipv4 = FtlConfEntry::ResolveIpv4.read(&env)?;
+    let max_db_days :i32 = FtlConfEntry::MaxDbDays.read(&env)?
         .parse()
-        .unwrap_or(365);
-    let db_interval: f32 = read_ftl_conf(FtlConfEntry::DbInterval, &env)?
-        .unwrap_or("1.0".to_owned())
+        .unwrap_or_default();
+    let db_interval: f32 = FtlConfEntry::DbInterval.read(&env)?
         .parse()
-        .unwrap_or(1.0);
-    let db_file = read_ftl_conf(FtlConfEntry::DbFile, &env)?.unwrap_or("".to_owned());
-    let max_log_age: f32 = read_ftl_conf(FtlConfEntry::MaxLogAge, &env)?
-        .unwrap_or("24.0".to_owned())
+        .unwrap_or_default();
+    let db_file = FtlConfEntry::DbFile.read(&env)?;
+    let max_log_age: f32 = FtlConfEntry::MaxLogAge.read(&env)?
         .parse()
-        .unwrap_or(24.0);
-    let ftl_port: i16 = read_ftl_conf(FtlConfEntry::FtlPort, &env)?
-        .unwrap_or("4711".to_owned())
+        .unwrap_or_default();
+    let ftl_port: i16 = FtlConfEntry::FtlPort.read(&env)?
         .parse()
-        .unwrap_or(4711);
-    let privacy_level: i32 = read_ftl_conf(FtlConfEntry::PrivacyLevel, &env)?
-        .unwrap_or("0".to_owned())
+        .unwrap_or_default();
+    let privacy_level: i32 = FtlConfEntry::PrivacyLevel.read(&env)?
         .parse()
-        .unwrap_or(0);
+        .unwrap_or_default();
     let ignore_local_host =
-        read_ftl_conf(FtlConfEntry::IgnoreLocalHost, &env)?.unwrap_or("no".to_owned());
+        FtlConfEntry::IgnoreLocalHost.read(&env)?;
     let blocking_mode =
-        read_ftl_conf(FtlConfEntry::BlockingMode, &env)?.unwrap_or("NULL".to_owned());
+        FtlConfEntry::BlockingMode.read(&env)?;
+    let regex_debug_mode =
+        as_bool(&FtlConfEntry::RegexDebugMode.read(&env)?);
 
     reply_data(json!({
         "socket_listening": socket_listening,
@@ -65,7 +63,8 @@ pub fn get_ftl(env: State<Env>, _auth: User) -> Reply {
         "ftl_port": ftl_port,
         "privacy_level": privacy_level,
         "ignore_local_host": ignore_local_host,
-        "blocking_mode": blocking_mode
+        "blocking_mode": blocking_mode,
+        "regex_debug_mode": regex_debug_mode
     }))
 }
 
@@ -88,12 +87,13 @@ mod test {
                 "resolve_ipv4": "yes",
                 "max_db_days": 365,
                 "db_interval": 1.0,
-                "db_file": "",
+                "db_file": "/etc/pihole/pihole-FTL.db",
                 "max_log_age": 24.0,
                 "ftl_port": 4711,
                 "privacy_level": 0,
                 "ignore_local_host": "no",
-                "blocking_mode": "NULL"
+                "blocking_mode": "NULL",
+                "regex_debug_mode": false
             }))
             .test();
     }
