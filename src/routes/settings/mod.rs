@@ -10,12 +10,12 @@
 
 mod common;
 mod get_dhcp;
-mod get_dns;
+mod dns;
 mod get_ftldb;
 mod get_network;
 
 pub use self::common::*;
 pub use self::get_dhcp::*;
-pub use self::get_dns::*;
+pub use self::dns::*;
 pub use self::get_ftldb::*;
 pub use self::get_network::*;

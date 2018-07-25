@@ -15,6 +15,28 @@ use routes::settings::common::as_bool;
 use settings::{ConfigEntry, SetupVarsEntry};
 use util::{reply_data, Error, Reply};
 
+#[derive(Serialize, Deserialize)]
+struct DnsSettings {
+    upstream_dns: Vec<String>,
+    options: DnsOptions,
+    conditional_forwarding: DnsConditionalForwarding
+}
+
+#[derive(Serialize, Deserialize)]
+struct DnsOptions {
+    fqdn_required: bool,
+    bogus_priv: bool,
+    dnssec: bool,
+    listening_type: String
+}
+
+#[derive(Serialize, Deserialize)]
+struct DnsConditionalForwarding {
+    enabled: bool,
+    router_ip: String,
+    domain: String
+}
+
 /// Get upstream DNS servers
 fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
     let mut upstream_dns = Vec::new();
@@ -35,26 +57,22 @@ fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
 /// Get DNS Configuration
 #[get("/settings/dns")]
 pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
-    let fqdn_required = as_bool(&SetupVarsEntry::DnsFqdnRequired.read(&env)?);
-    let bogus_priv = as_bool(&SetupVarsEntry::DnsBogusPriv.read(&env)?);
-    let dnssec = as_bool(&SetupVarsEntry::Dnssec.read(&env)?);
-    let cf_enabled = as_bool(&SetupVarsEntry::ConditionalForwarding.read(&env)?);
-    let listening_type = &SetupVarsEntry::DnsmasqListening.read(&env)?;
-
-    reply_data(json!({
-        "upstream_dns": get_upstream_dns(&env)?,
-        "options": {
-            "fqdn_required": fqdn_required,
-            "bogus_priv": bogus_priv,
-            "dnssec": dnssec,
-            "listening_type": listening_type
+    let dns_settings = DnsSettings {
+        upstream_dns: get_upstream_dns(&env)?,
+        options: DnsOptions {
+            fqdn_required: as_bool(&SetupVarsEntry::DnsFqdnRequired.read(&env)?),
+            bogus_priv: as_bool(&SetupVarsEntry::DnsBogusPriv.read(&env)?),
+            dnssec: as_bool(&SetupVarsEntry::Dnssec.read(&env)?),
+            listening_type: SetupVarsEntry::DnsmasqListening.read(&env)?
         },
-        "conditional_forwarding": {
-            "enabled": cf_enabled,
-            "router_ip": SetupVarsEntry::ConditionalForwardingIp.read(&env)?,
-            "domain": SetupVarsEntry::ConditionalForwardingDomain.read(&env)?,
+        conditional_forwarding: DnsConditionalForwarding {
+            enabled: as_bool(&SetupVarsEntry::ConditionalForwarding.read(&env)?),
+            router_ip: SetupVarsEntry::ConditionalForwardingIp.read(&env)?,
+            domain: SetupVarsEntry::ConditionalForwardingDomain.read(&env)?
         }
-    }))
+    };
+
+    reply_data(dns_settings)
 }
 
 #[cfg(test)]
