@@ -37,7 +37,7 @@ pub fn get_ftl(env: State<Env>, _auth: User) -> Reply {
         .read(&env)?
         .parse()
         .unwrap_or_default();
-    let ftl_port: i16 = FtlConfEntry::FtlPort
+    let ftl_port: usize = FtlConfEntry::FtlPort
         .read(&env)?
         .parse()
         .unwrap_or_default();
@@ -47,7 +47,10 @@ pub fn get_ftl(env: State<Env>, _auth: User) -> Reply {
         .unwrap_or_default();
     let ignore_local_host = FtlConfEntry::IgnoreLocalHost.read(&env)?;
     let blocking_mode = FtlConfEntry::BlockingMode.read(&env)?;
-    let regex_debug_mode = as_bool(&FtlConfEntry::RegexDebugMode.read(&env)?);
+    let regex_debug_mode: bool = FtlConfEntry::RegexDebugMode
+        .read(&env)?
+        .parse()
+        .unwrap_or_default();
 
     reply_data(json!({
         "socket_listening": socket_listening,
@@ -72,9 +75,50 @@ mod test {
     use env::PiholeFile;
     use testing::TestBuilder;
 
+    /// Test that correct settings are reported from populated file
+    #[test]
+    fn test_get_ftl_populated() {
+        TestBuilder::new()
+            .endpoint("/admin/api/settings/ftl")
+            .file(
+                PiholeFile::FtlConfig,
+                "SOCKET_LISTENING=all\n\
+                 QUERY_DISPLAY=no\n\
+                 AAAA_QUERY_ANALYSIS=no\n\
+                 RESOLVE_IPV6=no\n\
+                 RESOLVE_IPV4=no\n\
+                 MAXDBDAYS=30\n\
+                 DBINTERVAL=3.0\n\
+                 DBFILE=/etc/pihole/test/pihole-FTL.db\n\
+                 MAXLOGAGE=48.0\n\
+                 FTLPORT=38911\n\
+                 PRIVACYLEVEL=2\n\
+                 IGNORE_LOCALHOST=yes\n\
+                 BLOCKINGMODE=NXDOMAIN\n\
+                 REGEX_DEBUGMODE=true\n"
+            )
+            .expect_json(json!({
+                "socket_listening": "all",
+                "query_display": "no",
+                "aaaa_query_analysis": "no",
+                "resolve_ipv6": "no",
+                "resolve_ipv4": "no",
+                "max_db_days": 30,
+                "db_interval": 3.0,
+                "db_file": "/etc/pihole/test/pihole-FTL.db",
+                "max_log_age": 48.0,
+                "ftl_port": 38911,
+                "privacy_level": 2,
+                "ignore_local_host": "yes",
+                "blocking_mode": "NXDOMAIN",
+                "regex_debug_mode": true
+            }))
+            .test();
+    }
+
     /// Test that default settings are reported if not present
     #[test]
-    fn test_get_ftl() {
+    fn test_get_ftl_null() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/ftl")
             .file(PiholeFile::FtlConfig, "")
