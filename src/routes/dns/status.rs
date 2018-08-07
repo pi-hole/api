@@ -8,12 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::{Env, PiholeFile};
+use env::Env;
 use failure::ResultExt;
 use rocket::State;
 use settings::{ConfigEntry, SetupVarsEntry};
-use std::fs::File;
-use std::io::{BufRead, BufReader};
 use util::{reply_data, ErrorKind, Reply};
 
 /// Get the DNS blocking status
