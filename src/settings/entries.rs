@@ -413,11 +413,11 @@ mod tests {
     }
 
     #[test]
-    fn write_null_value() {
+    fn delete_value() {
         let env_builder = TestEnvBuilder::new().file_expect(
             PiholeFile::SetupVars,
             "PIHOLE_DNS_1=1.2.3.4\n",
-            "PIHOLE_DNS_1=\n"
+            ""
         );
         let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
         let env = Env::Test(Config::default(), env_builder.build());
