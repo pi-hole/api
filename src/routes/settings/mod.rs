@@ -9,13 +9,13 @@
 // Please see LICENSE file for your rights under this license.
 
 mod common;
-mod get_dhcp;
 mod dns;
+mod get_dhcp;
 mod get_ftldb;
 mod get_network;
 
 pub use self::common::*;
-pub use self::get_dhcp::*;
 pub use self::dns::*;
+pub use self::get_dhcp::*;
 pub use self::get_ftldb::*;
 pub use self::get_network::*;

@@ -11,30 +11,61 @@
 use auth::User;
 use env::Env;
 use rocket::State;
+use rocket_contrib::Json;
 use routes::settings::common::as_bool;
-use settings::{ConfigEntry, SetupVarsEntry};
-use util::{reply_data, Error, Reply};
+use routes::settings::common::reload_dns;
+use settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry};
+use util::{reply_data, reply_success, Error, ErrorKind, Reply};
 
 #[derive(Serialize, Deserialize)]
-struct DnsSettings {
+pub struct DnsSettings {
     upstream_dns: Vec<String>,
     options: DnsOptions,
     conditional_forwarding: DnsConditionalForwarding
 }
 
+impl DnsSettings {
+    /// Check if all the DNS settings are valid
+    fn is_valid(&self) -> bool {
+        self.upstream_dns
+            .iter()
+            .all(|dns| SetupVarsEntry::PiholeDns(0).is_valid(dns))
+            && self.options.is_valid() && self.conditional_forwarding.is_valid()
+    }
+}
+
 #[derive(Serialize, Deserialize)]
-struct DnsOptions {
+pub struct DnsOptions {
     fqdn_required: bool,
     bogus_priv: bool,
     dnssec: bool,
     listening_type: String
 }
 
+impl DnsOptions {
+    /// Check if the DNS settings are valid
+    fn is_valid(&self) -> bool {
+        // The boolean values are all valid because they were parsed into booleans
+        // already
+        SetupVarsEntry::DnsmasqListening.is_valid(&self.listening_type)
+    }
+}
+
 #[derive(Serialize, Deserialize)]
-struct DnsConditionalForwarding {
+pub struct DnsConditionalForwarding {
     enabled: bool,
     router_ip: String,
     domain: String
+}
+
+impl DnsConditionalForwarding {
+    /// Check if the conditional forwarding options are valid
+    fn is_valid(&self) -> bool {
+        // `enabled` is already known to be valid because it was already parsed into
+        // a boolean
+        SetupVarsEntry::DhcpRouter.is_valid(&self.router_ip)
+            && SetupVarsEntry::ConditionalForwardingDomain.is_valid(&self.domain)
+    }
 }
 
 /// Get upstream DNS servers
@@ -73,6 +104,58 @@ pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
     };
 
     reply_data(dns_settings)
+}
+
+#[put("/settings/dns", data = "<data>")]
+pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
+    let settings: DnsSettings = data.into_inner();
+
+    if !settings.is_valid() {
+        return Err(ErrorKind::InvalidSettingValue.into());
+    }
+
+    // Delete previous upstream DNS entries
+    SetupVarsEntry::delete_upstream_dns(&env)?;
+
+    // Add new upstream DNS
+    for (i, dns) in settings.upstream_dns.into_iter().enumerate() {
+        SetupVarsEntry::PiholeDns(i + 1).write(&dns, &env)?;
+    }
+
+    // Write DNS settings to SetupVars
+    SetupVarsEntry::DnsFqdnRequired.write(&settings.options.fqdn_required.to_string(), &env)?;
+    SetupVarsEntry::DnsBogusPriv.write(&settings.options.bogus_priv.to_string(), &env)?;
+    SetupVarsEntry::Dnssec.write(&settings.options.dnssec.to_string(), &env)?;
+    SetupVarsEntry::DnsmasqListening.write(&settings.options.listening_type, &env)?;
+
+    if settings.conditional_forwarding.enabled {
+        let address_segments: Vec<&str> = settings
+            .conditional_forwarding
+            .router_ip
+            .rsplit(".")
+            .take(3)
+            .collect();
+        let reverse_address = format!(
+            "{}.{}.{}.in-addr.arpa",
+            address_segments[0], address_segments[1], address_segments[2]
+        );
+
+        SetupVarsEntry::ConditionalForwarding.write("true", &env)?;
+        SetupVarsEntry::ConditionalForwardingReverse.write(&reverse_address, &env)?;
+        SetupVarsEntry::ConditionalForwardingIp
+            .write(&settings.conditional_forwarding.router_ip, &env)?;
+        SetupVarsEntry::ConditionalForwardingDomain
+            .write(&settings.conditional_forwarding.domain, &env)?;
+    } else {
+        SetupVarsEntry::ConditionalForwarding.write("false", &env)?;
+        SetupVarsEntry::ConditionalForwardingReverse.delete(&env)?;
+        SetupVarsEntry::ConditionalForwardingIp.delete(&env)?;
+        SetupVarsEntry::ConditionalForwardingDomain.delete(&env)?;
+    }
+
+    generate_dnsmasq_config(&env)?;
+    reload_dns(&env)?;
+    reply_success()
 }
 
 #[cfg(test)]

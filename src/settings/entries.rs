@@ -269,6 +269,39 @@ impl ConfigEntry for SetupVarsEntry {
     }
 }
 
+impl SetupVarsEntry {
+    /// Delete all `SetupVarsEntry::PiholeDns` entries
+    pub fn delete_upstream_dns(env: &Env) -> Result<(), Error> {
+        let entries: Vec<String> = BufReader::new(env.read_file(PiholeFile::SetupVars)?)
+            .lines()
+            .filter_map(|item| item.ok())
+            .filter(|line| !line.starts_with("PIHOLE_DNS_"))
+            .collect();
+
+        // Open the config file to be overwritten
+        let mut file_writer = BufWriter::new(env.write_file(PiholeFile::SetupVars, false)?);
+
+        // Create the context for the error lazily.
+        // This way it is not allocating for errors at all, unless an error is thrown.
+        let apply_context = |error: io::Error| {
+            let context = ErrorKind::FileWrite(env.file_location(PiholeFile::SetupVars).to_owned());
+            error.context(context.into())
+        };
+
+        // Write settings to file
+        for line in entries {
+            file_writer
+                .write_all(line.as_bytes())
+                .map_err(apply_context)?;
+            file_writer.write_all(b"\n").map_err(apply_context)?;
+        }
+
+        file_writer.flush().map_err(apply_context)?;
+
+        Ok(())
+    }
+}
+
 /// pihole-FTL.conf settings file entries
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub enum FtlConfEntry {
