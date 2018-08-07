@@ -109,7 +109,9 @@ pub enum ErrorKind {
     #[fail(display = "Error parsing the config")]
     ConfigParsingError,
     #[fail(display = "Invalid setting value")]
-    InvalidSettingValue
+    InvalidSettingValue,
+    #[fail(display = "Failed to restart the DNS server")]
+    RestartDnsError
 }
 
 impl Error {
@@ -181,7 +183,8 @@ impl ErrorKind {
             ErrorKind::FileRead(_) => "file_read",
             ErrorKind::FileWrite(_) => "file_write",
             ErrorKind::ConfigParsingError => "config_parsing_error",
-            ErrorKind::InvalidSettingValue => "invalid_setting_value"
+            ErrorKind::InvalidSettingValue => "invalid_setting_value",
+            ErrorKind::RestartDnsError => "restart_dns_error"
         }
     }
 
@@ -201,7 +204,8 @@ impl ErrorKind {
             ErrorKind::FileRead(_) => Status::InternalServerError,
             ErrorKind::FileWrite(_) => Status::InternalServerError,
             ErrorKind::ConfigParsingError => Status::InternalServerError,
-            ErrorKind::InvalidSettingValue => Status::BadRequest
+            ErrorKind::InvalidSettingValue => Status::BadRequest,
+            ErrorKind::RestartDnsError => Status::InternalServerError
         }
     }
 }
