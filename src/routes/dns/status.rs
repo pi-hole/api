@@ -9,12 +9,12 @@
 // Please see LICENSE file for your rights under this license.
 
 use env::{Env, PiholeFile};
+use failure::ResultExt;
 use rocket::State;
 use settings::{ConfigEntry, SetupVarsEntry};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use util::{reply_data, ErrorKind, Reply};
-use failure::ResultExt;
 
 /// Get the DNS blocking status
 #[get("/dns/status")]
