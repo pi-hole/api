@@ -10,6 +10,7 @@
 
 use env::{Env, PiholeFile};
 use rocket::State;
+use settings::{ConfigEntry, SetupVarsEntry};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use util::{reply_data, Reply};
@@ -17,32 +18,13 @@ use util::{reply_data, Reply};
 /// Get the DNS blocking status
 #[get("/dns/status")]
 pub fn status(env: State<Env>) -> Reply {
-    let status = match env.read_file(PiholeFile::DnsmasqMainConfig) {
-        Ok(file) => check_for_gravity(file),
-
-        // If we failed to open the file, then the status is unknown
-        Err(_) => "unknown"
+    let status = if SetupVarsEntry::Enabled.read(&env)?.parse()? {
+        "enabled"
+    } else {
+        "disabled"
     };
 
     reply_data(json!({ "status": status }))
-}
-
-/// Check a file for the `addn-hosts=/.../gravity.list` line and return the
-/// blocking status
-fn check_for_gravity(file: File) -> &'static str {
-    // Read the file through a buffer
-    let reader = BufReader::new(file);
-
-    // Check for the gravity.list line
-    for line in reader.lines().filter_map(|item| item.ok()) {
-        if line == "#addn-hosts=/etc/pihole/gravity.list" {
-            return "disabled";
-        } else if line == "addn-hosts=/etc/pihole/gravity.list" {
-            return "enabled";
-        }
-    }
-
-    "unknown"
 }
 
 #[cfg(test)]
@@ -55,8 +37,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/dns/status")
             .file(
-                PiholeFile::DnsmasqMainConfig,
-                "addn-hosts=/etc/pihole/gravity.list"
+                PiholeFile::SetupVars,
+                "ENABLED=true"
             )
             .expect_json(json!({ "status": "enabled" }))
             .test();
@@ -67,19 +49,19 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/dns/status")
             .file(
-                PiholeFile::DnsmasqMainConfig,
-                "#addn-hosts=/etc/pihole/gravity.list"
+                PiholeFile::SetupVars,
+                "ENABLED=false"
             )
             .expect_json(json!({ "status": "disabled" }))
             .test();
     }
 
     #[test]
-    fn test_status_unknown() {
+    fn test_status_default() {
         TestBuilder::new()
             .endpoint("/admin/api/dns/status")
-            .file(PiholeFile::DnsmasqMainConfig, "random data...")
-            .expect_json(json!({ "status": "unknown" }))
+            .file(PiholeFile::SetupVars, "")
+            .expect_json(json!({ "status": "enabled" }))
             .test();
     }
 }

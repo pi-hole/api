@@ -72,8 +72,8 @@ pub trait ConfigEntry {
         Ok(self.get_default().to_owned())
     }
 
-    /// Write a value to the config file.
-    /// If the value is invalid, an error will be returned.
+    /// Write a value to the config file. If the value is empty then the entry
+    /// will be deleted. If the value is invalid, an error will be returned.
     fn write(&self, value: &str, env: &Env) -> Result<(), Error> {
         // Validate new value
         if !self.is_valid(value) {
@@ -89,9 +89,11 @@ pub trait ConfigEntry {
             .filter(|line| !line.starts_with(&entry_equals))
             .collect();
 
-        // Append entry to working copy
-        let new_entry = format!("{}={}", key, value);
-        entries.push(new_entry);
+        // Append entry to working copy if not empty
+        if !value.is_empty() {
+            let new_entry = format!("{}={}", key, value);
+            entries.push(new_entry);
+        }
 
         // Open the config file to be overwritten
         let mut file_writer = BufWriter::new(env.write_file(self.file(), false)?);
@@ -115,6 +117,12 @@ pub trait ConfigEntry {
 
         Ok(())
     }
+
+    /// Delete the entry from the config file. This is the same as writing an
+    /// empty string.
+    fn delete(&self, env: &Env) -> Result<(), Error> {
+        self.write("", env)
+    }
 }
 
 /// setupVars.conf file entries
@@ -136,6 +144,8 @@ pub enum SetupVarsEntry {
     DhcpRouter,
     DnsmasqListening,
     Dnssec,
+    Enabled,
+    HostRecord,
     InstallWebServer,
     InstallWebInterface,
     Ipv4Address,
@@ -175,6 +185,8 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DhcpRouter => Cow::Borrowed("DHCP_ROUTER"),
             SetupVarsEntry::DnsmasqListening => Cow::Borrowed("DNSMASQ_LISTENING"),
             SetupVarsEntry::Dnssec => Cow::Borrowed("DNSSEC"),
+            SetupVarsEntry::Enabled => Cow::Borrowed("ENABLED"),
+            SetupVarsEntry::HostRecord => Cow::Borrowed("HOSTRECORD"),
             SetupVarsEntry::InstallWebServer => Cow::Borrowed("INSTALL_WEB_SERVER"),
             SetupVarsEntry::InstallWebInterface => Cow::Borrowed("INSTALL_WEB_INTERFACE"),
             SetupVarsEntry::Ipv4Address => Cow::Borrowed("IPV4_ADDRESS"),
@@ -208,6 +220,8 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DhcpRouter => ValueType::Ipv4,
             SetupVarsEntry::DnsmasqListening => ValueType::String(&["all", "local", "single", ""]),
             SetupVarsEntry::Dnssec => ValueType::Boolean,
+            SetupVarsEntry::Enabled => ValueType::Boolean,
+            SetupVarsEntry::HostRecord => ValueType::Domain,
             SetupVarsEntry::InstallWebServer => ValueType::Boolean,
             SetupVarsEntry::InstallWebInterface => ValueType::Boolean,
             SetupVarsEntry::Ipv4Address => ValueType::Ipv4Mask,
@@ -239,6 +253,8 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DhcpRouter => "",
             SetupVarsEntry::DnsmasqListening => "single",
             SetupVarsEntry::Dnssec => "false",
+            SetupVarsEntry::Enabled => "true",
+            SetupVarsEntry::HostRecord => "",
             SetupVarsEntry::InstallWebServer => "true",
             SetupVarsEntry::InstallWebInterface => "true",
             SetupVarsEntry::Ipv4Address => "",

@@ -52,7 +52,7 @@ impl Config {
     /// Get the configured location of a file
     pub fn file_location(&self, file: PiholeFile) -> &str {
         match file {
-            PiholeFile::DnsmasqMainConfig => &self.file_locations.dnsmasq_main_config,
+            PiholeFile::DnsmasqConfig => &self.file_locations.dnsmasq_config,
             PiholeFile::Whitelist => &self.file_locations.whitelist,
             PiholeFile::Blacklist => &self.file_locations.blacklist,
             PiholeFile::Regexlist => &self.file_locations.regexlist,
@@ -87,7 +87,7 @@ impl Config {
 #[derive(Deserialize)]
 pub struct Files {
     #[serde(default = "default_dnsmasq_main_config")]
-    dnsmasq_main_config: String,
+    dnsmasq_config: String,
     #[serde(default = "default_whitelist")]
     whitelist: String,
     #[serde(default = "default_blacklist")]
@@ -107,7 +107,7 @@ pub struct Files {
 impl Default for Files {
     fn default() -> Self {
         Files {
-            dnsmasq_main_config: default_dnsmasq_main_config(),
+            dnsmasq_config: default_dnsmasq_config(),
             whitelist: default_whitelist(),
             blacklist: default_blacklist(),
             regexlist: default_regexlist(),
@@ -128,7 +128,7 @@ macro_rules! default {
     };
 }
 
-default!(default_dnsmasq_main_config, DnsmasqMainConfig);
+default!(default_dnsmasq_config, DnsmasqConfig);
 default!(default_whitelist, Whitelist);
 default!(default_blacklist, Blacklist);
 default!(default_regexlist, Regexlist);
