@@ -13,12 +13,17 @@ use rocket::State;
 use settings::{ConfigEntry, SetupVarsEntry};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use util::{reply_data, Reply};
+use util::{reply_data, ErrorKind, Reply};
+use failure::ResultExt;
 
 /// Get the DNS blocking status
 #[get("/dns/status")]
 pub fn status(env: State<Env>) -> Reply {
-    let status = if SetupVarsEntry::Enabled.read(&env)?.parse()? {
+    let status = if SetupVarsEntry::Enabled
+        .read(&env)?
+        .parse::<bool>()
+        .context(ErrorKind::InvalidSettingValue)?
+    {
         "enabled"
     } else {
         "disabled"
@@ -36,10 +41,7 @@ mod test {
     fn test_status_enabled() {
         TestBuilder::new()
             .endpoint("/admin/api/dns/status")
-            .file(
-                PiholeFile::SetupVars,
-                "ENABLED=true"
-            )
+            .file(PiholeFile::SetupVars, "ENABLED=true")
             .expect_json(json!({ "status": "enabled" }))
             .test();
     }
@@ -48,10 +50,7 @@ mod test {
     fn test_status_disabled() {
         TestBuilder::new()
             .endpoint("/admin/api/dns/status")
-            .file(
-                PiholeFile::SetupVars,
-                "ENABLED=false"
-            )
+            .file(PiholeFile::SetupVars, "ENABLED=false")
             .expect_json(json!({ "status": "disabled" }))
             .test();
     }

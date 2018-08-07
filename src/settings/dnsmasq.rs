@@ -31,8 +31,7 @@ pub fn generate_dnsmasq_config(env: &Env) -> Result<(), Error> {
     let mut config_file = BufWriter::new(env.write_file(PiholeFile::DnsmasqConfig, false)?);
 
     let apply_context = |error: io::Error| {
-        let context =
-            ErrorKind::FileWrite(env.file_location(PiholeFile::DnsmasqConfig).to_owned());
+        let context = ErrorKind::FileWrite(env.file_location(PiholeFile::DnsmasqConfig).to_owned());
         error.context(context.into())
     };
 
