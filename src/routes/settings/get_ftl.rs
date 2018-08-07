@@ -118,7 +118,7 @@ mod test {
 
     /// Test that default settings are reported if not present
     #[test]
-    fn test_get_ftl_null() {
+    fn test_get_ftl_default() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/ftl")
             .file(PiholeFile::FtlConfig, "")
