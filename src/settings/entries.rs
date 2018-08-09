@@ -10,11 +10,12 @@
 
 use env::Env;
 use env::PiholeFile;
-use failure::Fail;
+use failure::{Fail, ResultExt};
 use settings::value_type::ValueType;
 use std::borrow::Cow;
 use std::io::prelude::*;
 use std::io::{self, BufReader, BufWriter};
+use std::str::FromStr;
 use util::{Error, ErrorKind};
 
 /// Common functions for a configuration entry
@@ -34,6 +35,18 @@ pub trait ConfigEntry {
     /// Check if the value is valid for this entry
     fn is_valid(&self, value: &str) -> bool {
         self.value_type().is_valid(value)
+    }
+
+    /// Try to read the value and parse into `T`.
+    /// If it is unable to be parsed into `T`, an error is returned.
+    fn read_as<T: FromStr>(&self, env: &Env) -> Result<T, Error>
+    where
+        <T as FromStr>::Err: Fail
+    {
+        self.read(env)?
+            .parse::<T>()
+            .context(ErrorKind::InvalidSettingValue)
+            .map_err(|e| e.into())
     }
 
     /// Read this setting from the config file it appears in.
