@@ -111,7 +111,9 @@ pub enum ErrorKind {
     #[fail(display = "Invalid setting value")]
     InvalidSettingValue,
     #[fail(display = "Failed to restart the DNS server")]
-    RestartDnsError
+    RestartDnsError,
+    #[fail(display = "Error generating the dnsmasq config")]
+    DnsmasqConfigWrite
 }
 
 impl Error {
@@ -184,7 +186,8 @@ impl ErrorKind {
             ErrorKind::FileWrite(_) => "file_write",
             ErrorKind::ConfigParsingError => "config_parsing_error",
             ErrorKind::InvalidSettingValue => "invalid_setting_value",
-            ErrorKind::RestartDnsError => "restart_dns_error"
+            ErrorKind::RestartDnsError => "restart_dns_error",
+            ErrorKind::DnsmasqConfigWrite => "dnsmasq_config_write"
         }
     }
 
@@ -205,7 +208,8 @@ impl ErrorKind {
             ErrorKind::FileWrite(_) => Status::InternalServerError,
             ErrorKind::ConfigParsingError => Status::InternalServerError,
             ErrorKind::InvalidSettingValue => Status::BadRequest,
-            ErrorKind::RestartDnsError => Status::InternalServerError
+            ErrorKind::RestartDnsError => Status::InternalServerError,
+            ErrorKind::DnsmasqConfigWrite => Status::InternalServerError
         }
     }
 }
