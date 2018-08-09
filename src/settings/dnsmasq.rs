@@ -9,9 +9,10 @@
 // Please see LICENSE file for your rights under this license.
 
 use env::{Env, PiholeFile};
-use failure::{Fail, ResultExt};
+use failure::ResultExt;
 use settings::{ConfigEntry, SetupVarsEntry};
-use std::io::{self, BufWriter, Write};
+use std::fs::File;
+use std::io::{BufWriter, Write};
 use util::{Error, ErrorKind};
 
 const DNSMASQ_HEADER: &str = "\
@@ -28,19 +29,31 @@ localise-queries
 
 /// Generate a dnsmasq config based off of SetupVars.
 pub fn generate_dnsmasq_config(env: &Env) -> Result<(), Error> {
-    let mut config_file = BufWriter::new(env.write_file(PiholeFile::DnsmasqConfig, false)?);
+    let mut config_file = open_config(env)?;
 
-    let apply_context = |error: io::Error| {
-        let context = ErrorKind::FileWrite(env.file_location(PiholeFile::DnsmasqConfig).to_owned());
-        error.context(context.into())
-    };
+    write_header(&mut config_file, env)?;
+    write_servers(&mut config_file, env)?;
+    write_lists(&mut config_file, env)?;
+    write_dns_options(&mut config_file, env)?;
 
-    // Write header
+    Ok(())
+}
+
+/// Open the dnsmasq config and truncate it
+fn open_config(env: &Env) -> Result<BufWriter<File>, Error> {
+    env.write_file(PiholeFile::DnsmasqConfig, false)
+        .map(|file| BufWriter::new(file))
+}
+
+fn write_header(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
     config_file
         .write_all(DNSMASQ_HEADER.as_bytes())
-        .map_err(apply_context)?;
+        .context(ErrorKind::DnsmasqConfigWrite)
+        .map_err(|e| e.into())
+}
 
-    // Add upstream DNS servers
+/// Write the upstream DNS servers
+fn write_servers(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
     for i in 1.. {
         let dns = SetupVarsEntry::PiholeDns(i).read(env)?;
 
@@ -49,87 +62,77 @@ pub fn generate_dnsmasq_config(env: &Env) -> Result<(), Error> {
             break;
         }
 
-        writeln!(config_file, "server={}", dns).map_err(apply_context)?;
+        writeln!(config_file, "server={}", dns).context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
+    Ok(())
+}
+
+/// Write the blocklist, blacklist, etc if applicable
+fn write_lists(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
     // Add blocklist and blacklist if blocking is enabled
-    if SetupVarsEntry::Enabled
-        .read(env)?
-        .parse::<bool>()
-        .context(ErrorKind::InvalidSettingValue)?
-    {
+    if SetupVarsEntry::Enabled.read_as(env)? {
         config_file
             .write_all(b"addn-hosts=/etc/pihole/gravity.list\n")
-            .map_err(apply_context)?;
+            .context(ErrorKind::DnsmasqConfigWrite)?;
         config_file
             .write_all(b"addn-hosts=/etc/pihole/black.list\n")
-            .map_err(apply_context)?;
+            .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
     // Always add local.list after the blocklists
     config_file
         .write_all(b"addn-hosts=/etc/pihole/local.list\n")
-        .map_err(apply_context)?;
+        .context(ErrorKind::DnsmasqConfigWrite)?;
 
-    // Add various DNS settings if enabled
-    if SetupVarsEntry::DnsFqdnRequired
-        .read(env)?
-        .parse::<bool>()
-        .context(ErrorKind::InvalidSettingValue)?
-    {
+    Ok(())
+}
+
+/// Write various DNS settings
+fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
+    if SetupVarsEntry::DnsFqdnRequired.read_as(env)? {
         config_file
             .write_all(b"domain-needed\n")
-            .map_err(apply_context)?;
+            .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
-    if SetupVarsEntry::DnsBogusPriv
-        .read(env)?
-        .parse::<bool>()
-        .context(ErrorKind::InvalidSettingValue)?
-    {
+    if SetupVarsEntry::DnsBogusPriv.read_as(env)? {
         config_file
             .write_all(b"bogus-priv\n")
-            .map_err(apply_context)?;
+            .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
-    if SetupVarsEntry::Dnssec
-        .read(env)?
-        .parse::<bool>()
-        .context(ErrorKind::InvalidSettingValue)?
-    {
+    if SetupVarsEntry::Dnssec.read_as(env)? {
         config_file.write_all(
             b"dnssec\n\
             trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5\n\
             trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D\n"
-        ).map_err(apply_context)?;
+        ).context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
     let host_record = SetupVarsEntry::HostRecord.read(env)?;
     if !host_record.is_empty() {
-        writeln!(config_file, "host-record={}", host_record).map_err(apply_context)?;
+        writeln!(config_file, "host-record={}", host_record)
+            .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
     match SetupVarsEntry::DnsmasqListening.read(env)?.as_str() {
         "all" => config_file
             .write_all(b"except-interface=nonexisting\n")
-            .map_err(apply_context)?,
+            .context(ErrorKind::DnsmasqConfigWrite)?,
         "local" => config_file
             .write_all(b"local-service")
-            .map_err(apply_context)?,
+            .context(ErrorKind::DnsmasqConfigWrite)?,
         "single" | _ => {
             writeln!(
                 config_file,
                 "interface={}",
                 SetupVarsEntry::PiholeInterface.read(env)?
-            ).map_err(apply_context)?;
+            ).context(ErrorKind::DnsmasqConfigWrite)?;
         }
     }
 
-    if SetupVarsEntry::ConditionalForwarding
-        .read(env)?
-        .parse::<bool>()
-        .context(ErrorKind::InvalidSettingValue)?
-    {
+    if SetupVarsEntry::ConditionalForwarding.read_as(env)? {
         let ip = SetupVarsEntry::ConditionalForwardingIp.read(env)?;
 
         writeln!(
@@ -139,7 +142,7 @@ pub fn generate_dnsmasq_config(env: &Env) -> Result<(), Error> {
             ip,
             SetupVarsEntry::ConditionalForwardingReverse.read(env)?,
             ip
-        ).map_err(apply_context)?;
+        ).context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
     Ok(())
