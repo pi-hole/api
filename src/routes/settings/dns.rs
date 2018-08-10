@@ -13,7 +13,7 @@ use env::Env;
 use rocket::State;
 use rocket_contrib::Json;
 use routes::settings::common::as_bool;
-use routes::settings::common::reload_dns;
+use routes::settings::common::restart_dns;
 use settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry};
 use util::{reply_data, reply_success, Error, ErrorKind, Reply};
 
@@ -155,7 +155,7 @@ pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
     }
 
     generate_dnsmasq_config(&env)?;
-    reload_dns(&env)?;
+    restart_dns(&env)?;
     reply_success()
 }
 

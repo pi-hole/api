@@ -24,8 +24,8 @@ pub fn as_bool(boolean_string: &str) -> bool {
     }
 }
 
-/// Reload the DNS server (via `pihole restartdns`)
-pub fn reload_dns(env: &Env) -> Result<(), Error> {
+/// Restart the DNS server (via `pihole restartdns`)
+pub fn restart_dns(env: &Env) -> Result<(), Error> {
     if env.is_test() {
         return Ok(());
     }
