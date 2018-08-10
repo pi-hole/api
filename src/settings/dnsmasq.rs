@@ -165,10 +165,10 @@ mod tests {
     ///
     /// # Arguments
     /// - `expected_config`: The expected contents of the dnsmasq config after
-    /// running `test_fn`.     The dnsmasq config starts out empty.
+    /// running `test_fn`. The dnsmasq config starts out empty.
     /// - `setup_vars`: The initial contents of SetupVars
     /// - `test_fn`: The function to run for the test. It takes in the buffered
-    /// file writer and the     environment data.
+    /// file writer and the environment data.
     fn test_config(
         expected_config: &str,
         setup_vars: &str,
@@ -249,12 +249,12 @@ mod tests {
         test_config(
             "interface=eth0\n",
             "DNS_FQDN_REQUIRED=false\n\
-            DNS_BOGUS_PRIV=false\n\
-            DNSSEC=false\n\
-            HOSTRECORD=\n\
-            DNSMASQ_LISTENING=single\n\
-            PIHOLE_INTERFACE=eth0\n\
-            CONDITIONAL_FORWARDING=false",
+             DNS_BOGUS_PRIV=false\n\
+             DNSSEC=false\n\
+             HOSTRECORD=\n\
+             DNSMASQ_LISTENING=single\n\
+             PIHOLE_INTERFACE=eth0\n\
+             CONDITIONAL_FORWARDING=false",
             write_dns_options
         );
     }
