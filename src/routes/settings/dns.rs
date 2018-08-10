@@ -106,6 +106,7 @@ pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
     reply_data(dns_settings)
 }
 
+/// Update DNS Configuration
 #[put("/settings/dns", data = "<data>")]
 pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
     let settings: DnsSettings = data.into_inner();
