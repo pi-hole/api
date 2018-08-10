@@ -31,7 +31,7 @@ localise-queries
 pub fn generate_dnsmasq_config(env: &Env) -> Result<(), Error> {
     let mut config_file = open_config(env)?;
 
-    write_header(&mut config_file, env)?;
+    write_header(&mut config_file)?;
     write_servers(&mut config_file, env)?;
     write_lists(&mut config_file, env)?;
     write_dns_options(&mut config_file, env)?;
@@ -45,7 +45,7 @@ fn open_config(env: &Env) -> Result<BufWriter<File>, Error> {
         .map(|file| BufWriter::new(file))
 }
 
-fn write_header(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
+fn write_header(config_file: &mut BufWriter<File>) -> Result<(), Error> {
     config_file
         .write_all(DNSMASQ_HEADER.as_bytes())
         .context(ErrorKind::DnsmasqConfigWrite)
@@ -121,7 +121,7 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
             .write_all(b"except-interface=nonexisting\n")
             .context(ErrorKind::DnsmasqConfigWrite)?,
         "local" => config_file
-            .write_all(b"local-service")
+            .write_all(b"local-service\n")
             .context(ErrorKind::DnsmasqConfigWrite)?,
         "single" | _ => {
             writeln!(
@@ -146,4 +146,142 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        open_config, write_dns_options, write_header, write_lists, write_servers, DNSMASQ_HEADER
+    };
+    use env::{Config, Env, PiholeFile};
+    use std::fs::File;
+    use std::io::{BufWriter, Write};
+    use testing::TestEnvBuilder;
+    use util::Error;
+
+    /// Generalized test for dnsmasq config generation. This sets up SetupVars
+    /// with the initial data, runs `test_fn`, then verifies that the
+    /// dnsmasq config content matches the expected content.
+    ///
+    /// # Arguments
+    /// - `expected_config`: The expected contents of the dnsmasq config after
+    /// running `test_fn`.     The dnsmasq config starts out empty.
+    /// - `setup_vars`: The initial contents of SetupVars
+    /// - `test_fn`: The function to run for the test. It takes in the buffered
+    /// file writer and the     environment data.
+    fn test_config(
+        expected_config: &str,
+        setup_vars: &str,
+        test_fn: impl Fn(&mut BufWriter<File>, &Env) -> Result<(), Error>
+    ) {
+        let env_builder = TestEnvBuilder::new()
+            .file_expect(PiholeFile::DnsmasqConfig, "", expected_config)
+            .file(PiholeFile::SetupVars, setup_vars);
+
+        let mut dnsmasq_config = env_builder.get_test_files().into_iter().next().unwrap();
+        let env = Env::Test(Config::default(), env_builder.build());
+        let mut file_writer = open_config(&env).unwrap();
+
+        test_fn(&mut file_writer, &env).unwrap();
+        file_writer.flush().unwrap();
+
+        let mut buffer = String::new();
+        dnsmasq_config.assert_expected(&mut buffer);
+    }
+
+    /// Confirm that the header is written
+    #[test]
+    fn header_written() {
+        test_config(DNSMASQ_HEADER, "", |writer, _env| write_header(writer));
+    }
+
+    /// Confirm all (sequential) DNS servers listed are written
+    #[test]
+    fn dns_servers_all_written() {
+        test_config(
+            "server=8.8.8.8\nserver=8.8.4.4\n",
+            "PIHOLE_DNS_1=8.8.8.8\n\
+             PIHOLE_DNS_2=8.8.4.4",
+            write_servers
+        );
+    }
+
+    /// Confirm that non-sequential DNS servers are ignored, that is, stop at
+    /// the first empty server
+    #[test]
+    fn ignore_non_sequential_dns_servers() {
+        test_config(
+            "server=8.8.8.8\nserver=8.8.4.4\n",
+            "PIHOLE_DNS_1=8.8.8.8\n\
+             PIHOLE_DNS_2=8.8.4.4\n\
+             PIHOLE_DNS_4=1.1.1.1",
+            write_servers
+        );
+    }
+
+    /// Confirm that the blocklists are written (in addition to local.list)
+    /// when blocking is enabled
+    #[test]
+    fn block_lists_written_when_enabled() {
+        test_config(
+            "addn-hosts=/etc/pihole/gravity.list\n\
+             addn-hosts=/etc/pihole/black.list\n\
+             addn-hosts=/etc/pihole/local.list\n",
+            "ENABLED=true",
+            write_lists
+        );
+    }
+
+    /// Confirm that only local.list is written when blocking is disabled
+    #[test]
+    fn block_lists_not_written_when_disabled() {
+        test_config(
+            "addn-hosts=/etc/pihole/local.list\n",
+            "ENABLED=false",
+            write_lists
+        );
+    }
+
+    /// Generate the DNS options configuration when there are minimal settings
+    /// enabled
+    #[test]
+    fn minimal_dns_options() {
+        test_config(
+            "interface=eth0\n",
+            "DNS_FQDN_REQUIRED=false\n\
+            DNS_BOGUS_PRIV=false\n\
+            DNSSEC=false\n\
+            HOSTRECORD=\n\
+            DNSMASQ_LISTENING=single\n\
+            PIHOLE_INTERFACE=eth0\n\
+            CONDITIONAL_FORWARDING=false",
+            write_dns_options
+        );
+    }
+
+    /// Generate the DNS options configuration with all the settings enabled.
+    #[test]
+    fn maximal_dns_options() {
+        test_config(
+            "domain-needed\n\
+            bogus-priv\n\
+            dnssec\n\
+            trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5\n\
+            trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D\n\
+            host-record=domain.com,127.0.0.1\n\
+            local-service\n\
+            server=/domain.com/8.8.8.8\n\
+            server=/8.8.8.in-addr.arpa/8.8.8.8\n",
+            "DNS_FQDN_REQUIRED=true\n\
+            DNS_BOGUS_PRIV=true\n\
+            DNSSEC=true\n\
+            HOSTRECORD=domain.com,127.0.0.1\n\
+            DNSMASQ_LISTENING=local\n\
+            CONDITIONAL_FORWARDING=true\n\
+            CONDITIONAL_FORWARDING_IP=8.8.8.8\n\
+            CONDITIONAL_FORWARDING_DOMAIN=domain.com\n\
+            CONDITIONAL_FORWARDING_REVERSE=8.8.8.in-addr.arpa",
+            write_dns_options
+        );
+    }
 }
