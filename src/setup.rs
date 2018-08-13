@@ -139,6 +139,7 @@ fn setup<'a>(
             settings::get_dns,
             settings::put_dns,
             settings::get_ftldb,
+            settings::get_ftl,
             settings::get_network
         ])
         // Add custom error handlers
