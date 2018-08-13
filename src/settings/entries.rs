@@ -159,8 +159,8 @@ pub enum SetupVarsEntry {
     DnsmasqListening,
     Dnssec,
     HostRecord,
-    InstallWebServer,
     InstallWebInterface,
+    InstallWebServer,
     Ipv4Address,
     Ipv6Address,
     PiholeDns(usize),
@@ -200,8 +200,8 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DnsmasqListening => Cow::Borrowed("DNSMASQ_LISTENING"),
             SetupVarsEntry::Dnssec => Cow::Borrowed("DNSSEC"),
             SetupVarsEntry::HostRecord => Cow::Borrowed("HOSTRECORD"),
-            SetupVarsEntry::InstallWebServer => Cow::Borrowed("INSTALL_WEB_SERVER"),
             SetupVarsEntry::InstallWebInterface => Cow::Borrowed("INSTALL_WEB_INTERFACE"),
+            SetupVarsEntry::InstallWebServer => Cow::Borrowed("INSTALL_WEB_SERVER"),
             SetupVarsEntry::Ipv4Address => Cow::Borrowed("IPV4_ADDRESS"),
             SetupVarsEntry::Ipv6Address => Cow::Borrowed("IPV6_ADDRESS"),
             SetupVarsEntry::PiholeDns(num) => Cow::Owned(format!("PIHOLE_DNS_{}", num)),
@@ -235,8 +235,8 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DnsmasqListening => ValueType::String(&["all", "local", "single", ""]),
             SetupVarsEntry::Dnssec => ValueType::Boolean,
             SetupVarsEntry::HostRecord => ValueType::Domain,
-            SetupVarsEntry::InstallWebServer => ValueType::Boolean,
             SetupVarsEntry::InstallWebInterface => ValueType::Boolean,
+            SetupVarsEntry::InstallWebServer => ValueType::Boolean,
             SetupVarsEntry::Ipv4Address => ValueType::Ipv4Mask,
             SetupVarsEntry::Ipv6Address => ValueType::Ipv6,
             SetupVarsEntry::PiholeDns(_) => ValueType::Ipv4,
@@ -268,8 +268,8 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DnsmasqListening => "single",
             SetupVarsEntry::Dnssec => "false",
             SetupVarsEntry::HostRecord => "",
-            SetupVarsEntry::InstallWebServer => "true",
             SetupVarsEntry::InstallWebInterface => "true",
+            SetupVarsEntry::InstallWebServer => "true",
             SetupVarsEntry::Ipv4Address => "",
             SetupVarsEntry::Ipv6Address => "",
             SetupVarsEntry::PiholeDns(_) => "",
@@ -320,17 +320,17 @@ impl SetupVarsEntry {
 pub enum FtlConfEntry {
     AaaaQueryAnalysis,
     BlockingMode,
-    ResolveIpv6,
-    ResolveIpv4,
-    MaxDbDays,
-    DbInterval,
     DbFile,
-    IgnoreLocalHost,
+    DbInterval,
     FtlPort,
+    IgnoreLocalHost,
+    MaxDbDays,
     MaxLogAge,
     PrivacyLevel,
     QueryDisplay,
     RegexDebugMode,
+    ResolveIpv4,
+    ResolveIpv6,
     SocketListening
 }
 
@@ -341,60 +341,60 @@ impl ConfigEntry for FtlConfEntry {
 
     fn key(&self) -> Cow<str> {
         Cow::Borrowed(match *self {
-            FtlConfEntry::SocketListening => "SOCKET_LISTENING",
-            FtlConfEntry::QueryDisplay => "QUERY_DISPLAY",
             FtlConfEntry::AaaaQueryAnalysis => "AAAA_QUERY_ANALYSIS",
-            FtlConfEntry::ResolveIpv6 => "RESOLVE_IPV6",
-            FtlConfEntry::ResolveIpv4 => "RESOLVE_IPV6",
-            FtlConfEntry::MaxDbDays => "MAXDBDAYS",
-            FtlConfEntry::DbInterval => "DBINTERVAL",
-            FtlConfEntry::DbFile => "DBFILE",
-            FtlConfEntry::MaxLogAge => "MAXLOGAGE",
-            FtlConfEntry::FtlPort => "FTLPORT",
-            FtlConfEntry::PrivacyLevel => "PRIVACYLEVEL",
-            FtlConfEntry::IgnoreLocalHost => "IGNORE_LOCALHOST",
             FtlConfEntry::BlockingMode => "BLOCKINGMODE",
-            FtlConfEntry::RegexDebugMode => "REGEX_DEBUGMODE"
+            FtlConfEntry::DbFile => "DBFILE",
+            FtlConfEntry::DbInterval => "DBINTERVAL",
+            FtlConfEntry::FtlPort => "FTLPORT",
+            FtlConfEntry::IgnoreLocalHost => "IGNORE_LOCALHOST",
+            FtlConfEntry::MaxDbDays => "MAXDBDAYS",
+            FtlConfEntry::MaxLogAge => "MAXLOGAGE",
+            FtlConfEntry::PrivacyLevel => "PRIVACYLEVEL",
+            FtlConfEntry::QueryDisplay => "QUERY_DISPLAY",
+            FtlConfEntry::RegexDebugMode => "REGEX_DEBUGMODE",
+            FtlConfEntry::ResolveIpv4 => "RESOLVE_IPV6",
+            FtlConfEntry::ResolveIpv6 => "RESOLVE_IPV6",
+            FtlConfEntry::SocketListening => "SOCKET_LISTENING"
         })
     }
 
     fn value_type(&self) -> ValueType {
         match *self {
-            FtlConfEntry::SocketListening => ValueType::String(&["localonly", "all"]),
-            FtlConfEntry::QueryDisplay => ValueType::YesNo,
             FtlConfEntry::AaaaQueryAnalysis => ValueType::YesNo,
-            FtlConfEntry::ResolveIpv6 => ValueType::YesNo,
-            FtlConfEntry::ResolveIpv4 => ValueType::YesNo,
-            FtlConfEntry::MaxDbDays => ValueType::Integer,
-            FtlConfEntry::DbInterval => ValueType::Decimal,
-            FtlConfEntry::DbFile => ValueType::Path,
-            FtlConfEntry::MaxLogAge => ValueType::Decimal,
-            FtlConfEntry::FtlPort => ValueType::PortNumber,
-            FtlConfEntry::PrivacyLevel => ValueType::String(&["0", "1", "2", "3"]),
-            FtlConfEntry::IgnoreLocalHost => ValueType::YesNo,
             FtlConfEntry::BlockingMode => {
                 ValueType::String(&["NULL", "IP-AAAA-NODATA", "IP", "NXDOMAIN"])
             }
-            FtlConfEntry::RegexDebugMode => ValueType::Boolean
+            FtlConfEntry::DbFile => ValueType::Path,
+            FtlConfEntry::DbInterval => ValueType::Decimal,
+            FtlConfEntry::FtlPort => ValueType::PortNumber,
+            FtlConfEntry::IgnoreLocalHost => ValueType::YesNo,
+            FtlConfEntry::MaxDbDays => ValueType::Integer,
+            FtlConfEntry::MaxLogAge => ValueType::Decimal,
+            FtlConfEntry::PrivacyLevel => ValueType::String(&["0", "1", "2", "3"]),
+            FtlConfEntry::QueryDisplay => ValueType::YesNo,
+            FtlConfEntry::RegexDebugMode => ValueType::Boolean,
+            FtlConfEntry::ResolveIpv4 => ValueType::YesNo,
+            FtlConfEntry::ResolveIpv6 => ValueType::YesNo,
+            FtlConfEntry::SocketListening => ValueType::String(&["localonly", "all"])
         }
     }
 
     fn get_default(&self) -> &str {
         match *self {
-            FtlConfEntry::SocketListening => "localonly",
-            FtlConfEntry::QueryDisplay => "yes",
             FtlConfEntry::AaaaQueryAnalysis => "yes",
-            FtlConfEntry::ResolveIpv6 => "yes",
-            FtlConfEntry::ResolveIpv4 => "yes",
-            FtlConfEntry::MaxDbDays => "365",
-            FtlConfEntry::DbInterval => "1.0",
-            FtlConfEntry::DbFile => "/etc/pihole/pihole-FTL.db",
-            FtlConfEntry::MaxLogAge => "24.0",
-            FtlConfEntry::FtlPort => "4711",
-            FtlConfEntry::PrivacyLevel => "0",
-            FtlConfEntry::IgnoreLocalHost => "no",
             FtlConfEntry::BlockingMode => "NULL",
-            FtlConfEntry::RegexDebugMode => "false"
+            FtlConfEntry::DbFile => "/etc/pihole/pihole-FTL.db",
+            FtlConfEntry::DbInterval => "1.0",
+            FtlConfEntry::FtlPort => "4711",
+            FtlConfEntry::IgnoreLocalHost => "no",
+            FtlConfEntry::MaxDbDays => "365",
+            FtlConfEntry::MaxLogAge => "24.0",
+            FtlConfEntry::PrivacyLevel => "0",
+            FtlConfEntry::QueryDisplay => "yes",
+            FtlConfEntry::RegexDebugMode => "false",
+            FtlConfEntry::ResolveIpv4 => "yes",
+            FtlConfEntry::ResolveIpv6 => "yes",
+            FtlConfEntry::SocketListening => "localonly"
         }
     }
 }
