@@ -11,7 +11,6 @@
 use auth::User;
 use env::Env;
 use rocket::State;
-use routes::settings::common::as_bool;
 use settings::{ConfigEntry, FtlConfEntry};
 use util::{reply_data, Reply};
 
@@ -24,33 +23,15 @@ pub fn get_ftl(env: State<Env>, _auth: User) -> Reply {
     let aaaa_query_analysis = FtlConfEntry::AaaaQueryAnalysis.read(&env)?;
     let resolve_ipv6 = FtlConfEntry::ResolveIpv6.read(&env)?;
     let resolve_ipv4 = FtlConfEntry::ResolveIpv4.read(&env)?;
-    let max_db_days: i32 = FtlConfEntry::MaxDbDays
-        .read(&env)?
-        .parse()
-        .unwrap_or_default();
-    let db_interval: f32 = FtlConfEntry::DbInterval
-        .read(&env)?
-        .parse()
-        .unwrap_or_default();
+    let max_db_days: i32 = FtlConfEntry::MaxDbDays.read_as(&env)?;
+    let db_interval: f32 = FtlConfEntry::DbInterval.read_as(&env)?;
     let db_file = FtlConfEntry::DbFile.read(&env)?;
-    let max_log_age: f32 = FtlConfEntry::MaxLogAge
-        .read(&env)?
-        .parse()
-        .unwrap_or_default();
-    let ftl_port: usize = FtlConfEntry::FtlPort
-        .read(&env)?
-        .parse()
-        .unwrap_or_default();
-    let privacy_level: i32 = FtlConfEntry::PrivacyLevel
-        .read(&env)?
-        .parse()
-        .unwrap_or_default();
+    let max_log_age: f32 = FtlConfEntry::MaxLogAge.read_as(&env)?;
+    let ftl_port: usize = FtlConfEntry::FtlPort.read_as(&env)?;
+    let privacy_level: i32 = FtlConfEntry::PrivacyLevel.read_as(&env)?;
     let ignore_local_host = FtlConfEntry::IgnoreLocalHost.read(&env)?;
     let blocking_mode = FtlConfEntry::BlockingMode.read(&env)?;
-    let regex_debug_mode: bool = FtlConfEntry::RegexDebugMode
-        .read(&env)?
-        .parse()
-        .unwrap_or_default();
+    let regex_debug_mode: bool = FtlConfEntry::RegexDebugMode.read_as(&env)?;
 
     reply_data(json!({
         "socket_listening": socket_listening,
