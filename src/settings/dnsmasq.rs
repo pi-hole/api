@@ -227,7 +227,7 @@ mod tests {
             "addn-hosts=/etc/pihole/gravity.list\n\
              addn-hosts=/etc/pihole/black.list\n\
              addn-hosts=/etc/pihole/local.list\n",
-            "ENABLED=true",
+            "BLOCKING_ENABLED=true",
             write_lists
         );
     }
@@ -237,7 +237,7 @@ mod tests {
     fn block_lists_not_written_when_disabled() {
         test_config(
             "addn-hosts=/etc/pihole/local.list\n",
-            "ENABLED=false",
+            "BLOCKING_ENABLED=false",
             write_lists
         );
     }

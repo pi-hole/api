@@ -9,10 +9,9 @@
 // Please see LICENSE file for your rights under this license.
 
 use env::Env;
-use failure::ResultExt;
 use rocket::State;
 use settings::{ConfigEntry, SetupVarsEntry};
-use util::{reply_data, ErrorKind, Reply};
+use util::{reply_data, Reply};
 
 /// Get the DNS blocking status
 #[get("/dns/status")]
@@ -35,7 +34,7 @@ mod test {
     fn test_status_enabled() {
         TestBuilder::new()
             .endpoint("/admin/api/dns/status")
-            .file(PiholeFile::SetupVars, "ENABLED=true")
+            .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=true")
             .expect_json(json!({ "status": "enabled" }))
             .test();
     }
@@ -44,7 +43,7 @@ mod test {
     fn test_status_disabled() {
         TestBuilder::new()
             .endpoint("/admin/api/dns/status")
-            .file(PiholeFile::SetupVars, "ENABLED=false")
+            .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=false")
             .expect_json(json!({ "status": "disabled" }))
             .test();
     }
