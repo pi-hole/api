@@ -12,7 +12,6 @@ use auth::User;
 use env::Env;
 use rocket::State;
 use rocket_contrib::Json;
-use routes::settings::common::as_bool;
 use routes::settings::common::restart_dns;
 use settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry};
 use util::{reply_data, reply_success, Error, ErrorKind, Reply};
@@ -91,13 +90,13 @@ pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
     let dns_settings = DnsSettings {
         upstream_dns: get_upstream_dns(&env)?,
         options: DnsOptions {
-            fqdn_required: as_bool(&SetupVarsEntry::DnsFqdnRequired.read(&env)?),
-            bogus_priv: as_bool(&SetupVarsEntry::DnsBogusPriv.read(&env)?),
-            dnssec: as_bool(&SetupVarsEntry::Dnssec.read(&env)?),
+            fqdn_required: SetupVarsEntry::DnsFqdnRequired.read_as(&env)?,
+            bogus_priv: SetupVarsEntry::DnsBogusPriv.read_as(&env)?,
+            dnssec: SetupVarsEntry::Dnssec.read_as(&env)?,
             listening_type: SetupVarsEntry::DnsmasqListening.read(&env)?
         },
         conditional_forwarding: DnsConditionalForwarding {
-            enabled: as_bool(&SetupVarsEntry::ConditionalForwarding.read(&env)?),
+            enabled: SetupVarsEntry::ConditionalForwarding.read_as(&env)?,
             router_ip: SetupVarsEntry::ConditionalForwardingIp.read(&env)?,
             domain: SetupVarsEntry::ConditionalForwardingDomain.read(&env)?
         }
