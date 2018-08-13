@@ -17,7 +17,7 @@ use util::{reply_data, ErrorKind, Reply};
 /// Get the DNS blocking status
 #[get("/dns/status")]
 pub fn status(env: State<Env>) -> Reply {
-    let status = if SetupVarsEntry::Enabled.read_as(&env)? {
+    let status = if SetupVarsEntry::BlockingEnabled.read_as(&env)? {
         "enabled"
     } else {
         "disabled"

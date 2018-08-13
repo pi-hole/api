@@ -143,6 +143,7 @@ pub trait ConfigEntry {
 pub enum SetupVarsEntry {
     ApiQueryLogShow,
     ApiPrivacyMode,
+    BlockingEnabled,
     DnsBogusPriv,
     DnsFqdnRequired,
     ConditionalForwarding,
@@ -157,7 +158,6 @@ pub enum SetupVarsEntry {
     DhcpRouter,
     DnsmasqListening,
     Dnssec,
-    Enabled,
     HostRecord,
     InstallWebServer,
     InstallWebInterface,
@@ -180,6 +180,7 @@ impl ConfigEntry for SetupVarsEntry {
         match *self {
             SetupVarsEntry::ApiQueryLogShow => Cow::Borrowed("API_QUERY_LOG_SHOW"),
             SetupVarsEntry::ApiPrivacyMode => Cow::Borrowed("API_PRIVACY_MODE"),
+            SetupVarsEntry::BlockingEnabled => Cow::Borrowed("BLOCKING_ENABLED"),
             SetupVarsEntry::DnsBogusPriv => Cow::Borrowed("DNS_BOGUS_PRIV"),
             SetupVarsEntry::DnsFqdnRequired => Cow::Borrowed("DNS_FQDN_REQUIRED"),
             SetupVarsEntry::ConditionalForwarding => Cow::Borrowed("CONDITIONAL_FORWARDING"),
@@ -198,7 +199,6 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DhcpRouter => Cow::Borrowed("DHCP_ROUTER"),
             SetupVarsEntry::DnsmasqListening => Cow::Borrowed("DNSMASQ_LISTENING"),
             SetupVarsEntry::Dnssec => Cow::Borrowed("DNSSEC"),
-            SetupVarsEntry::Enabled => Cow::Borrowed("ENABLED"),
             SetupVarsEntry::HostRecord => Cow::Borrowed("HOSTRECORD"),
             SetupVarsEntry::InstallWebServer => Cow::Borrowed("INSTALL_WEB_SERVER"),
             SetupVarsEntry::InstallWebInterface => Cow::Borrowed("INSTALL_WEB_INTERFACE"),
@@ -219,6 +219,7 @@ impl ConfigEntry for SetupVarsEntry {
                 ValueType::String(&["all", "permittedonly", "blockedonly"])
             }
             SetupVarsEntry::ApiPrivacyMode => ValueType::Boolean,
+            SetupVarsEntry::BlockingEnabled => ValueType::Boolean,
             SetupVarsEntry::DnsBogusPriv => ValueType::Boolean,
             SetupVarsEntry::DnsFqdnRequired => ValueType::Boolean,
             SetupVarsEntry::ConditionalForwarding => ValueType::Boolean,
@@ -233,7 +234,6 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DhcpRouter => ValueType::Ipv4,
             SetupVarsEntry::DnsmasqListening => ValueType::String(&["all", "local", "single", ""]),
             SetupVarsEntry::Dnssec => ValueType::Boolean,
-            SetupVarsEntry::Enabled => ValueType::Boolean,
             SetupVarsEntry::HostRecord => ValueType::Domain,
             SetupVarsEntry::InstallWebServer => ValueType::Boolean,
             SetupVarsEntry::InstallWebInterface => ValueType::Boolean,
@@ -252,6 +252,7 @@ impl ConfigEntry for SetupVarsEntry {
         match *self {
             SetupVarsEntry::ApiQueryLogShow => "all",
             SetupVarsEntry::ApiPrivacyMode => "false",
+            SetupVarsEntry::BlockingEnabled => "true",
             SetupVarsEntry::DnsBogusPriv => "true",
             SetupVarsEntry::DnsFqdnRequired => "true",
             SetupVarsEntry::ConditionalForwarding => "false",
@@ -266,7 +267,6 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DhcpRouter => "",
             SetupVarsEntry::DnsmasqListening => "single",
             SetupVarsEntry::Dnssec => "false",
-            SetupVarsEntry::Enabled => "true",
             SetupVarsEntry::HostRecord => "",
             SetupVarsEntry::InstallWebServer => "true",
             SetupVarsEntry::InstallWebInterface => "true",

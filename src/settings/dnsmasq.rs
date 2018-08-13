@@ -71,7 +71,7 @@ fn write_servers(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Err
 /// Write the blocklist, blacklist, etc if applicable
 fn write_lists(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
     // Add blocklist and blacklist if blocking is enabled
-    if SetupVarsEntry::Enabled.read_as(env)? {
+    if SetupVarsEntry::BlockingEnabled.read_as(env)? {
         config_file
             .write_all(b"addn-hosts=/etc/pihole/gravity.list\n")
             .context(ErrorKind::DnsmasqConfigWrite)?;
