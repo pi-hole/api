@@ -161,8 +161,8 @@ pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
 #[cfg(test)]
 mod test {
     use env::PiholeFile;
-    use testing::TestBuilder;
     use rocket::http::Method;
+    use testing::TestBuilder;
 
     /// Basic test for reported settings
     #[test]
