@@ -25,6 +25,7 @@ pub enum ValueType {
     Integer,
     Interface,
     Ipv4,
+    Ipv4optPort,
     Ipv4Mask,
     Ipv6,
     Path,
@@ -94,6 +95,23 @@ impl ValueType {
                 // (4 octets, or null)
                 // Test if valid address falls within permitted ranges
                 value.is_empty() || is_ipv4_valid(value)
+            }
+            ValueType::Ipv4optPort => {
+                // Valid, in allowable range, with optional port
+                // (4 octets, with port from 0 to 65535, colon delimited)
+                if is_ipv4_valid(value) {
+                // check for valid ipv4 (without port)
+                    return true;
+                }
+                if !value.contains(":") {
+                    return false;
+                }
+
+                // check if port is specified
+                let (ip, portnumber) = value.split_at(value.rfind(":").unwrap_or_default());
+                let port = portnumber.parse::<usize>().unwrap_or_default();
+
+                is_ipv4_valid(ip) && port <= 65535 
             }
             ValueType::Ipv4Mask => {
                 // Valid, in allowable range, and with mask
@@ -195,6 +213,8 @@ mod tests {
             (ValueType::Integer, "8675309", true),
             (ValueType::Interface, &available_interface, true),
             (ValueType::Ipv4, "192.168.2.9", true),
+            (ValueType::Ipv4optPort, "192.168.4.5:80", true),
+            (ValueType::Ipv4optPort, "192.168.3.3", true),
             (ValueType::Ipv4Mask, "192.168.0.3/24", true),
             (
                 ValueType::Ipv6,
@@ -234,6 +254,7 @@ mod tests {
             (ValueType::Integer, "9.9", false),
             (ValueType::Interface, "/dev/net/ev9d9", false),
             (ValueType::Ipv4, "192.168.0.3/24", false),
+            (ValueType::Ipv4optPort, "192.168.4.5 port 1000", false),
             (ValueType::Ipv4Mask, "192.168.2.9", false),
             (ValueType::Ipv6, "192.168.0.3", false),
             (ValueType::Path, "~/tmp/directory/file.ext", false),
