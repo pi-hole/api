@@ -100,7 +100,7 @@ impl ValueType {
                 // Valid, in allowable range, with optional port
                 // (4 octets, with port from 0 to 65535, colon delimited)
                 if is_ipv4_valid(value) {
-                // check for valid ipv4 (without port)
+                    // check for valid ipv4 (without port)
                     return true;
                 }
                 if !value.contains(":") {
@@ -111,7 +111,7 @@ impl ValueType {
                 let (ip, portnumber) = value.split_at(value.rfind(":").unwrap_or_default());
                 let port = portnumber.parse::<usize>().unwrap_or_default();
 
-                is_ipv4_valid(ip) && port <= 65535 
+                is_ipv4_valid(ip) && port <= 65535
             }
             ValueType::Ipv4Mask => {
                 // Valid, in allowable range, and with mask
