@@ -25,6 +25,7 @@ pub enum ValueType {
     Integer,
     Interface,
     Ipv4,
+    IPv4OptionalPort,
     Ipv4Mask,
     Ipv6,
     Path,
@@ -94,6 +95,23 @@ impl ValueType {
                 // (4 octets, or null)
                 // Test if valid address falls within permitted ranges
                 value.is_empty() || is_ipv4_valid(value)
+            }
+            ValueType::IPv4OptionalPort => {
+                // Valid, in allowable range, with optional port
+                // (4 octets, with port from 0 to 65535, colon delimited), or null
+                if value.is_empty() || is_ipv4_valid(value) {
+                    return true;
+                }
+                if !value.contains(":") {
+                    return false;
+                }
+                // check if port is specified
+                let (ip, portnumber) = value.split_at(value.rfind(":").unwrap_or_default());
+                if let Some(port) = portnumber.replace(":", "").parse::<usize>().ok() {
+                    is_ipv4_valid(ip) && port <= 65535
+                } else {
+                    false
+                }
             }
             ValueType::Ipv4Mask => {
                 // Valid, in allowable range, and with mask
@@ -195,6 +213,8 @@ mod tests {
             (ValueType::Integer, "8675309", true),
             (ValueType::Interface, &available_interface, true),
             (ValueType::Ipv4, "192.168.2.9", true),
+            (ValueType::IPv4OptionalPort, "192.168.4.5:80", true),
+            (ValueType::IPv4OptionalPort, "192.168.3.3", true),
             (ValueType::Ipv4Mask, "192.168.0.3/24", true),
             (
                 ValueType::Ipv6,
@@ -229,12 +249,18 @@ mod tests {
                 false
             ),
             (ValueType::Decimal, "3/4", false),
+            (ValueType::Decimal, "3.14.15.26", false),
             (ValueType::Domain, "D0#A!N", false),
             (ValueType::Filename, "c3p0/", false),
             (ValueType::Integer, "9.9", false),
+            (ValueType::Integer, "10m3", false),
             (ValueType::Interface, "/dev/net/ev9d9", false),
             (ValueType::Ipv4, "192.168.0.3/24", false),
+            (ValueType::Ipv4, "192.168.0.2:53", false),
+            (ValueType::IPv4OptionalPort, "192.168.4.5 port 1000", false),
+            (ValueType::IPv4OptionalPort, "192.168.6.8:arst", false),
             (ValueType::Ipv4Mask, "192.168.2.9", false),
+            (ValueType::Ipv4Mask, "192.168.1.1/qwfp", false),
             (ValueType::Ipv6, "192.168.0.3", false),
             (ValueType::Path, "~/tmp/directory/file.ext", false),
             (ValueType::PortNumber, "65536", false),
