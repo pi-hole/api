@@ -11,19 +11,15 @@
 use auth::User;
 use env::Env;
 use rocket::State;
-use routes::settings::common::as_bool;
 use settings::{ConfigEntry, SetupVarsEntry};
 use util::{reply_data, Reply};
 
 /// Get DHCP configuration
 #[get("/settings/dhcp")]
 pub fn get_dhcp(env: State<Env>, _auth: User) -> Reply {
-    let dhcp_active = as_bool(&SetupVarsEntry::DhcpActive.read(&env)?);
-    let ipv6_support = as_bool(&SetupVarsEntry::DhcpIpv6.read(&env)?);
-    let lease_time: i32 = SetupVarsEntry::DhcpLeasetime
-        .read(&env)?
-        .parse()
-        .unwrap_or(SetupVarsEntry::DhcpLeasetime.get_default().parse().unwrap());
+    let dhcp_active: bool = SetupVarsEntry::DhcpActive.read_as(&env)?;
+    let ipv6_support: bool = SetupVarsEntry::DhcpIpv6.read_as(&env)?;
+    let lease_time: i32 = SetupVarsEntry::DhcpLeasetime.read_as(&env)?;
 
     reply_data(json!({
       "active": dhcp_active,

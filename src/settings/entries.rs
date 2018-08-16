@@ -10,11 +10,12 @@
 
 use env::Env;
 use env::PiholeFile;
-use failure::Fail;
+use failure::{Fail, ResultExt};
 use settings::value_type::ValueType;
 use std::borrow::Cow;
 use std::io::prelude::*;
 use std::io::{self, BufReader, BufWriter};
+use std::str::FromStr;
 use util::{Error, ErrorKind};
 
 /// Common functions for a configuration entry
@@ -34,6 +35,18 @@ pub trait ConfigEntry {
     /// Check if the value is valid for this entry
     fn is_valid(&self, value: &str) -> bool {
         self.value_type().is_valid(value)
+    }
+
+    /// Try to read the value and parse into `T`.
+    /// If it is unable to be parsed into `T`, an error is returned.
+    fn read_as<T: FromStr>(&self, env: &Env) -> Result<T, Error>
+    where
+        <T as FromStr>::Err: Fail
+    {
+        self.read(env)?
+            .parse::<T>()
+            .context(ErrorKind::InvalidSettingValue)
+            .map_err(|e| e.into())
     }
 
     /// Read this setting from the config file it appears in.
@@ -72,8 +85,8 @@ pub trait ConfigEntry {
         Ok(self.get_default().to_owned())
     }
 
-    /// Write a value to the config file.
-    /// If the value is invalid, an error will be returned.
+    /// Write a value to the config file. If the value is empty then the entry
+    /// will be deleted. If the value is invalid, an error will be returned.
     fn write(&self, value: &str, env: &Env) -> Result<(), Error> {
         // Validate new value
         if !self.is_valid(value) {
@@ -89,9 +102,11 @@ pub trait ConfigEntry {
             .filter(|line| !line.starts_with(&entry_equals))
             .collect();
 
-        // Append entry to working copy
-        let new_entry = format!("{}={}", key, value);
-        entries.push(new_entry);
+        // Append entry to working copy if not empty
+        if !value.is_empty() {
+            let new_entry = format!("{}={}", key, value);
+            entries.push(new_entry);
+        }
 
         // Open the config file to be overwritten
         let mut file_writer = BufWriter::new(env.write_file(self.file(), false)?);
@@ -115,6 +130,12 @@ pub trait ConfigEntry {
 
         Ok(())
     }
+
+    /// Delete the entry from the config file. This is the same as writing an
+    /// empty string.
+    fn delete(&self, env: &Env) -> Result<(), Error> {
+        self.write("", env)
+    }
 }
 
 /// setupVars.conf file entries
@@ -122,6 +143,7 @@ pub trait ConfigEntry {
 pub enum SetupVarsEntry {
     ApiQueryLogShow,
     ApiPrivacyMode,
+    BlockingEnabled,
     DnsBogusPriv,
     DnsFqdnRequired,
     ConditionalForwarding,
@@ -136,8 +158,9 @@ pub enum SetupVarsEntry {
     DhcpRouter,
     DnsmasqListening,
     Dnssec,
-    InstallWebServer,
+    HostRecord,
     InstallWebInterface,
+    InstallWebServer,
     Ipv4Address,
     Ipv6Address,
     PiholeDns(usize),
@@ -157,6 +180,7 @@ impl ConfigEntry for SetupVarsEntry {
         match *self {
             SetupVarsEntry::ApiQueryLogShow => Cow::Borrowed("API_QUERY_LOG_SHOW"),
             SetupVarsEntry::ApiPrivacyMode => Cow::Borrowed("API_PRIVACY_MODE"),
+            SetupVarsEntry::BlockingEnabled => Cow::Borrowed("BLOCKING_ENABLED"),
             SetupVarsEntry::DnsBogusPriv => Cow::Borrowed("DNS_BOGUS_PRIV"),
             SetupVarsEntry::DnsFqdnRequired => Cow::Borrowed("DNS_FQDN_REQUIRED"),
             SetupVarsEntry::ConditionalForwarding => Cow::Borrowed("CONDITIONAL_FORWARDING"),
@@ -175,8 +199,9 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DhcpRouter => Cow::Borrowed("DHCP_ROUTER"),
             SetupVarsEntry::DnsmasqListening => Cow::Borrowed("DNSMASQ_LISTENING"),
             SetupVarsEntry::Dnssec => Cow::Borrowed("DNSSEC"),
-            SetupVarsEntry::InstallWebServer => Cow::Borrowed("INSTALL_WEB_SERVER"),
+            SetupVarsEntry::HostRecord => Cow::Borrowed("HOSTRECORD"),
             SetupVarsEntry::InstallWebInterface => Cow::Borrowed("INSTALL_WEB_INTERFACE"),
+            SetupVarsEntry::InstallWebServer => Cow::Borrowed("INSTALL_WEB_SERVER"),
             SetupVarsEntry::Ipv4Address => Cow::Borrowed("IPV4_ADDRESS"),
             SetupVarsEntry::Ipv6Address => Cow::Borrowed("IPV6_ADDRESS"),
             SetupVarsEntry::PiholeDns(num) => Cow::Owned(format!("PIHOLE_DNS_{}", num)),
@@ -194,6 +219,7 @@ impl ConfigEntry for SetupVarsEntry {
                 ValueType::String(&["all", "permittedonly", "blockedonly"])
             }
             SetupVarsEntry::ApiPrivacyMode => ValueType::Boolean,
+            SetupVarsEntry::BlockingEnabled => ValueType::Boolean,
             SetupVarsEntry::DnsBogusPriv => ValueType::Boolean,
             SetupVarsEntry::DnsFqdnRequired => ValueType::Boolean,
             SetupVarsEntry::ConditionalForwarding => ValueType::Boolean,
@@ -208,8 +234,9 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DhcpRouter => ValueType::Ipv4,
             SetupVarsEntry::DnsmasqListening => ValueType::String(&["all", "local", "single", ""]),
             SetupVarsEntry::Dnssec => ValueType::Boolean,
-            SetupVarsEntry::InstallWebServer => ValueType::Boolean,
+            SetupVarsEntry::HostRecord => ValueType::Domain,
             SetupVarsEntry::InstallWebInterface => ValueType::Boolean,
+            SetupVarsEntry::InstallWebServer => ValueType::Boolean,
             SetupVarsEntry::Ipv4Address => ValueType::Ipv4Mask,
             SetupVarsEntry::Ipv6Address => ValueType::Ipv6,
             SetupVarsEntry::PiholeDns(_) => ValueType::IPv4OptionalPort,
@@ -225,6 +252,7 @@ impl ConfigEntry for SetupVarsEntry {
         match *self {
             SetupVarsEntry::ApiQueryLogShow => "all",
             SetupVarsEntry::ApiPrivacyMode => "false",
+            SetupVarsEntry::BlockingEnabled => "true",
             SetupVarsEntry::DnsBogusPriv => "true",
             SetupVarsEntry::DnsFqdnRequired => "true",
             SetupVarsEntry::ConditionalForwarding => "false",
@@ -239,8 +267,9 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DhcpRouter => "",
             SetupVarsEntry::DnsmasqListening => "single",
             SetupVarsEntry::Dnssec => "false",
-            SetupVarsEntry::InstallWebServer => "true",
+            SetupVarsEntry::HostRecord => "",
             SetupVarsEntry::InstallWebInterface => "true",
+            SetupVarsEntry::InstallWebServer => "true",
             SetupVarsEntry::Ipv4Address => "",
             SetupVarsEntry::Ipv6Address => "",
             SetupVarsEntry::PiholeDns(_) => "",
@@ -253,22 +282,55 @@ impl ConfigEntry for SetupVarsEntry {
     }
 }
 
+impl SetupVarsEntry {
+    /// Delete all `SetupVarsEntry::PiholeDns` entries
+    pub fn delete_upstream_dns(env: &Env) -> Result<(), Error> {
+        let entries: Vec<String> = BufReader::new(env.read_file(PiholeFile::SetupVars)?)
+            .lines()
+            .filter_map(|item| item.ok())
+            .filter(|line| !line.starts_with("PIHOLE_DNS_"))
+            .collect();
+
+        // Open the config file to be overwritten
+        let mut file_writer = BufWriter::new(env.write_file(PiholeFile::SetupVars, false)?);
+
+        // Create the context for the error lazily.
+        // This way it is not allocating for errors at all, unless an error is thrown.
+        let apply_context = |error: io::Error| {
+            let context = ErrorKind::FileWrite(env.file_location(PiholeFile::SetupVars).to_owned());
+            error.context(context.into())
+        };
+
+        // Write settings to file
+        for line in entries {
+            file_writer
+                .write_all(line.as_bytes())
+                .map_err(apply_context)?;
+            file_writer.write_all(b"\n").map_err(apply_context)?;
+        }
+
+        file_writer.flush().map_err(apply_context)?;
+
+        Ok(())
+    }
+}
+
 /// pihole-FTL.conf settings file entries
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub enum FtlConfEntry {
     AaaaQueryAnalysis,
     BlockingMode,
-    ResolveIpv6,
-    ResolveIpv4,
-    MaxDbDays,
-    DbInterval,
     DbFile,
-    IgnoreLocalHost,
+    DbInterval,
     FtlPort,
+    IgnoreLocalHost,
+    MaxDbDays,
     MaxLogAge,
     PrivacyLevel,
     QueryDisplay,
     RegexDebugMode,
+    ResolveIpv4,
+    ResolveIpv6,
     SocketListening
 }
 
@@ -279,60 +341,60 @@ impl ConfigEntry for FtlConfEntry {
 
     fn key(&self) -> Cow<str> {
         Cow::Borrowed(match *self {
-            FtlConfEntry::SocketListening => "SOCKET_LISTENING",
-            FtlConfEntry::QueryDisplay => "QUERY_DISPLAY",
             FtlConfEntry::AaaaQueryAnalysis => "AAAA_QUERY_ANALYSIS",
-            FtlConfEntry::ResolveIpv6 => "RESOLVE_IPV6",
-            FtlConfEntry::ResolveIpv4 => "RESOLVE_IPV6",
-            FtlConfEntry::MaxDbDays => "MAXDBDAYS",
-            FtlConfEntry::DbInterval => "DBINTERVAL",
-            FtlConfEntry::DbFile => "DBFILE",
-            FtlConfEntry::MaxLogAge => "MAXLOGAGE",
-            FtlConfEntry::FtlPort => "FTLPORT",
-            FtlConfEntry::PrivacyLevel => "PRIVACYLEVEL",
-            FtlConfEntry::IgnoreLocalHost => "IGNORE_LOCALHOST",
             FtlConfEntry::BlockingMode => "BLOCKINGMODE",
-            FtlConfEntry::RegexDebugMode => "REGEX_DEBUGMODE"
+            FtlConfEntry::DbFile => "DBFILE",
+            FtlConfEntry::DbInterval => "DBINTERVAL",
+            FtlConfEntry::FtlPort => "FTLPORT",
+            FtlConfEntry::IgnoreLocalHost => "IGNORE_LOCALHOST",
+            FtlConfEntry::MaxDbDays => "MAXDBDAYS",
+            FtlConfEntry::MaxLogAge => "MAXLOGAGE",
+            FtlConfEntry::PrivacyLevel => "PRIVACYLEVEL",
+            FtlConfEntry::QueryDisplay => "QUERY_DISPLAY",
+            FtlConfEntry::RegexDebugMode => "REGEX_DEBUGMODE",
+            FtlConfEntry::ResolveIpv4 => "RESOLVE_IPV6",
+            FtlConfEntry::ResolveIpv6 => "RESOLVE_IPV6",
+            FtlConfEntry::SocketListening => "SOCKET_LISTENING"
         })
     }
 
     fn value_type(&self) -> ValueType {
         match *self {
-            FtlConfEntry::SocketListening => ValueType::String(&["localonly", "all"]),
-            FtlConfEntry::QueryDisplay => ValueType::YesNo,
             FtlConfEntry::AaaaQueryAnalysis => ValueType::YesNo,
-            FtlConfEntry::ResolveIpv6 => ValueType::YesNo,
-            FtlConfEntry::ResolveIpv4 => ValueType::YesNo,
-            FtlConfEntry::MaxDbDays => ValueType::Integer,
-            FtlConfEntry::DbInterval => ValueType::Decimal,
-            FtlConfEntry::DbFile => ValueType::Path,
-            FtlConfEntry::MaxLogAge => ValueType::Decimal,
-            FtlConfEntry::FtlPort => ValueType::PortNumber,
-            FtlConfEntry::PrivacyLevel => ValueType::String(&["0", "1", "2", "3"]),
-            FtlConfEntry::IgnoreLocalHost => ValueType::YesNo,
             FtlConfEntry::BlockingMode => {
                 ValueType::String(&["NULL", "IP-AAAA-NODATA", "IP", "NXDOMAIN"])
             }
-            FtlConfEntry::RegexDebugMode => ValueType::Boolean
+            FtlConfEntry::DbFile => ValueType::Path,
+            FtlConfEntry::DbInterval => ValueType::Decimal,
+            FtlConfEntry::FtlPort => ValueType::PortNumber,
+            FtlConfEntry::IgnoreLocalHost => ValueType::YesNo,
+            FtlConfEntry::MaxDbDays => ValueType::Integer,
+            FtlConfEntry::MaxLogAge => ValueType::Decimal,
+            FtlConfEntry::PrivacyLevel => ValueType::String(&["0", "1", "2", "3"]),
+            FtlConfEntry::QueryDisplay => ValueType::YesNo,
+            FtlConfEntry::RegexDebugMode => ValueType::Boolean,
+            FtlConfEntry::ResolveIpv4 => ValueType::YesNo,
+            FtlConfEntry::ResolveIpv6 => ValueType::YesNo,
+            FtlConfEntry::SocketListening => ValueType::String(&["localonly", "all"])
         }
     }
 
     fn get_default(&self) -> &str {
         match *self {
-            FtlConfEntry::SocketListening => "localonly",
-            FtlConfEntry::QueryDisplay => "yes",
             FtlConfEntry::AaaaQueryAnalysis => "yes",
-            FtlConfEntry::ResolveIpv6 => "yes",
-            FtlConfEntry::ResolveIpv4 => "yes",
-            FtlConfEntry::MaxDbDays => "365",
-            FtlConfEntry::DbInterval => "1.0",
-            FtlConfEntry::DbFile => "/etc/pihole/pihole-FTL.db",
-            FtlConfEntry::MaxLogAge => "24.0",
-            FtlConfEntry::FtlPort => "4711",
-            FtlConfEntry::PrivacyLevel => "0",
-            FtlConfEntry::IgnoreLocalHost => "no",
             FtlConfEntry::BlockingMode => "NULL",
-            FtlConfEntry::RegexDebugMode => "false"
+            FtlConfEntry::DbFile => "/etc/pihole/pihole-FTL.db",
+            FtlConfEntry::DbInterval => "1.0",
+            FtlConfEntry::FtlPort => "4711",
+            FtlConfEntry::IgnoreLocalHost => "no",
+            FtlConfEntry::MaxDbDays => "365",
+            FtlConfEntry::MaxLogAge => "24.0",
+            FtlConfEntry::PrivacyLevel => "0",
+            FtlConfEntry::QueryDisplay => "yes",
+            FtlConfEntry::RegexDebugMode => "false",
+            FtlConfEntry::ResolveIpv4 => "yes",
+            FtlConfEntry::ResolveIpv6 => "yes",
+            FtlConfEntry::SocketListening => "localonly"
         }
     }
 }
@@ -364,12 +426,9 @@ mod tests {
     }
 
     #[test]
-    fn write_null_value() {
-        let env_builder = TestEnvBuilder::new().file_expect(
-            PiholeFile::SetupVars,
-            "PIHOLE_DNS_1=1.2.3.4\n",
-            "PIHOLE_DNS_1=\n"
-        );
+    fn delete_value() {
+        let env_builder =
+            TestEnvBuilder::new().file_expect(PiholeFile::SetupVars, "PIHOLE_DNS_1=1.2.3.4\n", "");
         let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
         let env = Env::Test(Config::default(), env_builder.build());
 

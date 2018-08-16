@@ -8,8 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+mod dnsmasq;
 mod entries;
 mod value_type;
 
+pub use self::dnsmasq::*;
 pub use self::entries::*;
 pub use self::value_type::*;

@@ -137,6 +137,7 @@ fn setup<'a>(
             dns::delete_regexlist,
             settings::get_dhcp,
             settings::get_dns,
+            settings::put_dns,
             settings::get_ftldb,
             settings::get_ftl,
             settings::get_network

@@ -11,7 +11,7 @@
 /// Pi-hole files used by the API
 #[derive(Eq, PartialEq, Hash, Copy, Clone)]
 pub enum PiholeFile {
-    DnsmasqMainConfig,
+    DnsmasqConfig,
     Whitelist,
     Blacklist,
     Regexlist,
@@ -25,7 +25,7 @@ impl PiholeFile {
     /// Get the default location of the file
     pub fn default_location(&self) -> &'static str {
         match *self {
-            PiholeFile::DnsmasqMainConfig => "/etc/dnsmasq.d/01-pihole.conf",
+            PiholeFile::DnsmasqConfig => "/etc/dnsmasq.d/pihole.conf",
             PiholeFile::Whitelist => "/etc/pihole/whitelist.txt",
             PiholeFile::Blacklist => "/etc/pihole/blacklist.txt",
             PiholeFile::Regexlist => "/etc/pihole/regex.list",
