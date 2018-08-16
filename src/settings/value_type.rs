@@ -98,8 +98,8 @@ impl ValueType {
             }
             ValueType::Ipv4optPort => {
                 // Valid, in allowable range, with optional port
-                // (4 octets, with port from 0 to 65535, colon delimited)
-                if is_ipv4_valid(value) {
+                // (4 octets, with port from 0 to 65535, colon delimited), or null
+                if value.is_empty() || is_ipv4_valid(value) {
                     // check for valid ipv4 (without port)
                     return true;
                 }
