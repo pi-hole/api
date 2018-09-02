@@ -9,11 +9,11 @@
 // Please see LICENSE file for your rights under this license.
 
 use env::{Env, PiholeFile};
+use ftl::{FtlClient, FtlStrings};
 use shmem::{self, Array, Object};
 use std::collections::HashMap;
 use std::ops::Deref;
 use util::{Error, ErrorKind};
-use ftl::{FtlClient, FtlStrings};
 
 /// A wrapper for accessing FTL's shared memory.
 ///
