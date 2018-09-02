@@ -80,20 +80,60 @@ impl<'test> FtlStrings<'test> {
     /// structs.
     pub fn get_str(&self, id: usize) -> Option<Result<&str, Error>> {
         match self {
-            FtlStrings::Production(strings) => {
-                // This checks to see if the string exists, and then creates a
-                // `CStr` from a pointer. It is assumed that the string has a
-                // null terminator. Then the `CStr` is converted into `&str`.
-                strings
-                    .get(id)
-                    .map(|_| unsafe { CStr::from_ptr(&strings[id]) })
-                    .map(|msg| {
-                        msg.to_str()
-                            .context(ErrorKind::SharedMemoryRead)
-                            .map_err(Error::from)
-                    })
-            }
+            FtlStrings::Production(strings) => Self::get_str_prod(strings, id),
             FtlStrings::Test(strings) => strings.get(&id).map(|string| Ok(string.as_str()))
         }
+    }
+
+    /// This function is used for `FtlStrings::Production`. It checks to see
+    /// if the string exists, and then creates a `CStr` from a pointer. It
+    /// is assumed that the string has a null terminator. Then the `CStr` is
+    /// converted into `&str`.
+    fn get_str_prod(strings: &[libc::c_char], id: usize) -> Option<Result<&str, Error>> {
+        strings.get(id).map(|_| {
+            unsafe { CStr::from_ptr(&strings[id]) }
+                .to_str()
+                .context(ErrorKind::SharedMemoryRead)
+                .map_err(Error::from)
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::FtlStrings;
+    use libc;
+    use std::collections::HashMap;
+
+    #[test]
+    fn get_str_valid() {
+        let mut data = HashMap::new();
+        data.insert(0, "".to_owned());
+        data.insert(1, "test".to_owned());
+        let strings = FtlStrings::Test(&data);
+
+        assert_eq!(strings.get_str(0).map(Result::unwrap), Some(""));
+        assert_eq!(strings.get_str(1).map(Result::unwrap), Some("test"));
+    }
+
+    #[test]
+    fn get_str_prod() {
+        let strings: Vec<libc::c_char> = ['\0', 't', 'e', 's', 't', '\0']
+            .iter()
+            .map(|&c| c as libc::c_char)
+            .collect();
+
+        assert_eq!(
+            FtlStrings::get_str_prod(&strings, 0).map(Result::unwrap),
+            Some("")
+        );
+        assert_eq!(
+            FtlStrings::get_str_prod(&strings, 1).map(Result::unwrap),
+            Some("test")
+        );
+        assert_eq!(
+            FtlStrings::get_str_prod(&strings, 6).map(Result::unwrap),
+            None
+        );
     }
 }
