@@ -18,7 +18,12 @@ pub enum PiholeFile {
     SetupVars,
     FtlConfig,
     LocalVersions,
-    LocalBranches
+    LocalBranches,
+    FtlShmClients,
+    FtlShmDomains,
+    FtlShmForwarded,
+    FtlShmQueries,
+    FtlShmStrings
 }
 
 impl PiholeFile {
@@ -32,7 +37,12 @@ impl PiholeFile {
             PiholeFile::SetupVars => "/etc/pihole/setupVars.conf",
             PiholeFile::FtlConfig => "/etc/pihole/pihole-FTL.conf",
             PiholeFile::LocalVersions => "/etc/pihole/localversions",
-            PiholeFile::LocalBranches => "/etc/pihole/localbranches"
+            PiholeFile::LocalBranches => "/etc/pihole/localbranches",
+            PiholeFile::FtlShmClients => "/dev/shm/FTL-clients",
+            PiholeFile::FtlShmDomains => "/dev/shm/FTL-domains",
+            PiholeFile::FtlShmForwarded => "/dev/shm/FTL-forwarded",
+            PiholeFile::FtlShmQueries => "/dev/shm/FTL-queries",
+            PiholeFile::FtlShmStrings => "/dev/shm/FTL-strings"
         }
     }
 }

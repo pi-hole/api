@@ -59,7 +59,14 @@ impl Config {
             PiholeFile::SetupVars => &self.file_locations.setup_vars,
             PiholeFile::FtlConfig => &self.file_locations.ftl_config,
             PiholeFile::LocalVersions => &self.file_locations.local_versions,
-            PiholeFile::LocalBranches => &self.file_locations.local_branches
+            PiholeFile::LocalBranches => &self.file_locations.local_branches,
+
+            // Shared memory locations are currently not configurable
+            PiholeFile::FtlShmClients => PiholeFile::FtlShmClients.default_location(),
+            PiholeFile::FtlShmDomains => PiholeFile::FtlShmDomains.default_location(),
+            PiholeFile::FtlShmForwarded => PiholeFile::FtlShmForwarded.default_location(),
+            PiholeFile::FtlShmQueries => PiholeFile::FtlShmQueries.default_location(),
+            PiholeFile::FtlShmStrings => PiholeFile::FtlShmStrings.default_location()
         }
     }
 
