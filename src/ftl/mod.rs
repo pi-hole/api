@@ -8,10 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-mod connection;
 mod memory_model;
 mod shared_memory;
+mod socket;
 
-pub use self::connection::{FtlConnection, FtlConnectionType};
 pub use self::memory_model::{FtlClient, FtlStrings};
 pub use self::shared_memory::FtlMemory;
+pub use self::socket::{FtlConnection, FtlConnectionType};
