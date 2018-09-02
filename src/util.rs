@@ -113,7 +113,15 @@ pub enum ErrorKind {
     #[fail(display = "Failed to restart the DNS server")]
     RestartDnsError,
     #[fail(display = "Error generating the dnsmasq config")]
-    DnsmasqConfigWrite
+    DnsmasqConfigWrite,
+    // shmem::Error does not implement std::error::Error, so we can not use
+    // `.context()` on a `Result<T, shmem::Error>`. It also does not implement
+    // Eq and PartialEq, so the best we can do is have the error message stored
+    // here.
+    #[fail(display = "Failed to open shared memory: {}", _0)]
+    SharedMemoryOpen(String),
+    #[fail(display = "Failed to read from shared memory")]
+    SharedMemoryRead
 }
 
 impl Error {
@@ -187,7 +195,9 @@ impl ErrorKind {
             ErrorKind::ConfigParsingError => "config_parsing_error",
             ErrorKind::InvalidSettingValue => "invalid_setting_value",
             ErrorKind::RestartDnsError => "restart_dns_error",
-            ErrorKind::DnsmasqConfigWrite => "dnsmasq_config_write"
+            ErrorKind::DnsmasqConfigWrite => "dnsmasq_config_write",
+            ErrorKind::SharedMemoryOpen(_) => "shared_memory_open",
+            ErrorKind::SharedMemoryRead => "shared_memory_read"
         }
     }
 
@@ -209,7 +219,9 @@ impl ErrorKind {
             ErrorKind::ConfigParsingError => Status::InternalServerError,
             ErrorKind::InvalidSettingValue => Status::BadRequest,
             ErrorKind::RestartDnsError => Status::InternalServerError,
-            ErrorKind::DnsmasqConfigWrite => Status::InternalServerError
+            ErrorKind::DnsmasqConfigWrite => Status::InternalServerError,
+            ErrorKind::SharedMemoryOpen(_) => Status::InternalServerError,
+            ErrorKind::SharedMemoryRead => Status::InternalServerError
         }
     }
 }

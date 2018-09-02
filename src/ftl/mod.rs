@@ -9,5 +9,9 @@
 // Please see LICENSE file for your rights under this license.
 
 mod connection;
+mod shared_memory;
+mod memory_model;
 
 pub use self::connection::{FtlConnection, FtlConnectionType};
+pub use self::shared_memory::FtlMemory;
+pub use self::memory_model::{FtlClient, FtlStrings};

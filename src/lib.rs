@@ -23,6 +23,8 @@ extern crate serde_derive;
 #[macro_use]
 extern crate rust_embed;
 extern crate failure;
+extern crate libc;
+extern crate shmem;
 extern crate toml;
 #[macro_use]
 extern crate failure_derive;
