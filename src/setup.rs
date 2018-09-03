@@ -63,6 +63,7 @@ pub fn start() -> Result<(), Error> {
 }
 
 /// Setup the API with the testing data and return a Client to test with
+#[cfg(test)]
 pub fn test(
     ftl_data: HashMap<String, Vec<u8>>,
     env_data: HashMap<PiholeFile, NamedTempFile>
