@@ -31,6 +31,22 @@ pub struct FtlClient {
 }
 
 impl FtlClient {
+    pub fn new(
+        query_count: usize,
+        blocked_count: usize,
+        ip_str_id: usize,
+        name_str_id: Option<usize>
+    ) -> FtlClient {
+        FtlClient {
+            magic: MAGIC_BYTE,
+            query_count: query_count as libc::c_int,
+            blocked_count: blocked_count as libc::c_int,
+            ip_str_id: ip_str_id as libc::c_ulonglong,
+            name_str_id: name_str_id.unwrap_or_default() as libc::c_ulonglong,
+            is_name_unknown: name_str_id.is_none()
+        }
+    }
+
     pub fn query_count(&self) -> usize {
         self.query_count as usize
     }
@@ -109,7 +125,7 @@ impl<'test> FtlStrings<'test> {
 
 /// The FTL counters stored in shared memory
 #[repr(C)]
-#[derive(Copy, Clone, Default, Debug)]
+#[derive(Copy, Clone, Default)]
 pub struct FtlCounters {
     pub total_queries: libc::c_int,
     pub blocked_queries: libc::c_int,
@@ -126,7 +142,7 @@ pub struct FtlCounters {
     pub gravity_size: libc::c_int,
     pub gravity_conf: libc::c_int,
     pub over_time_size: libc::c_int,
-    query_type_counters: [libc::c_int; 7],
+    pub query_type_counters: [libc::c_int; 7],
     pub forwarded_queries: libc::c_int,
     pub reply_count_nodata: libc::c_int,
     pub reply_count_nxdomain: libc::c_int,
