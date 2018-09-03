@@ -8,7 +8,6 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::{Env, PiholeFile};
 use ftl::{FtlClient, FtlStrings};
 use shmem::{self, Array, Object};
 use std::collections::HashMap;
