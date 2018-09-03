@@ -27,7 +27,7 @@ pub struct FtlClient {
     blocked_count: libc::c_int,
     ip_str_id: libc::c_ulonglong,
     name_str_id: libc::c_ulonglong,
-    is_name_resolved: bool
+    is_name_unknown: bool
 }
 
 impl FtlClient {
@@ -45,7 +45,7 @@ impl FtlClient {
 
     pub fn name_str_id(&self) -> Option<usize> {
         // Only share the name if it exists and is not an empty string
-        if self.is_name_resolved && self.name_str_id != 0 {
+        if !self.is_name_unknown && self.name_str_id != 0 {
             Some(self.name_str_id as usize)
         } else {
             None
@@ -61,7 +61,7 @@ impl Default for FtlClient {
             blocked_count: 0,
             ip_str_id: 0,
             name_str_id: 0,
-            is_name_resolved: false
+            is_name_unknown: true
         }
     }
 }
