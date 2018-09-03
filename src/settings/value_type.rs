@@ -18,10 +18,14 @@ use std::str::FromStr;
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub enum ValueType {
     Boolean,
+    /// A comma separated array of strings which match at least one of the
+    /// specified value types
+    Array(&'static [ValueType]),
     ConditionalForwardingReverse,
     Decimal,
     Domain,
     Filename,
+    Hostname,
     Integer,
     Interface,
     Ipv4,
@@ -43,9 +47,12 @@ impl ValueType {
     pub fn is_valid(&self, value: &str) -> bool {
         match *self {
             ValueType::Boolean => match value {
-                "true" | "false" | "" => true,
+                "true" | "false" => true,
                 _ => false
             },
+            ValueType::Array(value_types) => value
+                .split(",")
+                .all(|value| valueTypes.any(|value_type| value_type.is_valid(value))),
             ValueType::ConditionalForwardingReverse => {
                 // Specific reverse domain
                 let reverse_re = Regex::new(
@@ -60,23 +67,41 @@ impl ValueType {
                 decimal_re.is_match(value)
             }
             ValueType::Domain => {
-                // Single word, hyphens allowed
-                if value.is_empty() {
-                    return true;
+                // Like a hostname, but must be fully qualified
+                let split: Vec<&str> = value.split('.').collect();
+
+                // Must have at least two segments/labels of one or more characters
+                if split.len() < 2 || split.iter().any(|label| label.is_empty()) {
+                    return false;
                 }
 
-                let domain_re =
-                    Regex::new(r"^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])$").unwrap();
-                domain_re.is_match(value)
+                ValueType::Hostname.is_valid(value)
             }
             ValueType::Filename => {
-                // Valid file, or null
-                if value.is_empty() {
-                    return true;
+                Path::new(value).file_name().is_some()
+                    && !value.ends_with("/")
+                    && !value.ends_with("/.")
+            }
+            ValueType::Hostname => {
+                // A hostname must not exceed 253 characters
+                if value.len() > 253 {
+                    return false;
                 }
 
-                let file = Path::new(value);
-                file.file_name().is_some() && !value.ends_with("/")
+                // The segments/labels of a hostname must not exceed 63 characters each
+                if value.split(".").any(|label| label.len() > 63) {
+                    return false;
+                }
+
+                // A hostname can not be all numbers and periods
+                if value.split(".").all(|label| label.parse::<usize>().is_ok()) {
+                    return false;
+                }
+
+                let hostname_re = Regex::new(
+                    r"^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*)+(\.([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*))*$"
+                ).unwrap();
+                hostname_re.is_match(value)
             }
             ValueType::Integer => {
                 // At least one digit
@@ -92,22 +117,24 @@ impl ValueType {
             }
             ValueType::Ipv4 => {
                 // Valid and in allowable range
-                // (4 octets, or null)
+                // (4 octets)
                 // Test if valid address falls within permitted ranges
-                value.is_empty() || is_ipv4_valid(value)
+                is_ipv4_valid(value)
             }
             ValueType::IPv4OptionalPort => {
                 // Valid, in allowable range, with optional port
-                // (4 octets, with port from 0 to 65535, colon delimited), or null
-                if value.is_empty() || is_ipv4_valid(value) {
+                // (4 octets, with port from 0 to 65535, colon delimited)
+                if is_ipv4_valid(value) {
                     return true;
                 }
+
                 if !value.contains(":") {
                     return false;
                 }
-                // check if port is specified
-                let (ip, portnumber) = value.split_at(value.rfind(":").unwrap_or_default());
-                if let Some(port) = portnumber.replace(":", "").parse::<usize>().ok() {
+
+                // Check if port is specified
+                let (ip, port) = value.split_at(value.rfind(":").unwrap());
+                if let Some(port) = port.replace(":", "").parse::<usize>().ok() {
                     is_ipv4_valid(ip) && port <= 65535
                 } else {
                     false
@@ -120,32 +147,19 @@ impl ValueType {
                     return false;
                 }
 
-                let (ip, mask) = value.split_at(value.rfind("/").unwrap_or_default());
-                let numeric_re = Regex::new(r"^(\d)+$").unwrap();
-
-                numeric_re.is_match(&mask[1..]) && is_ipv4_valid(ip)
+                let (ip, mask) = value.split_at(value.rfind("/").unwrap());
+                ValueType::Integer.is_valid(&mask.replace("/", "")) && is_ipv4_valid(ip)
             }
             ValueType::Ipv6 => {
-                // IPv6 addresses in allowable range, or null
-                if value.is_empty() {
-                    return true;
-                }
-
-                match Ipv6Addr::from_str(value) {
-                    Ok(ipv6) => {
-                        // Prohibited address ranges: Multicast & Unspecified
-                        // (all others permitted)
-                        !ipv6.is_multicast() && !ipv6.is_unspecified()
-                    }
-                    Err(_) => return false
+                if let Ok(ipv6) = Ipv6Addr::from_str(value) {
+                    // Prohibited address ranges: Multicast & Unspecified
+                    // (all others permitted)
+                    !ipv6.is_multicast() && !ipv6.is_unspecified()
+                } else {
+                    false
                 }
             }
             ValueType::Path => {
-                // Valid full Path, or null
-                if value.is_empty() {
-                    return true;
-                }
-
                 // Test if a path and filename have been specified
                 let path = Path::new(value);
                 path.file_name().is_some() && path.is_absolute() && !value.ends_with("/")
@@ -202,14 +216,16 @@ mod tests {
 
         let tests = vec![
             (ValueType::Boolean, "false", true),
+            (ValueType::ClientArray, "pi.hole,127.0.0.1", true),
             (
                 ValueType::ConditionalForwardingReverse,
                 "1.168.192.in-addr.arpa",
                 true
             ),
             (ValueType::Decimal, "3.14", true),
-            (ValueType::Domain, "domain", true),
+            (ValueType::Domain, "domain.com", true),
             (ValueType::Filename, "c3po", true),
+            (ValueType::Hostname, "localhost", true),
             (ValueType::Integer, "8675309", true),
             (ValueType::Interface, &available_interface, true),
             (ValueType::Ipv4, "192.168.2.9", true),
@@ -243,6 +259,8 @@ mod tests {
     fn test_value_type_invalid() {
         let tests = vec![
             (ValueType::Boolean, "yes", false),
+            (ValueType::ClientArray, "123, $test,", false),
+            (ValueType::ClientArray, "123,", false),
             (
                 ValueType::ConditionalForwardingReverse,
                 "www.pi-hole.net",
@@ -252,6 +270,10 @@ mod tests {
             (ValueType::Decimal, "3.14.15.26", false),
             (ValueType::Domain, "D0#A!N", false),
             (ValueType::Filename, "c3p0/", false),
+            (ValueType::Hostname, ".localhost", false),
+            (ValueType::Hostname, "localhost.", false),
+            (ValueType::Hostname, "127.0.0.1", false),
+            (ValueType::Hostname, "my.ho$t.name", false),
             (ValueType::Integer, "9.9", false),
             (ValueType::Integer, "10m3", false),
             (ValueType::Interface, "/dev/net/ev9d9", false),

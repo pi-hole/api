@@ -32,9 +32,10 @@ pub trait ConfigEntry {
     /// Get the default value of the entry
     fn get_default(&self) -> &str;
 
-    /// Check if the value is valid for this entry
+    /// Check if the value is valid for this entry. An empty string is always
+    /// valid because it represents a deleted entry.
     fn is_valid(&self, value: &str) -> bool {
-        self.value_type().is_valid(value)
+        value.is_empty() || self.value_type().is_valid(value)
     }
 
     /// Try to read the value and parse into `T`.
@@ -141,6 +142,7 @@ pub trait ConfigEntry {
 /// setupVars.conf file entries
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub enum SetupVarsEntry {
+    ApiExcludeClients,
     ApiQueryLogShow,
     ApiPrivacyMode,
     BlockingEnabled,
@@ -178,6 +180,7 @@ impl ConfigEntry for SetupVarsEntry {
 
     fn key(&self) -> Cow<str> {
         match *self {
+            SetupVarsEntry::ApiExcludeClients => Cow::Borrowed("API_EXCLUDE_CLIENTS"),
             SetupVarsEntry::ApiQueryLogShow => Cow::Borrowed("API_QUERY_LOG_SHOW"),
             SetupVarsEntry::ApiPrivacyMode => Cow::Borrowed("API_PRIVACY_MODE"),
             SetupVarsEntry::BlockingEnabled => Cow::Borrowed("BLOCKING_ENABLED"),
@@ -215,6 +218,9 @@ impl ConfigEntry for SetupVarsEntry {
 
     fn value_type(&self) -> ValueType {
         match *self {
+            SetupVarsEntry::ApiExcludeClients => {
+                ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4, ValueType::Ipv6])
+            }
             SetupVarsEntry::ApiQueryLogShow => {
                 ValueType::String(&["all", "permittedonly", "blockedonly"])
             }
@@ -223,7 +229,7 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DnsBogusPriv => ValueType::Boolean,
             SetupVarsEntry::DnsFqdnRequired => ValueType::Boolean,
             SetupVarsEntry::ConditionalForwarding => ValueType::Boolean,
-            SetupVarsEntry::ConditionalForwardingDomain => ValueType::Domain,
+            SetupVarsEntry::ConditionalForwardingDomain => ValueType::Hostname,
             SetupVarsEntry::ConditionalForwardingIp => ValueType::Ipv4,
             SetupVarsEntry::ConditionalForwardingReverse => ValueType::ConditionalForwardingReverse,
             SetupVarsEntry::DhcpActive => ValueType::Boolean,
@@ -232,7 +238,7 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DhcpLeasetime => ValueType::Integer,
             SetupVarsEntry::DhcpStart => ValueType::Ipv4,
             SetupVarsEntry::DhcpRouter => ValueType::Ipv4,
-            SetupVarsEntry::DnsmasqListening => ValueType::String(&["all", "local", "single", ""]),
+            SetupVarsEntry::DnsmasqListening => ValueType::String(&["all", "local", "single"]),
             SetupVarsEntry::Dnssec => ValueType::Boolean,
             SetupVarsEntry::HostRecord => ValueType::Domain,
             SetupVarsEntry::InstallWebInterface => ValueType::Boolean,
@@ -244,12 +250,13 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::PiholeInterface => ValueType::Interface,
             SetupVarsEntry::QueryLogging => ValueType::Boolean,
             SetupVarsEntry::WebPassword => ValueType::WebPassword,
-            SetupVarsEntry::WebUiBoxedLayout => ValueType::String(&["boxed", "traditional", ""])
+            SetupVarsEntry::WebUiBoxedLayout => ValueType::String(&["boxed", "traditional"])
         }
     }
 
     fn get_default(&self) -> &str {
         match *self {
+            SetupVarsEntry::ApiExcludeClients => "",
             SetupVarsEntry::ApiQueryLogShow => "all",
             SetupVarsEntry::ApiPrivacyMode => "false",
             SetupVarsEntry::BlockingEnabled => "true",
@@ -370,7 +377,7 @@ impl ConfigEntry for FtlConfEntry {
             FtlConfEntry::IgnoreLocalHost => ValueType::YesNo,
             FtlConfEntry::MaxDbDays => ValueType::Integer,
             FtlConfEntry::MaxLogAge => ValueType::Decimal,
-            FtlConfEntry::PrivacyLevel => ValueType::String(&["0", "1", "2", "3"]),
+            FtlConfEntry::PrivacyLevel => ValueType::String(&["0", "1", "2", "3", "4"]),
             FtlConfEntry::QueryDisplay => ValueType::YesNo,
             FtlConfEntry::RegexDebugMode => ValueType::Boolean,
             FtlConfEntry::ResolveIpv4 => ValueType::YesNo,
