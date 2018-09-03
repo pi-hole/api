@@ -34,6 +34,16 @@ pub enum FtlMemory {
     }
 }
 
+impl Default for FtlMemory {
+    fn default() -> Self {
+        FtlMemory::Test {
+            clients: Vec::new(),
+            strings: HashMap::new(),
+            counters: FtlCounters::default()
+        }
+    }
+}
+
 impl FtlMemory {
     /// Get the FTL shared memory client data. The resulting trait object can
     /// dereference into `&[FtlClient]`.

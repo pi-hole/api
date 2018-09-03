@@ -10,7 +10,7 @@
 
 use auth::{self, AuthData};
 use env::{Config, Env, PiholeFile};
-use ftl::{FtlConnectionType, FtlCounters, FtlMemory};
+use ftl::{FtlConnectionType, FtlMemory};
 use rocket::{
     self,
     config::{ConfigBuilder, Environment},
@@ -66,6 +66,7 @@ pub fn start() -> Result<(), Error> {
 #[cfg(test)]
 pub fn test(
     ftl_data: HashMap<String, Vec<u8>>,
+    ftl_memory: FtlMemory,
     env_data: HashMap<PiholeFile, NamedTempFile>
 ) -> Client {
     Client::new(setup(
@@ -76,12 +77,7 @@ pub fn test(
             false
         ),
         FtlConnectionType::Test(ftl_data),
-        // Todo: Add support for SHM to tests
-        FtlMemory::Test {
-            clients: Vec::new(),
-            strings: HashMap::new(),
-            counters: FtlCounters::default()
-        },
+        ftl_memory,
         Env::Test(toml::from_str("").unwrap(), env_data),
         "test_key".to_owned()
     )).unwrap()
@@ -91,7 +87,7 @@ pub fn test(
 fn setup<'a>(
     server: rocket::Rocket,
     connection_type: FtlConnectionType,
-    shared_memory: FtlMemory,
+    ftl_memory: FtlMemory,
     env: Env,
     api_key: String
 ) -> rocket::Rocket {
@@ -106,7 +102,7 @@ fn setup<'a>(
         // Manage the connection type configuration
         .manage(connection_type)
         // Manage the shared memory configuration
-        .manage(shared_memory)
+        .manage(ftl_memory)
         // Manage the environment
         .manage(env)
         // Manage the API key
