@@ -50,9 +50,11 @@ impl ValueType {
                 "true" | "false" => true,
                 _ => false
             },
-            ValueType::Array(value_types) => value
-                .split(",")
-                .all(|value| valueTypes.any(|value_type| value_type.is_valid(value))),
+            ValueType::Array(value_types) => value.split(",").all(|value| {
+                value_types
+                    .iter()
+                    .any(|value_type| value_type.is_valid(value))
+            }),
             ValueType::ConditionalForwardingReverse => {
                 // Specific reverse domain
                 let reverse_re = Regex::new(
@@ -216,7 +218,11 @@ mod tests {
 
         let tests = vec![
             (ValueType::Boolean, "false", true),
-            (ValueType::ClientArray, "pi.hole,127.0.0.1", true),
+            (
+                ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
+                "pi.hole,127.0.0.1",
+                true
+            ),
             (
                 ValueType::ConditionalForwardingReverse,
                 "1.168.192.in-addr.arpa",
@@ -259,8 +265,16 @@ mod tests {
     fn test_value_type_invalid() {
         let tests = vec![
             (ValueType::Boolean, "yes", false),
-            (ValueType::ClientArray, "123, $test,", false),
-            (ValueType::ClientArray, "123,", false),
+            (
+                ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
+                "123, $test,",
+                false
+            ),
+            (
+                ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
+                "123,",
+                false
+            ),
             (
                 ValueType::ConditionalForwardingReverse,
                 "www.pi-hole.net",
