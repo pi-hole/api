@@ -15,6 +15,12 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use util::{Error, ErrorKind};
 
+const FTL_SHM_CLIENTS: &str = "/FTL-clients";
+const FTL_SHM_DOMAINS: &str = "/FTL-domains";
+const FTL_SHM_FORWARDED: &str = "/FTL-forwarded";
+const FTL_SHM_QUERIES: &str = "/FTL-queries";
+const FTL_SHM_STRINGS: &str = "/FTL-strings";
+
 /// A wrapper for accessing FTL's shared memory.
 ///
 /// - Production mode connects to the real FTL shared memory.
@@ -31,29 +37,24 @@ impl FtlMemory {
     /// Get the FTL shared memory client data. The resulting trait object owns
     /// the client data and can dereference into `&[FtlClient]`.
     pub fn clients<'test>(
-        &'test self,
-        env: &Env
+        &'test self
     ) -> Result<Box<dyn Deref<Target = [FtlClient]> + 'test>, Error> {
         Ok(match self {
             FtlMemory::Production => Box::new(
                 // Load the shared memory
-                Array::new(
-                    Object::open(env.file_location(PiholeFile::FtlShmClients))
-                        .map_err(from_shmem_error)?
-                ).map_err(from_shmem_error)?
+                Array::new(Object::open(FTL_SHM_CLIENTS).map_err(from_shmem_error)?)
+                    .map_err(from_shmem_error)?
             ),
             FtlMemory::Test { clients, .. } => Box::new(clients.as_slice())
         })
     }
 
     /// Get the FTL shared memory string data
-    pub fn strings(&self, env: &Env) -> Result<FtlStrings, Error> {
+    pub fn strings(&self) -> Result<FtlStrings, Error> {
         Ok(match self {
             FtlMemory::Production => FtlStrings::Production(
-                Array::new(
-                    Object::open(env.file_location(PiholeFile::FtlShmStrings))
-                        .map_err(from_shmem_error)?
-                ).map_err(from_shmem_error)?
+                Array::new(Object::open(FTL_SHM_STRINGS).map_err(from_shmem_error)?)
+                    .map_err(from_shmem_error)?
             ),
             FtlMemory::Test { strings, .. } => FtlStrings::Test(&strings)
         })
