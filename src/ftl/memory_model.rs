@@ -96,6 +96,53 @@ impl<'test> FtlStrings<'test> {
     }
 }
 
+/// The FTL counters stored in shared memory
+#[repr(C)]
+#[derive(Copy, Clone, Default, Debug)]
+pub struct FtlCounters {
+    pub total_queries: libc::c_int,
+    pub blocked_queries: libc::c_int,
+    pub cached_queries: libc::c_int,
+    pub unknown_queries: libc::c_int,
+    pub forward_destinations: libc::c_int,
+    pub total_clients: libc::c_int,
+    pub total_domains: libc::c_int,
+    pub query_capacity: libc::c_int,
+    pub forward_destination_capacity: libc::c_int,
+    pub client_capacity: libc::c_int,
+    pub domain_capacity: libc::c_int,
+    pub over_time_capacity: libc::c_int,
+    pub gravity_size: libc::c_int,
+    pub gravity_conf: libc::c_int,
+    pub over_time_size: libc::c_int,
+    query_type_counters: [libc::c_int; 7],
+    pub forwarded_queries: libc::c_int,
+    pub reply_count_nodata: libc::c_int,
+    pub reply_count_nxdomain: libc::c_int,
+    pub reply_count_cname: libc::c_int,
+    pub reply_count_ip: libc::c_int,
+    pub reply_count_domain: libc::c_int
+}
+
+impl FtlCounters {
+    pub fn query_type(&self, query_type: FtlQueryType) -> usize {
+        self.query_type_counters[query_type as usize] as usize
+    }
+}
+
+/// The query types stored by FTL. Use this enum for [`FtlCounters::query_type`]
+///
+/// [`FtlCounters::query_type`]: struct.FtlCounters.html#method.query_type
+pub enum FtlQueryType {
+    A = 1,
+    AAAA,
+    ANY,
+    SRV,
+    SOA,
+    PTR,
+    TXT
+}
+
 #[cfg(test)]
 mod tests {
     use super::FtlStrings;

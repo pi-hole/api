@@ -12,6 +12,6 @@ mod memory_model;
 mod shared_memory;
 mod socket;
 
-pub use self::memory_model::{FtlClient, FtlStrings};
+pub use self::memory_model::{FtlClient, FtlCounters, FtlQueryType, FtlStrings};
 pub use self::shared_memory::FtlMemory;
 pub use self::socket::{FtlConnection, FtlConnectionType};

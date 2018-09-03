@@ -10,11 +10,12 @@
 
 use auth::{self, AuthData};
 use env::{Config, Env, PiholeFile};
-use ftl::FtlConnectionType;
-use ftl::FtlMemory;
-use rocket;
-use rocket::config::{ConfigBuilder, Environment};
-use rocket::local::Client;
+use ftl::{FtlConnectionType, FtlCounters, FtlMemory};
+use rocket::{
+    self,
+    config::{ConfigBuilder, Environment},
+    local::Client
+};
 use rocket_cors::Cors;
 use routes::{dns, settings, stats, version, web};
 use settings::{ConfigEntry, SetupVarsEntry};
@@ -77,7 +78,8 @@ pub fn test(
         // Todo: Add support for SHM to tests
         FtlMemory::Test {
             clients: Vec::new(),
-            strings: HashMap::new()
+            strings: HashMap::new(),
+            counters: FtlCounters::default()
         },
         Env::Test(toml::from_str("").unwrap(), env_data),
         "test_key".to_owned()
