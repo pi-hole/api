@@ -163,8 +163,7 @@ mod test {
     use std::collections::HashMap;
     use testing::{write_eom, TestBuilder};
 
-    #[test]
-    fn test_top_clients() {
+    fn test_data() -> FtlMemory {
         let mut strings = HashMap::new();
         strings.insert(1, "10.1.1.1".to_owned());
         strings.insert(2, "client1".to_owned());
@@ -172,7 +171,7 @@ mod test {
         strings.insert(4, "10.1.1.3".to_owned());
         strings.insert(5, "client3".to_owned());
 
-        let ftl_memory = FtlMemory::Test {
+        FtlMemory::Test {
             clients: vec![
                 FtlClient::new(30, 0, 1, Some(2)),
                 FtlClient::new(20, 0, 3, None),
@@ -184,11 +183,14 @@ mod test {
                 total_clients: 3,
                 ..FtlCounters::default()
             }
-        };
+        }
+    }
 
+    #[test]
+    fn test_top_clients() {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_clients")
-            .ftl_memory(ftl_memory)
+            .ftl_memory(test_data())
             .expect_json(json!({
                 "top_clients": [
                     { "name": "client1", "ip": "10.1.1.1", "count": 30 },
@@ -202,30 +204,9 @@ mod test {
 
     #[test]
     fn test_top_clients_limit() {
-        let mut strings = HashMap::new();
-        strings.insert(1, "10.1.1.1".to_owned());
-        strings.insert(2, "client1".to_owned());
-        strings.insert(3, "10.1.1.2".to_owned());
-        strings.insert(4, "10.1.1.3".to_owned());
-        strings.insert(5, "client3".to_owned());
-
-        let ftl_memory = FtlMemory::Test {
-            clients: vec![
-                FtlClient::new(30, 0, 1, Some(2)),
-                FtlClient::new(20, 0, 3, None),
-                FtlClient::new(10, 0, 4, Some(5)),
-            ],
-            strings,
-            counters: FtlCounters {
-                total_queries: 100,
-                total_clients: 3,
-                ..FtlCounters::default()
-            }
-        };
-
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_clients?limit=2")
-            .ftl_memory(ftl_memory)
+            .ftl_memory(test_data())
             .expect_json(json!({
                 "top_clients": [
                     { "name": "client1", "ip": "10.1.1.1", "count": 30 },
