@@ -12,6 +12,8 @@ use libc;
 use shmem::Array;
 use std::collections::HashMap;
 use std::ffi::CStr;
+use std::str::FromStr;
+use util::{Error, ErrorKind};
 
 /// Used by FTL to check memory integrity in various structs
 const MAGIC_BYTE: libc::c_uchar = 0x57;
@@ -141,6 +143,31 @@ pub enum FtlQueryType {
     SOA,
     PTR,
     TXT
+}
+
+/// The privacy levels used by FTL
+#[derive(PartialOrd, PartialEq)]
+pub enum FtlPrivacyLevel {
+    ShowAll,
+    HideDomains,
+    HideDomainsAndClients,
+    Maximum,
+    NoStats
+}
+
+impl FromStr for FtlPrivacyLevel {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Error> {
+        match s {
+            "0" => Ok(FtlPrivacyLevel::ShowAll),
+            "1" => Ok(FtlPrivacyLevel::HideDomains),
+            "2" => Ok(FtlPrivacyLevel::HideDomainsAndClients),
+            "3" => Ok(FtlPrivacyLevel::Maximum),
+            "4" => Ok(FtlPrivacyLevel::NoStats),
+            _ => Err(Error::from(ErrorKind::InvalidSettingValue))
+        }
+    }
 }
 
 #[cfg(test)]
