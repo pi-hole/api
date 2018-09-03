@@ -78,10 +78,10 @@ impl<'test> FtlStrings<'test> {
     /// `None` is returned. The `id` is the position of the string in
     /// shared memory, which can be obtained from the other shared memory
     /// structs.
-    pub fn get_str(&self, id: usize) -> Option<Result<&str, Error>> {
+    pub fn get_str(&self, id: usize) -> Result<Option<&str>, Error> {
         match self {
             FtlStrings::Production(strings) => Self::get_str_prod(strings, id),
-            FtlStrings::Test(strings) => strings.get(&id).map(|string| Ok(string.as_str()))
+            FtlStrings::Test(strings) => Ok(strings.get(&id).map(|string| string.as_str()))
         }
     }
 
@@ -89,13 +89,16 @@ impl<'test> FtlStrings<'test> {
     /// if the string exists, and then creates a `CStr` from a pointer. It
     /// is assumed that the string has a null terminator. Then the `CStr` is
     /// converted into `&str`.
-    fn get_str_prod(strings: &[libc::c_char], id: usize) -> Option<Result<&str, Error>> {
-        strings.get(id).map(|_| {
+    fn get_str_prod(strings: &[libc::c_char], id: usize) -> Result<Option<&str>, Error> {
+        if strings.get(id).is_some() {
             unsafe { CStr::from_ptr(&strings[id]) }
                 .to_str()
+                .map(Option::Some)
                 .context(ErrorKind::SharedMemoryRead)
                 .map_err(Error::from)
-        })
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -112,8 +115,8 @@ mod tests {
         data.insert(1, "test".to_owned());
         let strings = FtlStrings::Test(&data);
 
-        assert_eq!(strings.get_str(0).map(Result::unwrap), Some(""));
-        assert_eq!(strings.get_str(1).map(Result::unwrap), Some("test"));
+        assert_eq!(strings.get_str(0).unwrap(), Some(""));
+        assert_eq!(strings.get_str(1).unwrap(), Some("test"));
     }
 
     #[test]
@@ -123,17 +126,8 @@ mod tests {
             .map(|&c| c as libc::c_char)
             .collect();
 
-        assert_eq!(
-            FtlStrings::get_str_prod(&strings, 0).map(Result::unwrap),
-            Some("")
-        );
-        assert_eq!(
-            FtlStrings::get_str_prod(&strings, 1).map(Result::unwrap),
-            Some("test")
-        );
-        assert_eq!(
-            FtlStrings::get_str_prod(&strings, 6).map(Result::unwrap),
-            None
-        );
+        assert_eq!(FtlStrings::get_str_prod(&strings, 0).unwrap(), Some(""));
+        assert_eq!(FtlStrings::get_str_prod(&strings, 1).unwrap(), Some("test"));
+        assert_eq!(FtlStrings::get_str_prod(&strings, 6).unwrap(), None);
     }
 }
