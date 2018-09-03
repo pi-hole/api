@@ -68,6 +68,9 @@ impl Default for FtlClient {
 
 /// A safe wrapper around FTL's strings. It is used to access the strings
 /// referenced by other shared memory structs.
+///
+/// Note: When testing, the 0 entry will be ignore in favor of returning the
+/// empty string
 pub enum FtlStrings<'test> {
     Production(Array<libc::c_char>),
     Test(&'test HashMap<usize, String>)
@@ -81,7 +84,13 @@ impl<'test> FtlStrings<'test> {
     pub fn get_str(&self, id: usize) -> Option<&str> {
         match self {
             FtlStrings::Production(strings) => Self::get_str_prod(strings, id),
-            FtlStrings::Test(strings) => strings.get(&id).map(|string| string.as_str())
+            FtlStrings::Test(strings) => {
+                if id == 0 {
+                    Some("")
+                } else {
+                    strings.get(&id).map(|string| string.as_str())
+                }
+            }
         }
     }
 
