@@ -42,7 +42,6 @@ pub struct TopClientParams {
 }
 
 impl Default for TopClientParams {
-    /// The default parameters of top_clients requests
     fn default() -> Self {
         TopClientParams {
             limit: None,
@@ -52,6 +51,7 @@ impl Default for TopClientParams {
     }
 }
 
+/// Get the top clients according to some parameters
 fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -> Reply {
     let counters = ftl_memory.counters()?;
 
@@ -158,11 +158,14 @@ fn remove_excluded_clients(
 
 #[cfg(test)]
 mod test {
+    use env::PiholeFile;
     use ftl::{FtlClient, FtlCounters, FtlMemory};
     use rmp::encode;
     use std::collections::HashMap;
     use testing::{write_eom, TestBuilder};
 
+    /// Test data for top_clients.
+    /// There are 6 clients, two inactive, one hidden, and two with names.
     fn test_data() -> FtlMemory {
         let mut strings = HashMap::new();
         strings.insert(1, "10.1.1.1".to_owned());
@@ -170,29 +173,37 @@ mod test {
         strings.insert(3, "10.1.1.2".to_owned());
         strings.insert(4, "10.1.1.3".to_owned());
         strings.insert(5, "client3".to_owned());
+        strings.insert(6, "10.1.1.4".to_owned());
+        strings.insert(7, "10.1.1.5".to_owned());
+        strings.insert(8, "0.0.0.0".to_owned());
 
         FtlMemory::Test {
             clients: vec![
                 FtlClient::new(30, 0, 1, Some(2)),
                 FtlClient::new(20, 0, 3, None),
                 FtlClient::new(10, 0, 4, Some(5)),
+                FtlClient::new(40, 0, 6, None),
+                FtlClient::new(0, 0, 7, None),
+                FtlClient::new(0, 0, 8, None),
             ],
             strings,
             counters: FtlCounters {
                 total_queries: 100,
-                total_clients: 3,
+                total_clients: 6,
                 ..FtlCounters::default()
             }
         }
     }
 
+    /// The default behavior lists all active clients in descending order
     #[test]
-    fn test_top_clients() {
+    fn default_params() {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_clients")
             .ftl_memory(test_data())
             .expect_json(json!({
                 "top_clients": [
+                    { "name": "",        "ip": "10.1.1.4", "count": 40 },
                     { "name": "client1", "ip": "10.1.1.1", "count": 30 },
                     { "name": "",        "ip": "10.1.1.2", "count": 20 },
                     { "name": "client3", "ip": "10.1.1.3", "count": 10 }
@@ -202,15 +213,87 @@ mod test {
             .test();
     }
 
+    /// The number of clients shown is <= the limit
     #[test]
-    fn test_top_clients_limit() {
+    fn limit() {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_clients?limit=2")
             .ftl_memory(test_data())
             .expect_json(json!({
                 "top_clients": [
+                    { "name": "",        "ip": "10.1.1.4", "count": 40 },
+                    { "name": "client1", "ip": "10.1.1.1", "count": 30 }
+                ],
+                "total_queries": 100
+            }))
+            .test();
+    }
+
+    /// Same as the default behavior but in ascending order
+    #[test]
+    fn ascending() {
+        TestBuilder::new()
+            .endpoint("/admin/api/stats/top_clients?ascending=true")
+            .ftl_memory(test_data())
+            .expect_json(json!({
+                "top_clients": [
+                    { "name": "client3", "ip": "10.1.1.3", "count": 10 },
+                    { "name": "",        "ip": "10.1.1.2", "count": 20 },
                     { "name": "client1", "ip": "10.1.1.1", "count": 30 },
-                    { "name": "",        "ip": "10.1.1.2", "count": 20 }
+                    { "name": "",        "ip": "10.1.1.4", "count": 40 }
+                ],
+                "total_queries": 100
+            }))
+            .test();
+    }
+
+    /// Maximum privacy level does not show any clients
+    #[test]
+    fn max_privacy() {
+        TestBuilder::new()
+            .endpoint("/admin/api/stats/top_clients")
+            .ftl_memory(test_data())
+            .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=3")
+            .expect_json(json!({
+                "top_clients": [],
+                "total_queries": 100
+            }))
+            .test();
+    }
+
+    /// Inactive clients are shown, but hidden clients are still not shown
+    #[test]
+    fn inactive_clients() {
+        TestBuilder::new()
+            .endpoint("/admin/api/stats/top_clients?inactive=true")
+            .ftl_memory(test_data())
+            .expect_json(json!({
+                "top_clients": [
+                    { "name": "",        "ip": "10.1.1.4", "count": 40 },
+                    { "name": "client1", "ip": "10.1.1.1", "count": 30 },
+                    { "name": "",        "ip": "10.1.1.2", "count": 20 },
+                    { "name": "client3", "ip": "10.1.1.3", "count": 10 },
+                    { "name": "",        "ip": "10.1.1.5", "count":  0 }
+                ],
+                "total_queries": 100
+            }))
+            .test();
+    }
+
+    /// Excluded clients are not shown
+    #[test]
+    fn excluded_clients() {
+        TestBuilder::new()
+            .endpoint("/admin/api/stats/top_clients")
+            .ftl_memory(test_data())
+            .file(
+                PiholeFile::SetupVars,
+                "API_EXCLUDE_CLIENTS=client3,10.1.1.2"
+            )
+            .expect_json(json!({
+                "top_clients": [
+                    { "name": "",        "ip": "10.1.1.4", "count": 40 },
+                    { "name": "client1", "ip": "10.1.1.1", "count": 30 }
                 ],
                 "total_queries": 100
             }))
