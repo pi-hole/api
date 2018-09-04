@@ -13,7 +13,7 @@ use ftl::{FtlClient, FtlStrings};
 use settings::{ConfigEntry, SetupVarsEntry};
 use util::Error;
 
-/// Remove clients from the `clients` array if they show up in
+/// Remove clients from the `clients` vector if they show up in
 /// [`SetupVarsEntry::ApiExcludeClients`].
 ///
 /// [`SetupVarsEntry::ApiExcludeClients`]:
@@ -42,7 +42,7 @@ pub fn remove_excluded_clients(
     Ok(())
 }
 
-/// Remove clients from the `clients` array if they are marked as hidden due to
+/// Remove clients from the `clients` vector if they are marked as hidden due to
 /// the privacy level.
 pub fn remove_hidden_clients(clients: &mut Vec<&FtlClient>, strings: &FtlStrings) {
     clients.retain(|client| client.get_ip(&strings) != "0.0.0.0");
@@ -75,7 +75,7 @@ mod tests {
         }
     }
 
-    /// Only clients marked as excluded are removed
+    /// Clients marked as excluded are removed
     #[test]
     fn only_remove_excluded() {
         let ftl_memory = test_data();
@@ -98,22 +98,7 @@ mod tests {
         assert_eq!(clients, vec![&FtlClient::new(0, 0, 4, None)]);
     }
 
-    /// When there are no excluded clients, the vector is not modified
-    #[test]
-    fn unmodified_when_not_excluded() {
-        let ftl_memory = test_data();
-        let env = Env::Test(Config::default(), TestEnvBuilder::new().build());
-
-        let clients = ftl_memory.clients().unwrap();
-        let mut clients: Vec<&FtlClient> = clients.iter().collect();
-        let clients_clone = clients.clone();
-
-        remove_excluded_clients(&mut clients, &env, &ftl_memory.strings().unwrap()).unwrap();
-
-        assert_eq!(clients, clients_clone);
-    }
-
-    /// Only clients marked as hidden are removed
+    /// Clients marked as hidden are removed
     #[test]
     fn only_remove_hidden() {
         let ftl_memory = test_data();
@@ -122,24 +107,6 @@ mod tests {
         let mut clients: Vec<&FtlClient> = clients.iter().collect();
         let mut clients_clone = clients.clone();
         clients_clone.remove(2);
-
-        remove_hidden_clients(&mut clients, &ftl_memory.strings().unwrap());
-
-        assert_eq!(clients, clients_clone);
-    }
-
-    /// When there are no hidden clients, the vector is not modified
-    #[test]
-    fn unmodified_when_not_hidden() {
-        let ftl_memory = test_data();
-
-        let clients = ftl_memory.clients().unwrap();
-        let mut clients: Vec<&FtlClient> = clients.iter().collect();
-
-        // Remove the hidden client
-        clients.remove(2);
-
-        let mut clients_clone = clients.clone();
 
         remove_hidden_clients(&mut clients, &ftl_memory.strings().unwrap());
 
