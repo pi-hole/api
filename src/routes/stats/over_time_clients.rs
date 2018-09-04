@@ -11,14 +11,14 @@
 use auth::User;
 use ftl::FtlConnectionType;
 use rocket::State;
-use routes::stats::clients::get_clients;
+use routes::stats::clients::get_clients_socket;
 use util::{reply_data, reply_error, ErrorKind, Reply};
 
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
 pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
     let mut over_time = Vec::new();
-    let clients = get_clients(&ftl)?;
+    let clients = get_clients_socket(&ftl)?;
 
     // Don't open another FTL connection until the connection from `get_clients` is
     // done! Otherwise FTL's global lock mechanism will cause a deadlock.

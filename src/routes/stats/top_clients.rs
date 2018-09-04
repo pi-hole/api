@@ -52,7 +52,7 @@ impl Default for TopClientParams {
     }
 }
 
-/// Get the top clients according to some parameters
+/// Get the top clients according to the parameters
 fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -> Reply {
     let counters = ftl_memory.counters()?;
 
