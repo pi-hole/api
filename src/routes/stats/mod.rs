@@ -9,6 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 mod clients;
+mod common;
 mod forward_destinations;
 mod history;
 mod over_time_clients;

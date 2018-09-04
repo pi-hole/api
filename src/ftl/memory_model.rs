@@ -20,7 +20,7 @@ const MAGIC_BYTE: libc::c_uchar = 0x57;
 
 /// The client struct stored in shared memory.
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct FtlClient {
     magic: libc::c_uchar,
     query_count: libc::c_int,

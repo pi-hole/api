@@ -10,11 +10,12 @@
 
 use auth::User;
 use env::Env;
-use ftl::{FtlClient, FtlMemory, FtlPrivacyLevel, FtlStrings};
+use ftl::{FtlClient, FtlMemory, FtlPrivacyLevel};
 use rocket::State;
 use rocket_contrib::Value;
-use settings::{ConfigEntry, FtlConfEntry, SetupVarsEntry};
-use util::{reply_data, Error, Reply};
+use routes::stats::common::remove_excluded_clients;
+use settings::{ConfigEntry, FtlConfEntry};
+use util::{reply_data, Reply};
 
 /// Get the top clients with default parameters
 #[get("/stats/top_clients")]
@@ -124,45 +125,12 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
     }))
 }
 
-/// Remove clients from the `clients` array if they show up in
-/// [`SetupVarsEntry::ApiExcludeClients`].
-///
-/// [`SetupVarsEntry::ApiExcludeClients`]:
-/// ../../../settings/entries/enum.SetupVarsEntry.html#variant.ApiExcludeClients
-fn remove_excluded_clients(
-    clients: &mut Vec<&FtlClient>,
-    env: &Env,
-    strings: &FtlStrings
-) -> Result<(), Error> {
-    let excluded_clients_array = SetupVarsEntry::ApiExcludeClients.read(env)?.to_lowercase();
-    let excluded_clients: Vec<&str> = excluded_clients_array
-        .split(",")
-        .filter(|s| !s.is_empty())
-        .collect();
-
-    if !excluded_clients.is_empty() {
-        // Only retain clients which do not appear in the exclusion list
-        clients.retain(|client| {
-            let ip = strings.get_str(client.ip_str_id()).unwrap_or_default();
-            let name = strings
-                .get_str(client.name_str_id().unwrap_or_default())
-                .unwrap_or_default()
-                .to_lowercase();
-
-            !excluded_clients.contains(&ip) && !excluded_clients.contains(&name.as_str())
-        })
-    }
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod test {
     use env::PiholeFile;
     use ftl::{FtlClient, FtlCounters, FtlMemory};
-    use rmp::encode;
     use std::collections::HashMap;
-    use testing::{write_eom, TestBuilder};
+    use testing::TestBuilder;
 
     /// Test data for top_clients.
     /// There are 6 clients, two inactive, one hidden, and two with names.
