@@ -13,7 +13,7 @@ use env::Env;
 use ftl::{FtlClient, FtlMemory, FtlPrivacyLevel};
 use rocket::State;
 use rocket_contrib::Value;
-use routes::stats::common::remove_excluded_clients;
+use routes::stats::common::{remove_excluded_clients, remove_hidden_clients};
 use settings::{ConfigEntry, FtlConfEntry};
 use util::{reply_data, Reply};
 
@@ -75,21 +75,21 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
 
     // Sort the clients (descending by default)
     if params.ascending.unwrap_or(false) {
-        clients.sort_by(|a, b| a.query_count().cmp(&b.query_count()));
+        clients.sort_by(|a, b| a.query_count.cmp(&b.query_count));
     } else {
-        clients.sort_by(|a, b| b.query_count().cmp(&a.query_count()));
+        clients.sort_by(|a, b| b.query_count.cmp(&a.query_count));
     }
 
     // Ignore inactive clients by default (retain active clients)
     if !params.inactive.unwrap_or(false) {
-        clients.retain(|client| client.query_count() > 0);
+        clients.retain(|client| client.query_count > 0);
     }
 
     // Ignore excluded clients
     remove_excluded_clients(&mut clients, env, &strings)?;
 
     // Ignore hidden clients (due to privacy level)
-    clients.retain(|client| strings.get_str(client.ip_str_id()).unwrap_or_default() != "0.0.0.0");
+    remove_hidden_clients(&mut clients, &strings);
 
     // Take into account the limit if specified
     if let Some(limit) = params.limit {
@@ -102,14 +102,9 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
     let top_clients: Vec<Value> = clients
         .into_iter()
         .map(|client| {
-            let name = strings
-                .get_str(client.name_str_id().unwrap_or(0))
-                .unwrap_or_default();
-            let ip = strings
-                .get_str(client.ip_str_id())
-                .unwrap_or_default()
-                .to_owned();
-            let count = client.query_count();
+            let name = client.get_name(&strings).unwrap_or_default();
+            let ip = client.get_ip(&strings);
+            let count = client.query_count;
 
             json!({
                 "name": name,
@@ -132,7 +127,6 @@ mod test {
     use std::collections::HashMap;
     use testing::TestBuilder;
 
-    /// Test data for top_clients.
     /// There are 6 clients, two inactive, one hidden, and two with names.
     fn test_data() -> FtlMemory {
         let mut strings = HashMap::new();

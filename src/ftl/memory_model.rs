@@ -23,8 +23,8 @@ const MAGIC_BYTE: libc::c_uchar = 0x57;
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct FtlClient {
     magic: libc::c_uchar,
-    query_count: libc::c_int,
-    blocked_count: libc::c_int,
+    pub query_count: libc::c_int,
+    pub blocked_count: libc::c_int,
     ip_str_id: libc::c_ulonglong,
     name_str_id: libc::c_ulonglong,
     is_name_unknown: bool
@@ -47,22 +47,20 @@ impl FtlClient {
         }
     }
 
-    pub fn query_count(&self) -> usize {
-        self.query_count as usize
+    /// Get the IP address of the client
+    pub fn get_ip<'a>(&self, strings: &'a FtlStrings) -> &'a str {
+        strings.get_str(self.ip_str_id as usize).unwrap_or_default()
     }
 
-    pub fn blocked_count(&self) -> usize {
-        self.blocked_count as usize
-    }
-
-    pub fn ip_str_id(&self) -> usize {
-        self.ip_str_id as usize
-    }
-
-    pub fn name_str_id(&self) -> Option<usize> {
-        // Only share the name if it exists and is not an empty string
+    /// Get the name of the client, or `None` if it hasn't been resolved or
+    /// doesn't exist
+    pub fn get_name<'a>(&self, strings: &'a FtlStrings) -> Option<&'a str> {
         if !self.is_name_unknown && self.name_str_id != 0 {
-            Some(self.name_str_id as usize)
+            Some(
+                strings
+                    .get_str(self.name_str_id as usize)
+                    .unwrap_or_default()
+            )
         } else {
             None
         }

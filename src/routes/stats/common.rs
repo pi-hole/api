@@ -32,11 +32,8 @@ pub fn remove_excluded_clients(
     if !excluded_clients.is_empty() {
         // Only retain clients which do not appear in the exclusion list
         clients.retain(|client| {
-            let ip = strings.get_str(client.ip_str_id()).unwrap_or_default();
-            let name = strings
-                .get_str(client.name_str_id().unwrap_or_default())
-                .unwrap_or_default()
-                .to_lowercase();
+            let ip = client.get_ip(&strings);
+            let name = client.get_name(&strings).unwrap_or_default().to_lowercase();
 
             !excluded_clients.contains(&ip) && !excluded_clients.contains(&name.as_str())
         })
@@ -45,15 +42,21 @@ pub fn remove_excluded_clients(
     Ok(())
 }
 
+/// Remove clients from the `clients` array if they are marked as hidden due to
+/// the privacy level.
+pub fn remove_hidden_clients(clients: &mut Vec<&FtlClient>, strings: &FtlStrings) {
+    clients.retain(|client| client.get_ip(&strings) != "0.0.0.0");
+}
+
 #[cfg(test)]
 mod tests {
-    use super::remove_excluded_clients;
+    use super::{remove_excluded_clients, remove_hidden_clients};
     use env::{Config, Env, PiholeFile};
     use ftl::{FtlClient, FtlCounters, FtlMemory};
     use std::collections::HashMap;
     use testing::TestEnvBuilder;
 
-    /// Test data for `remove_excluded_clients`.
+    /// There are 4 clients, one hidden
     fn test_data() -> FtlMemory {
         let mut strings = HashMap::new();
         strings.insert(1, "10.1.1.1".to_owned());
@@ -74,7 +77,7 @@ mod tests {
 
     /// Only clients marked as excluded are removed
     #[test]
-    fn only_removes_excluded() {
+    fn only_remove_excluded() {
         let ftl_memory = test_data();
 
         let env = Env::Test(
@@ -89,6 +92,7 @@ mod tests {
 
         let clients = ftl_memory.clients().unwrap();
         let mut clients = clients.iter().collect();
+
         remove_excluded_clients(&mut clients, &env, &ftl_memory.strings().unwrap()).unwrap();
 
         assert_eq!(clients, vec![&FtlClient::new(0, 0, 4, None)]);
@@ -98,13 +102,46 @@ mod tests {
     #[test]
     fn unmodified_when_not_excluded() {
         let ftl_memory = test_data();
-
         let env = Env::Test(Config::default(), TestEnvBuilder::new().build());
 
         let clients = ftl_memory.clients().unwrap();
         let mut clients: Vec<&FtlClient> = clients.iter().collect();
         let clients_clone = clients.clone();
+
         remove_excluded_clients(&mut clients, &env, &ftl_memory.strings().unwrap()).unwrap();
+
+        assert_eq!(clients, clients_clone);
+    }
+
+    /// Only clients marked as hidden are removed
+    #[test]
+    fn only_remove_hidden() {
+        let ftl_memory = test_data();
+
+        let clients = ftl_memory.clients().unwrap();
+        let mut clients: Vec<&FtlClient> = clients.iter().collect();
+        let mut clients_clone = clients.clone();
+        clients_clone.remove(2);
+
+        remove_hidden_clients(&mut clients, &ftl_memory.strings().unwrap());
+
+        assert_eq!(clients, clients_clone);
+    }
+
+    /// When there are no hidden clients, the vector is not modified
+    #[test]
+    fn unmodified_when_not_hidden() {
+        let ftl_memory = test_data();
+
+        let clients = ftl_memory.clients().unwrap();
+        let mut clients: Vec<&FtlClient> = clients.iter().collect();
+
+        // Remove the hidden client
+        clients.remove(2);
+
+        let mut clients_clone = clients.clone();
+
+        remove_hidden_clients(&mut clients, &ftl_memory.strings().unwrap());
 
         assert_eq!(clients, clients_clone);
     }
