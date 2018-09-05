@@ -39,7 +39,8 @@ pub fn top_clients_params(
 pub struct TopClientParams {
     limit: Option<usize>,
     inactive: Option<bool>,
-    ascending: Option<bool>
+    ascending: Option<bool>,
+    blocked: Option<bool>
 }
 
 impl Default for TopClientParams {
@@ -47,7 +48,8 @@ impl Default for TopClientParams {
         TopClientParams {
             limit: None,
             inactive: Some(false),
-            ascending: Some(false)
+            ascending: Some(false),
+            blocked: Some(false)
         }
     }
 }
@@ -66,6 +68,7 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
 
     let strings = ftl_memory.strings()?;
     let clients = ftl_memory.clients()?;
+    let blocked = params.blocked.unwrap_or(false);
 
     // Get an array of valid client references (FTL allocates more than it uses)
     let mut clients: Vec<&FtlClient> = clients
@@ -73,16 +76,23 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
         .take(counters.total_clients as usize)
         .collect();
 
-    // Sort the clients (descending by default)
-    if params.ascending.unwrap_or(false) {
-        clients.sort_by(|a, b| a.query_count.cmp(&b.query_count));
-    } else {
-        clients.sort_by(|a, b| b.query_count.cmp(&a.query_count));
+    // Sort the clients (descending by default, total query count by default)
+    match (params.ascending.unwrap_or(false), blocked) {
+        (false, false) => clients.sort_by(|a, b| b.query_count.cmp(&a.query_count)),
+        (true, false) => clients.sort_by(|a, b| a.query_count.cmp(&b.query_count)),
+        (false, true) => clients.sort_by(|a, b| b.blocked_count.cmp(&a.blocked_count)),
+        (true, true) => clients.sort_by(|a, b| a.blocked_count.cmp(&b.blocked_count))
     }
 
     // Ignore inactive clients by default (retain active clients)
     if !params.inactive.unwrap_or(false) {
-        clients.retain(|client| client.query_count > 0);
+        clients.retain(|client| {
+            if blocked {
+                client.blocked_count > 0
+            } else {
+                client.query_count > 0
+            }
+        });
     }
 
     // Ignore excluded clients
@@ -104,7 +114,11 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
         .map(|client| {
             let name = client.get_name(&strings).unwrap_or_default();
             let ip = client.get_ip(&strings);
-            let count = client.query_count;
+            let count = if blocked {
+                client.blocked_count
+            } else {
+                client.query_count
+            };
 
             json!({
                 "name": name,
@@ -114,10 +128,18 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
         })
         .collect();
 
-    reply_data(json!({
-        "top_clients": top_clients,
-        "total_queries": counters.total_queries
-    }))
+    // Output format changes when getting top blocked clients
+    if blocked {
+        reply_data(json!({
+            "top_clients": top_clients,
+            "blocked_queries": counters.blocked_queries
+        }))
+    } else {
+        reply_data(json!({
+            "top_clients": top_clients,
+            "total_queries": counters.total_queries
+        }))
+    }
 }
 
 #[cfg(test)]
@@ -141,8 +163,8 @@ mod test {
 
         FtlMemory::Test {
             clients: vec![
-                FtlClient::new(30, 0, 1, Some(2)),
-                FtlClient::new(20, 0, 3, None),
+                FtlClient::new(30, 10, 1, Some(2)),
+                FtlClient::new(20, 5, 3, None),
                 FtlClient::new(10, 0, 4, Some(5)),
                 FtlClient::new(40, 0, 6, None),
                 FtlClient::new(0, 0, 7, None),
@@ -151,6 +173,7 @@ mod test {
             strings,
             counters: FtlCounters {
                 total_queries: 100,
+                blocked_queries: 15,
                 total_clients: 6,
                 ..FtlCounters::default()
             }
@@ -171,6 +194,23 @@ mod test {
                     { "name": "client3", "ip": "10.1.1.3", "count": 10 }
                 ],
                 "total_queries": 100
+            }))
+            .test();
+    }
+
+    /// Show only active blocked clients (active in terms of blocked query
+    /// count)
+    #[test]
+    fn blocked_clients() {
+        TestBuilder::new()
+            .endpoint("/admin/api/stats/top_clients?blocked=true")
+            .ftl_memory(test_data())
+            .expect_json(json!({
+                "top_clients": [
+                    { "name": "client1", "ip": "10.1.1.1", "count": 10 },
+                    { "name": "",        "ip": "10.1.1.2", "count": 5 }
+                ],
+                "blocked_queries": 15
             }))
             .test();
     }
