@@ -158,6 +158,7 @@ impl FtlCounters {
 /// The query types stored by FTL. Use this enum for [`FtlCounters::query_type`]
 ///
 /// [`FtlCounters::query_type`]: struct.FtlCounters.html#method.query_type
+#[derive(Copy, Clone, Debug)]
 pub enum FtlQueryType {
     A,
     AAAA,
@@ -166,6 +167,22 @@ pub enum FtlQueryType {
     SOA,
     PTR,
     TXT
+}
+
+impl FtlQueryType {
+    /// A list of all `FtlQueryType` variants. There is no built in way to get
+    /// a list of enum variants.
+    pub fn variants() -> &'static [FtlQueryType] {
+        &[
+            FtlQueryType::A,
+            FtlQueryType::AAAA,
+            FtlQueryType::ANY,
+            FtlQueryType::SRV,
+            FtlQueryType::SOA,
+            FtlQueryType::PTR,
+            FtlQueryType::TXT
+        ]
+    }
 }
 
 /// The privacy levels used by FTL

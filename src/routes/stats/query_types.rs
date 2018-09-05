@@ -11,6 +11,7 @@
 use auth::User;
 use ftl::{FtlMemory, FtlQueryType};
 use rocket::State;
+use rocket_contrib::Value;
 use util::{reply_data, Reply};
 
 /// Get the query types
@@ -18,36 +19,17 @@ use util::{reply_data, Reply};
 pub fn query_types(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
     let counters = ftl_memory.counters()?;
 
-    reply_data(json!([
-        {
-            "name": "A",
-            "count": counters.query_type(FtlQueryType::A)
-        },
-        {
-            "name": "AAAA",
-            "count": counters.query_type(FtlQueryType::AAAA)
-        },
-        {
-            "name": "ANY",
-            "count": counters.query_type(FtlQueryType::ANY)
-        },
-        {
-            "name": "SRV",
-            "count": counters.query_type(FtlQueryType::SRV)
-        },
-        {
-            "name": "SOA",
-            "count": counters.query_type(FtlQueryType::SOA)
-        },
-        {
-            "name": "PTR",
-            "count": counters.query_type(FtlQueryType::PTR)
-        },
-        {
-            "name": "TXT",
-            "count": counters.query_type(FtlQueryType::TXT)
-        }
-    ]))
+    reply_data(
+        FtlQueryType::variants()
+            .iter()
+            .map(|variant| {
+                json!({
+                    "name": format!("{:?}", variant),
+                    "count": counters.query_type(*variant)
+                })
+            })
+            .collect::<Vec<Value>>()
+    )
 }
 
 #[cfg(test)]
