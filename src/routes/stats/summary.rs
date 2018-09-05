@@ -116,6 +116,7 @@ mod test {
                 FtlClient::new(0, 0, 7, None),
                 FtlClient::new(0, 0, 8, None),
             ],
+            domains: Vec::new(),
             strings,
             counters: FtlCounters {
                 gravity_size: 100_000,

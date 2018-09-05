@@ -15,8 +15,10 @@ const MAGIC_BYTE: libc::c_uchar = 0x57;
 
 mod client;
 mod counters;
+mod domain;
 mod strings;
 
 pub use self::client::FtlClient;
 pub use self::counters::{FtlCounters, FtlQueryType};
+pub use self::domain::{FtlDomain, FtlRegexMatch};
 pub use self::strings::FtlStrings;

@@ -70,6 +70,7 @@ mod tests {
                 FtlClient::new(20, 0, 3, None),
                 FtlClient::new(0, 0, 4, None),
             ],
+            domains: Vec::new(),
             strings,
             counters: FtlCounters::default()
         }

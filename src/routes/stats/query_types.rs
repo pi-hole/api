@@ -45,6 +45,7 @@ mod test {
                 total_queries: 10,
                 ..FtlCounters::default()
             },
+            domains: Vec::new(),
             strings: HashMap::new(),
             clients: Vec::new()
         }

@@ -8,7 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use ftl::{FtlClient, FtlCounters, FtlStrings};
+use ftl::{FtlClient, FtlCounters, FtlDomain, FtlStrings};
 use shmem::{self, Array, Map, Object};
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -29,6 +29,7 @@ pub enum FtlMemory {
     Production,
     Test {
         clients: Vec<FtlClient>,
+        domains: Vec<FtlDomain>,
         strings: HashMap<usize, String>,
         counters: FtlCounters
     }
@@ -38,6 +39,7 @@ impl Default for FtlMemory {
     fn default() -> Self {
         FtlMemory::Test {
             clients: Vec::new(),
+            domains: Vec::new(),
             strings: HashMap::new(),
             counters: FtlCounters::default()
         }
@@ -57,6 +59,21 @@ impl FtlMemory {
                     .map_err(from_shmem_error)?
             ),
             FtlMemory::Test { clients, .. } => Box::new(clients.as_slice())
+        })
+    }
+
+    /// Get the FTL shared memory domain data. The resulting trait object can
+    /// dereference into `&[FtlDomain]`.
+    pub fn domains<'test>(
+        &'test self
+    ) -> Result<Box<dyn Deref<Target = [FtlDomain]> + 'test>, Error> {
+        Ok(match self {
+            FtlMemory::Production => Box::new(
+                // Load the shared memory
+                Array::new(Object::open(FTL_SHM_DOMAINS).map_err(from_shmem_error)?)
+                    .map_err(from_shmem_error)?
+            ),
+            FtlMemory::Test { domains, .. } => Box::new(domains.as_slice())
         })
     }
 
