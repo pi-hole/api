@@ -10,10 +10,8 @@
 
 use env::Env;
 use failure::ResultExt;
-use std::process::Command;
-use std::process::Stdio;
-use util::Error;
-use util::ErrorKind;
+use std::process::{Command, Stdio};
+use util::{Error, ErrorKind};
 
 /// Restart the DNS server (via `pihole restartdns`)
 pub fn restart_dns(env: &Env) -> Result<(), Error> {

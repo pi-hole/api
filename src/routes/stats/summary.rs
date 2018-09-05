@@ -9,9 +9,9 @@
 // Please see LICENSE file for your rights under this license.
 
 use env::Env;
-use ftl::{FtlMemory, FtlPrivacyLevel, FtlQueryType};
+use ftl::{FtlMemory, FtlQueryType};
 use rocket::State;
-use settings::{ConfigEntry, FtlConfEntry, SetupVarsEntry};
+use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry};
 use util::{reply_data, Reply};
 
 /// Get the summary data

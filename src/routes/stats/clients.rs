@@ -10,11 +10,11 @@
 
 use auth::User;
 use env::Env;
-use ftl::{FtlConnectionType, FtlMemory, FtlPrivacyLevel};
+use ftl::{FtlConnectionType, FtlMemory};
 use rocket::State;
 use rocket_contrib::Value;
 use routes::stats::common::{remove_excluded_clients, remove_hidden_clients};
-use settings::{ConfigEntry, FtlConfEntry};
+use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel};
 use util::{reply_data, Error, ErrorKind, Reply};
 
 /// Get the client information with default parameters
