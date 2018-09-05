@@ -159,7 +159,7 @@ impl FtlCounters {
 ///
 /// [`FtlCounters::query_type`]: struct.FtlCounters.html#method.query_type
 pub enum FtlQueryType {
-    A = 1,
+    A,
     AAAA,
     ANY,
     SRV,
