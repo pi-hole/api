@@ -45,14 +45,13 @@ pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
     Ok(SetStatus(Json(json_data), status))
 }
 
-/// Create a reply from some serializable data. The reply will contain no
-/// errors and will have a status code of 200.
+/// Create a reply from some serializable data. The reply will have a status
+/// code of 200.
 pub fn reply_data<D: Serialize>(data: D) -> Reply {
     reply(ReplyType::Data(data), Status::Ok)
 }
 
-/// Create a reply with an error. The data will be an empty array and the
-/// status will taken from `error.status()`.
+/// Create a reply with an error. The status will taken from `error.status()`.
 pub fn reply_error<E: Into<Error>>(error: E) -> Reply {
     let error = error.into();
     let status = error.status();
@@ -65,6 +64,7 @@ pub fn reply_success() -> Reply {
     reply(ReplyType::Data(json!({ "status": "success" })), Status::Ok)
 }
 
+/// The type of reply which should be sent.
 pub enum ReplyType<D: Serialize> {
     Data(D),
     Error(Error)
