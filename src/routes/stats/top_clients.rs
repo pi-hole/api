@@ -85,14 +85,6 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
         .take(counters.total_clients as usize)
         .collect();
 
-    // Sort the clients (descending by default, total query count by default)
-    match (params.ascending.unwrap_or(false), blocked) {
-        (false, false) => clients.sort_by(|a, b| b.query_count.cmp(&a.query_count)),
-        (true, false) => clients.sort_by(|a, b| a.query_count.cmp(&b.query_count)),
-        (false, true) => clients.sort_by(|a, b| b.blocked_count.cmp(&a.blocked_count)),
-        (true, true) => clients.sort_by(|a, b| a.blocked_count.cmp(&b.blocked_count))
-    }
-
     // Ignore inactive clients by default (retain active clients)
     if !params.inactive.unwrap_or(false) {
         clients.retain(|client| {
@@ -104,11 +96,17 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
         });
     }
 
-    // Ignore excluded clients
+    // Remove excluded and hidden clients
     remove_excluded_clients(&mut clients, env, &strings)?;
-
-    // Ignore hidden clients (due to privacy level)
     remove_hidden_clients(&mut clients, &strings);
+
+    // Sort the clients (descending by default)
+    match (params.ascending.unwrap_or(false), blocked) {
+        (false, false) => clients.sort_by(|a, b| b.query_count.cmp(&a.query_count)),
+        (true, false) => clients.sort_by(|a, b| a.query_count.cmp(&b.query_count)),
+        (false, true) => clients.sort_by(|a, b| b.blocked_count.cmp(&a.blocked_count)),
+        (true, true) => clients.sort_by(|a, b| a.blocked_count.cmp(&b.blocked_count))
+    }
 
     // Take into account the limit if specified
     if let Some(limit) = params.limit {
