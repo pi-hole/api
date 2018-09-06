@@ -13,6 +13,7 @@ use ftl::FtlStrings;
 use libc;
 
 /// The domain struct stored in memory
+#[repr(C)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct FtlDomain {
     magic: libc::c_uchar,
