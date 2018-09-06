@@ -143,6 +143,7 @@ pub trait ConfigEntry {
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub enum SetupVarsEntry {
     ApiExcludeClients,
+    ApiExcludeDomains,
     ApiQueryLogShow,
     ApiPrivacyMode,
     BlockingEnabled,
@@ -181,6 +182,7 @@ impl ConfigEntry for SetupVarsEntry {
     fn key(&self) -> Cow<str> {
         match *self {
             SetupVarsEntry::ApiExcludeClients => Cow::Borrowed("API_EXCLUDE_CLIENTS"),
+            SetupVarsEntry::ApiExcludeDomains => Cow::Borrowed("API_EXCLUDE_DOMAINS"),
             SetupVarsEntry::ApiQueryLogShow => Cow::Borrowed("API_QUERY_LOG_SHOW"),
             SetupVarsEntry::ApiPrivacyMode => Cow::Borrowed("API_PRIVACY_MODE"),
             SetupVarsEntry::BlockingEnabled => Cow::Borrowed("BLOCKING_ENABLED"),
@@ -221,8 +223,9 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::ApiExcludeClients => {
                 ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4, ValueType::Ipv6])
             }
+            SetupVarsEntry::ApiExcludeDomains => ValueType::Array(&[ValueType::Hostname]),
             SetupVarsEntry::ApiQueryLogShow => {
-                ValueType::String(&["all", "permittedonly", "blockedonly"])
+                ValueType::String(&["all", "permittedonly", "blockedonly", "nothing"])
             }
             SetupVarsEntry::ApiPrivacyMode => ValueType::Boolean,
             SetupVarsEntry::BlockingEnabled => ValueType::Boolean,
@@ -257,6 +260,7 @@ impl ConfigEntry for SetupVarsEntry {
     fn get_default(&self) -> &str {
         match *self {
             SetupVarsEntry::ApiExcludeClients => "",
+            SetupVarsEntry::ApiExcludeDomains => "",
             SetupVarsEntry::ApiQueryLogShow => "all",
             SetupVarsEntry::ApiPrivacyMode => "false",
             SetupVarsEntry::BlockingEnabled => "true",

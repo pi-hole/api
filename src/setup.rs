@@ -120,8 +120,6 @@ fn setup<'a>(
             stats::get_summary,
             stats::top_domains,
             stats::top_domains_params,
-            stats::top_blocked,
-            stats::top_blocked_params,
             stats::top_clients,
             stats::top_clients_params,
             stats::forward_destinations,

@@ -46,15 +46,15 @@ impl ValueType {
     /// e.g. 0.1.2.3 is a valid IPV4, but may not be a valid upstream DNS
     pub fn is_valid(&self, value: &str) -> bool {
         match *self {
-            ValueType::Boolean => match value {
-                "true" | "false" => true,
-                _ => false
-            },
             ValueType::Array(value_types) => value.split(",").all(|value| {
                 value_types
                     .iter()
                     .any(|value_type| value_type.is_valid(value))
             }),
+            ValueType::Boolean => match value {
+                "true" | "false" => true,
+                _ => false
+            },
             ValueType::ConditionalForwardingReverse => {
                 // Specific reverse domain
                 let reverse_re = Regex::new(
