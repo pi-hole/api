@@ -57,18 +57,27 @@ impl Default for TopClientParams {
 /// Get the top clients according to the parameters
 fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -> Reply {
     let counters = ftl_memory.counters()?;
+    let blocked = params.blocked.unwrap_or(false);
 
     // Check if the client details are private
-    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)? >= FtlPrivacyLevel::Maximum {
-        return reply_data(json!({
-            "top_clients": [],
-            "total_queries": counters.total_queries
-        }));
+    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)?
+        >= FtlPrivacyLevel::HideDomainsAndClients
+    {
+        return if blocked {
+            reply_data(json!({
+                "top_clients": [],
+                "blocked_queries": counters.blocked_queries
+            }))
+        } else {
+            reply_data(json!({
+                "top_clients": [],
+                "total_queries": counters.total_queries
+            }))
+        };
     }
 
     let strings = ftl_memory.strings()?;
     let clients = ftl_memory.clients()?;
-    let blocked = params.blocked.unwrap_or(false);
 
     // Get an array of valid client references (FTL allocates more than it uses)
     let mut clients: Vec<&FtlClient> = clients
@@ -250,16 +259,31 @@ mod test {
             .test();
     }
 
-    /// Maximum privacy level does not show any clients
+    /// Privacy level 2 does not show any clients
     #[test]
-    fn max_privacy() {
+    fn privacy() {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_clients")
             .ftl_memory(test_data())
-            .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=3")
+            .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=2")
             .expect_json(json!({
                 "top_clients": [],
                 "total_queries": 100
+            }))
+            .test();
+    }
+
+    /// Privacy level 2 does not show any clients, and has a
+    /// `"blocked_queries`" key instead of a `"total_queries"` key
+    #[test]
+    fn privacy_blocked() {
+        TestBuilder::new()
+            .endpoint("/admin/api/stats/top_clients?blocked=true")
+            .ftl_memory(test_data())
+            .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=2")
+            .expect_json(json!({
+                "top_clients": [],
+                "blocked_queries": 15
             }))
             .test();
     }
