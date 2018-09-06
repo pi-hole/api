@@ -59,7 +59,8 @@ impl Config {
             PiholeFile::SetupVars => &self.file_locations.setup_vars,
             PiholeFile::FtlConfig => &self.file_locations.ftl_config,
             PiholeFile::LocalVersions => &self.file_locations.local_versions,
-            PiholeFile::LocalBranches => &self.file_locations.local_branches
+            PiholeFile::LocalBranches => &self.file_locations.local_branches,
+            PiholeFile::AuditLog => &self.file_locations.audit_log
         }
     }
 
@@ -101,7 +102,9 @@ pub struct Files {
     #[serde(default = "default_local_versions")]
     local_versions: String,
     #[serde(default = "default_local_branches")]
-    local_branches: String
+    local_branches: String,
+    #[serde(default = "default_audit_log")]
+    audit_log: String
 }
 
 impl Default for Files {
@@ -114,7 +117,8 @@ impl Default for Files {
             setup_vars: default_setup_vars(),
             ftl_config: default_ftl_config(),
             local_versions: default_local_versions(),
-            local_branches: default_local_branches()
+            local_branches: default_local_branches(),
+            audit_log: default_audit_log()
         }
     }
 }
@@ -136,6 +140,7 @@ default!(default_setup_vars, SetupVars);
 default!(default_ftl_config, FtlConfig);
 default!(default_local_versions, LocalVersions);
 default!(default_local_branches, LocalBranches);
+default!(default_audit_log, AuditLog);
 
 /// General config settings
 #[derive(Deserialize)]
