@@ -113,6 +113,7 @@ mod tests {
             ],
             strings,
             upstreams: Vec::new(),
+            queries: Vec::new(),
             counters: FtlCounters::default()
         }
     }

@@ -12,7 +12,7 @@ use ftl::memory_model::MAGIC_BYTE;
 use ftl::FtlStrings;
 use libc;
 
-/// The domain struct stored in memory
+/// The domain struct stored in shared memory
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct FtlDomain {

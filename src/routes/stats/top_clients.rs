@@ -180,6 +180,7 @@ mod test {
             domains: Vec::new(),
             strings,
             upstreams: Vec::new(),
+            queries: Vec::new(),
             counters: FtlCounters {
                 total_queries: 100,
                 blocked_queries: 15,

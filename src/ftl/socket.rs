@@ -144,6 +144,7 @@ impl<'test> FtlConnection<'test> {
     }
 
     /// Read in an f32 (float) value
+    #[allow(unused)]
     pub fn read_f32(&mut self) -> Result<f32, Error> {
         FtlConnection::handle_eom_value(decode::read_f32(&mut self.0))
     }

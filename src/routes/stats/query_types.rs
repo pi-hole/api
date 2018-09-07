@@ -48,6 +48,7 @@ mod test {
             domains: Vec::new(),
             strings: HashMap::new(),
             upstreams: Vec::new(),
+            queries: Vec::new(),
             clients: Vec::new()
         }
     }

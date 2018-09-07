@@ -119,7 +119,8 @@ mod test {
                     ..FtlCounters::default()
                 },
                 clients: Vec::new(),
-                domains: Vec::new()
+                domains: Vec::new(),
+                queries: Vec::new()
             })
             .expect_json(json!({
                 "upstreams": [
@@ -153,7 +154,8 @@ mod test {
                     ..FtlCounters::default()
                 },
                 clients: Vec::new(),
-                domains: Vec::new()
+                domains: Vec::new(),
+                queries: Vec::new()
             })
             .expect_json(json!({
                 "upstreams": [
