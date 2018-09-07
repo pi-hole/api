@@ -118,6 +118,7 @@ mod test {
             ],
             domains: Vec::new(),
             strings,
+            upstreams: Vec::new(),
             counters: FtlCounters {
                 gravity_size: 100_000,
                 total_queries: 7,

@@ -214,6 +214,7 @@ mod test {
             ],
             clients: Vec::new(),
             strings,
+            upstreams: Vec::new(),
             counters: FtlCounters {
                 total_queries: 39,
                 blocked_queries: 21,

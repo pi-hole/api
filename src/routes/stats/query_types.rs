@@ -47,6 +47,7 @@ mod test {
             },
             domains: Vec::new(),
             strings: HashMap::new(),
+            upstreams: Vec::new(),
             clients: Vec::new()
         }
     }

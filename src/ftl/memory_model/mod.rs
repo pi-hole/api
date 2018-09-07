@@ -17,8 +17,10 @@ mod client;
 mod counters;
 mod domain;
 mod strings;
+mod upstream;
 
 pub use self::client::FtlClient;
 pub use self::counters::{FtlCounters, FtlQueryType};
 pub use self::domain::{FtlDomain, FtlRegexMatch};
 pub use self::strings::FtlStrings;
+pub use self::upstream::FtlUpstream;

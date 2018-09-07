@@ -112,6 +112,7 @@ mod tests {
                 FtlDomain::new(0, 0, 7, FtlRegexMatch::Unknown),
             ],
             strings,
+            upstreams: Vec::new(),
             counters: FtlCounters::default()
         }
     }

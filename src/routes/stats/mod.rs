@@ -10,7 +10,6 @@
 
 mod clients;
 mod common;
-mod forward_destinations;
 mod history;
 mod over_time_clients;
 mod over_time_history;
@@ -20,9 +19,9 @@ mod summary;
 mod top_clients;
 mod top_domains;
 mod unknown_queries;
+mod upstreams;
 
 pub use self::clients::*;
-pub use self::forward_destinations::*;
 pub use self::history::*;
 pub use self::over_time_clients::*;
 pub use self::over_time_history::*;
@@ -32,3 +31,4 @@ pub use self::summary::*;
 pub use self::top_clients::*;
 pub use self::top_domains::*;
 pub use self::unknown_queries::*;
+pub use self::upstreams::*;

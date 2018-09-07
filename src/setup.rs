@@ -122,7 +122,7 @@ fn setup<'a>(
             stats::top_domains_params,
             stats::top_clients,
             stats::top_clients_params,
-            stats::forward_destinations,
+            stats::upstreams,
             stats::query_types,
             stats::history,
             stats::history_params,

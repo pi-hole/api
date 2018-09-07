@@ -8,6 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use ftl::memory_model::FtlUpstream;
 use ftl::{FtlClient, FtlCounters, FtlDomain, FtlStrings};
 use shmem::{self, Array, Map, Object};
 use std::collections::HashMap;
@@ -30,6 +31,7 @@ pub enum FtlMemory {
     Test {
         clients: Vec<FtlClient>,
         domains: Vec<FtlDomain>,
+        upstreams: Vec<FtlUpstream>,
         strings: HashMap<usize, String>,
         counters: FtlCounters
     }
@@ -40,6 +42,7 @@ impl Default for FtlMemory {
         FtlMemory::Test {
             clients: Vec::new(),
             domains: Vec::new(),
+            upstreams: Vec::new(),
             strings: HashMap::new(),
             counters: FtlCounters::default()
         }
@@ -74,6 +77,21 @@ impl FtlMemory {
                     .map_err(from_shmem_error)?
             ),
             FtlMemory::Test { domains, .. } => Box::new(domains.as_slice())
+        })
+    }
+
+    /// Get the FTL shared memory upstream data. The resulting trait object can
+    /// dereference into `&[FtlUpstream]`.
+    pub fn upstreams<'test>(
+        &'test self
+    ) -> Result<Box<dyn Deref<Target = [FtlUpstream]> + 'test>, Error> {
+        Ok(match self {
+            FtlMemory::Production => Box::new(
+                // Load the shared memory
+                Array::new(Object::open(FTL_SHM_FORWARDED).map_err(from_shmem_error)?)
+                    .map_err(from_shmem_error)?
+            ),
+            FtlMemory::Test { upstreams, .. } => Box::new(upstreams.as_slice())
         })
     }
 

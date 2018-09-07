@@ -163,6 +163,7 @@ mod test {
             ],
             domains: Vec::new(),
             strings,
+            upstreams: Vec::new(),
             counters: FtlCounters {
                 total_clients: 6,
                 ..FtlCounters::default()
