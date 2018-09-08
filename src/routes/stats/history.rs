@@ -97,15 +97,15 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
             .iter()
             // Get the most recent queries first
             .rev()
+            // Skip the uninitialized queries
             .skip(queries.len() - counters.total_queries as usize)
-            // Ignore private queries
-            .filter(|query| !query.is_private)
     );
 
     // If there is a cursor, skip to the referenced query
     let queries_iter = skip_to_cursor(queries_iter, &params);
 
     // Apply filters
+    let queries_iter = filter_private_queries(queries_iter);
     let queries_iter = filter_setup_vars_setting(queries_iter, env)?;
     let queries_iter = filter_time_from(queries_iter, &params);
     let queries_iter = filter_time_until(queries_iter, &params);
@@ -170,6 +170,12 @@ fn skip_to_cursor<'a>(
     } else {
         queries_iter
     }
+}
+
+fn filter_private_queries<'a>(
+    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>
+) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+    Box::new(queries_iter.filter(|query| !query.is_private))
 }
 
 fn filter_setup_vars_setting<'a>(
