@@ -145,7 +145,6 @@ pub enum SetupVarsEntry {
     ApiExcludeClients,
     ApiExcludeDomains,
     ApiQueryLogShow,
-    ApiPrivacyMode,
     BlockingEnabled,
     DnsBogusPriv,
     DnsFqdnRequired,
@@ -184,7 +183,6 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::ApiExcludeClients => Cow::Borrowed("API_EXCLUDE_CLIENTS"),
             SetupVarsEntry::ApiExcludeDomains => Cow::Borrowed("API_EXCLUDE_DOMAINS"),
             SetupVarsEntry::ApiQueryLogShow => Cow::Borrowed("API_QUERY_LOG_SHOW"),
-            SetupVarsEntry::ApiPrivacyMode => Cow::Borrowed("API_PRIVACY_MODE"),
             SetupVarsEntry::BlockingEnabled => Cow::Borrowed("BLOCKING_ENABLED"),
             SetupVarsEntry::DnsBogusPriv => Cow::Borrowed("DNS_BOGUS_PRIV"),
             SetupVarsEntry::DnsFqdnRequired => Cow::Borrowed("DNS_FQDN_REQUIRED"),
@@ -227,7 +225,6 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::ApiQueryLogShow => {
                 ValueType::String(&["all", "permittedonly", "blockedonly", "nothing"])
             }
-            SetupVarsEntry::ApiPrivacyMode => ValueType::Boolean,
             SetupVarsEntry::BlockingEnabled => ValueType::Boolean,
             SetupVarsEntry::DnsBogusPriv => ValueType::Boolean,
             SetupVarsEntry::DnsFqdnRequired => ValueType::Boolean,
@@ -262,7 +259,6 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::ApiExcludeClients => "",
             SetupVarsEntry::ApiExcludeDomains => "",
             SetupVarsEntry::ApiQueryLogShow => "all",
-            SetupVarsEntry::ApiPrivacyMode => "false",
             SetupVarsEntry::BlockingEnabled => "true",
             SetupVarsEntry::DnsBogusPriv => "true",
             SetupVarsEntry::DnsFqdnRequired => "true",
