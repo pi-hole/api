@@ -9,6 +9,8 @@
 // Please see LICENSE file for your rights under this license.
 
 use libc;
+use rocket::http::RawStr;
+use rocket::request::FromFormValue;
 
 /// The FTL counters stored in shared memory
 #[repr(C)]
@@ -47,7 +49,8 @@ impl FtlCounters {
 /// The query types stored by FTL. Use this enum for [`FtlCounters::query_type`]
 ///
 /// [`FtlCounters::query_type`]: struct.FtlCounters.html#method.query_type
-#[derive(Copy, Clone, Debug)]
+#[repr(u8)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum FtlQueryType {
     A,
     AAAA,
@@ -56,6 +59,23 @@ pub enum FtlQueryType {
     SOA,
     PTR,
     TXT
+}
+
+impl<'v> FromFormValue<'v> for FtlQueryType {
+    type Error = &'v RawStr;
+
+    fn from_form_value(form_value: &'v RawStr) -> Result<Self, Self::Error> {
+        match form_value.parse::<u8>().map_err(|_| form_value)? {
+            0 => Ok(FtlQueryType::A),
+            1 => Ok(FtlQueryType::AAAA),
+            2 => Ok(FtlQueryType::ANY),
+            3 => Ok(FtlQueryType::SRV),
+            4 => Ok(FtlQueryType::SOA),
+            5 => Ok(FtlQueryType::PTR),
+            6 => Ok(FtlQueryType::TXT),
+            _ => Err(form_value)
+        }
+    }
 }
 
 impl FtlQueryType {

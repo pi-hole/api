@@ -14,7 +14,7 @@ use libc;
 
 /// The query struct stored in shared memory
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct FtlQuery {
     magic: libc::c_uchar,
     pub timestamp: libc::time_t,
@@ -76,7 +76,7 @@ impl FtlQuery {
 
 /// The statuses an FTL query can have
 #[repr(u8)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum FtlQueryStatus {
     Unknown,
     Gravity,
@@ -88,8 +88,8 @@ pub enum FtlQueryStatus {
 }
 
 /// The reply types an FTL query can have
-#[repr(C)]
-#[derive(Copy, Clone)]
+#[repr(u8)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum FtlQueryReplyType {
     Unknown,
     NODATA,
@@ -102,7 +102,7 @@ pub enum FtlQueryReplyType {
 
 /// The DNSSEC reply types an FTL query can have
 #[repr(u8)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum FtlDnssecType {
     Unspecified,
     Secure,
