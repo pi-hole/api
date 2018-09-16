@@ -269,6 +269,8 @@ mod test {
                     ################################################################\n\
                     \n\
                     localise-queries\n\
+                    local-ttl=2\n\
+                    cache-size=10000\n\
                     server=8.8.8.8\n\
                     server=8.8.4.4\n\
                     addn-hosts=/etc/pihole/gravity.list\n\

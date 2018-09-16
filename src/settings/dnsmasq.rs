@@ -25,6 +25,8 @@ const DNSMASQ_HEADER: &str = "\
 ################################################################
 
 localise-queries
+local-ttl=2
+cache-size=10000
 ";
 
 /// Generate a dnsmasq config based off of SetupVars.
