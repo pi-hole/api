@@ -22,10 +22,10 @@ pub fn query_types(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
     reply_data(
         FtlQueryType::variants()
             .iter()
-            .map(|variant| {
+            .map(|&variant| {
                 json!({
                     "name": format!("{:?}", variant),
-                    "count": counters.query_type(*variant)
+                    "count": counters.query_type(variant)
                 })
             })
             .collect::<Vec<Value>>()
