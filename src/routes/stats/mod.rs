@@ -18,7 +18,6 @@ mod recent_blocked;
 mod summary;
 mod top_clients;
 mod top_domains;
-mod unknown_queries;
 mod upstreams;
 
 pub use self::clients::*;
@@ -30,5 +29,4 @@ pub use self::recent_blocked::*;
 pub use self::summary::*;
 pub use self::top_clients::*;
 pub use self::top_domains::*;
-pub use self::unknown_queries::*;
 pub use self::upstreams::*;

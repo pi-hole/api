@@ -130,7 +130,6 @@ fn setup<'a>(
             stats::recent_blocked_params,
             stats::clients,
             stats::clients_params,
-            stats::unknown_queries,
             stats::over_time_history,
             stats::over_time_clients,
             dns::get_whitelist,
