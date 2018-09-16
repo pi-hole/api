@@ -66,7 +66,10 @@ impl Default for HistoryParams {
 fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Reply {
     // Check if query details are private
     if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)? >= FtlPrivacyLevel::Maximum {
-        return reply_data([0; 0]);
+        return reply_data(json!({
+            "cursor": 0,
+            "history": []
+        }));
     }
 
     let counters = ftl_memory.counters()?;
