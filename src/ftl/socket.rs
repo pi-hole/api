@@ -116,37 +116,14 @@ impl<'test> FtlConnection<'test> {
         Ok(())
     }
 
-    /// Read in a bool value
-    pub fn read_bool(&mut self) -> Result<bool, Error> {
-        FtlConnection::handle_eom_value(decode::read_bool(&mut self.0))
-    }
-
-    /// Read in a u8 (unsigned byte) value
-    pub fn read_u8(&mut self) -> Result<u8, Error> {
-        FtlConnection::handle_eom_value(decode::read_u8(&mut self.0))
-    }
-
-    /// Read in a u64 (unsigned long int) value
-    #[allow(unused)]
-    pub fn read_u64(&mut self) -> Result<u64, Error> {
-        FtlConnection::handle_eom_value(decode::read_u64(&mut self.0))
-    }
-
     /// Read in an i32 (signed int) value
     pub fn read_i32(&mut self) -> Result<i32, Error> {
         FtlConnection::handle_eom_value(decode::read_i32(&mut self.0))
     }
 
     /// Read in an i64 (signed long int) value
-    #[allow(unused)]
     pub fn read_i64(&mut self) -> Result<i64, Error> {
         FtlConnection::handle_eom_value(decode::read_i64(&mut self.0))
-    }
-
-    /// Read in an f32 (float) value
-    #[allow(unused)]
-    pub fn read_f32(&mut self) -> Result<f32, Error> {
-        FtlConnection::handle_eom_value(decode::read_f32(&mut self.0))
     }
 
     /// Read in a string using the buffer
