@@ -78,8 +78,7 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
     // The following code uses a boxed iterator, Box<Iterator<Item = &FtlQuery>>
     //
     // When you make an iterator chain, it modifies the type of the iterator.
-    // Ex. slice.iter().filter(..).map(..) might look like Map<Filter<Iter<T>, ..>,
-    // ..>
+    // Ex. slice.iter().filter(..).map(..) might look like Map<Filter<Iter<T>>, I>
     //
     // Because of this, if you want to dynamically create an iterator like we do
     // below, the iterator must be kept on the heap instead of the stack
@@ -90,8 +89,8 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
     // combinations of modifiers to the iterator and not worry about the real
     // type.
 
-    // Start making an iterator by getting valid query references (FTL
-    // allocates more than it uses).
+    // Start making an iterator by getting valid query references (FTL allocates
+    // more than it uses).
     let queries_iter = Box::new(
         queries
             .iter()
@@ -161,6 +160,7 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
     }))
 }
 
+/// Skip iteration until the query which corresponds to the cursor.
 fn skip_to_cursor<'a>(
     queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
@@ -172,12 +172,15 @@ fn skip_to_cursor<'a>(
     }
 }
 
+/// Filter out private queries
 fn filter_private_queries<'a>(
     queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>
 ) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
     Box::new(queries_iter.filter(|query| !query.is_private))
 }
 
+/// Apply the `SetupVarsEntry::ApiQueryLogShow` setting (`permittedonly`,
+/// `blockedonly`, etc).
 fn filter_setup_vars_setting<'a>(
     queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
     env: &Env
@@ -199,6 +202,7 @@ fn filter_setup_vars_setting<'a>(
     })
 }
 
+/// Filter out queries before the `from` timestamp
 fn filter_time_from<'a>(
     queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
@@ -210,6 +214,7 @@ fn filter_time_from<'a>(
     }
 }
 
+/// Filter out queries after the `until` timestamp
 fn filter_time_until<'a>(
     queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
@@ -221,6 +226,7 @@ fn filter_time_until<'a>(
     }
 }
 
+/// Only show queries with the specified query type
 fn filter_query_type<'a>(
     queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
@@ -232,6 +238,7 @@ fn filter_query_type<'a>(
     }
 }
 
+/// Only show queries from the specified upstream
 fn filter_upstream<'a>(
     queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams,
@@ -252,18 +259,22 @@ fn filter_upstream<'a>(
         } else {
             // Find the upstream. If none can be found, return an empty iterator because no
             // query can match the upstream requested
+            let counters = ftl_memory.counters()?;
             let strings = ftl_memory.strings()?;
             let upstreams = ftl_memory.upstreams()?;
-            let upstream_id = upstreams.iter().position(|item| {
-                let ip = item.get_ip(&strings);
-                let name = item.get_name(&strings);
+            let upstream_id = upstreams
+                .iter()
+                .take(counters.total_upstreams as usize)
+                .position(|item| {
+                    let ip = item.get_ip(&strings);
+                    let name = item.get_name(&strings);
 
-                ip == upstream || if let Some(name) = name {
-                    name == upstream
-                } else {
-                    false
-                }
-            });
+                    ip == upstream || if let Some(name) = name {
+                        name == upstream
+                    } else {
+                        false
+                    }
+                });
 
             if let Some(upstream_id) = upstream_id {
                 Ok(Box::new(queries_iter.filter(move |query| {
@@ -278,6 +289,7 @@ fn filter_upstream<'a>(
     }
 }
 
+/// Only show queries of the specified domain
 fn filter_domain<'a>(
     queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams,
@@ -286,10 +298,12 @@ fn filter_domain<'a>(
     if let Some(ref domain_filter) = params.domain {
         // Find the domain. If none can be found, return an empty iterator because no
         // query can match the domain requested
+        let counters = ftl_memory.counters()?;
         let strings = ftl_memory.strings()?;
         let domains = ftl_memory.domains()?;
         let domain_id = domains
             .iter()
+            .take(counters.total_domains as usize)
             .position(|domain| domain.get_domain(&strings) == domain_filter);
 
         if let Some(domain_id) = domain_id {
@@ -304,6 +318,7 @@ fn filter_domain<'a>(
     }
 }
 
+/// Only show queries of the specified client
 fn filter_client<'a>(
     queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams,
@@ -312,18 +327,22 @@ fn filter_client<'a>(
     if let Some(ref client_filter) = params.client {
         // Find the client. If none can be found, return an empty iterator because no
         // query can match the client requested
+        let counters = ftl_memory.counters()?;
         let strings = ftl_memory.strings()?;
         let clients = ftl_memory.clients()?;
-        let client_id = clients.iter().position(|client| {
-            let ip = client.get_ip(&strings);
-            let name = client.get_name(&strings);
+        let client_id = clients
+            .iter()
+            .take(counters.total_clients as usize)
+            .position(|client| {
+                let ip = client.get_ip(&strings);
+                let name = client.get_name(&strings);
 
-            ip == client_filter || if let Some(name) = name {
-                name == client_filter
-            } else {
-                false
-            }
-        });
+                ip == client_filter || if let Some(name) = name {
+                    name == client_filter
+                } else {
+                    false
+                }
+            });
 
         if let Some(client_id) = client_id {
             Ok(Box::new(queries_iter.filter(move |query| {
