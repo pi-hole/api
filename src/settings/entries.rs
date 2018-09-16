@@ -161,16 +161,13 @@ pub enum SetupVarsEntry {
     DnsmasqListening,
     Dnssec,
     HostRecord,
-    InstallWebInterface,
-    InstallWebServer,
     Ipv4Address,
     Ipv6Address,
     PiholeDns(usize),
     PiholeDomain,
     PiholeInterface,
     QueryLogging,
-    WebPassword,
-    WebUiBoxedLayout
+    WebPassword
 }
 
 impl ConfigEntry for SetupVarsEntry {
@@ -203,16 +200,13 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DnsmasqListening => Cow::Borrowed("DNSMASQ_LISTENING"),
             SetupVarsEntry::Dnssec => Cow::Borrowed("DNSSEC"),
             SetupVarsEntry::HostRecord => Cow::Borrowed("HOSTRECORD"),
-            SetupVarsEntry::InstallWebInterface => Cow::Borrowed("INSTALL_WEB_INTERFACE"),
-            SetupVarsEntry::InstallWebServer => Cow::Borrowed("INSTALL_WEB_SERVER"),
             SetupVarsEntry::Ipv4Address => Cow::Borrowed("IPV4_ADDRESS"),
             SetupVarsEntry::Ipv6Address => Cow::Borrowed("IPV6_ADDRESS"),
             SetupVarsEntry::PiholeDns(num) => Cow::Owned(format!("PIHOLE_DNS_{}", num)),
             SetupVarsEntry::PiholeDomain => Cow::Borrowed("PIHOLE_DOMAIN"),
             SetupVarsEntry::PiholeInterface => Cow::Borrowed("PIHOLE_INTERFACE"),
             SetupVarsEntry::QueryLogging => Cow::Borrowed("QUERY_LOGGING"),
-            SetupVarsEntry::WebPassword => Cow::Borrowed("WEBPASSWORD"),
-            SetupVarsEntry::WebUiBoxedLayout => Cow::Borrowed("WEBUIBOXEDLAYOUT")
+            SetupVarsEntry::WebPassword => Cow::Borrowed("WEBPASSWORD")
         }
     }
 
@@ -241,16 +235,13 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DnsmasqListening => ValueType::String(&["all", "local", "single"]),
             SetupVarsEntry::Dnssec => ValueType::Boolean,
             SetupVarsEntry::HostRecord => ValueType::Domain,
-            SetupVarsEntry::InstallWebInterface => ValueType::Boolean,
-            SetupVarsEntry::InstallWebServer => ValueType::Boolean,
             SetupVarsEntry::Ipv4Address => ValueType::Ipv4Mask,
             SetupVarsEntry::Ipv6Address => ValueType::Ipv6,
             SetupVarsEntry::PiholeDns(_) => ValueType::IPv4OptionalPort,
             SetupVarsEntry::PiholeDomain => ValueType::Domain,
             SetupVarsEntry::PiholeInterface => ValueType::Interface,
             SetupVarsEntry::QueryLogging => ValueType::Boolean,
-            SetupVarsEntry::WebPassword => ValueType::WebPassword,
-            SetupVarsEntry::WebUiBoxedLayout => ValueType::String(&["boxed", "traditional"])
+            SetupVarsEntry::WebPassword => ValueType::WebPassword
         }
     }
 
@@ -275,16 +266,13 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DnsmasqListening => "single",
             SetupVarsEntry::Dnssec => "false",
             SetupVarsEntry::HostRecord => "",
-            SetupVarsEntry::InstallWebInterface => "true",
-            SetupVarsEntry::InstallWebServer => "true",
             SetupVarsEntry::Ipv4Address => "",
             SetupVarsEntry::Ipv6Address => "",
             SetupVarsEntry::PiholeDns(_) => "",
             SetupVarsEntry::PiholeDomain => "",
             SetupVarsEntry::PiholeInterface => "",
-            SetupVarsEntry::QueryLogging => "true",
-            SetupVarsEntry::WebPassword => "",
-            SetupVarsEntry::WebUiBoxedLayout => "boxed"
+            SetupVarsEntry::QueryLogging => "false",
+            SetupVarsEntry::WebPassword => ""
         }
     }
 }

@@ -92,6 +92,16 @@ fn write_lists(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error
 
 /// Write various DNS settings
 fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
+    if SetupVarsEntry::QueryLogging.read_as(env)? {
+        config_file
+            .write_all(
+                b"log-queries=extra\n\
+            log-facility=/var/log/pihole.log\n\
+            log-async\n"
+            )
+            .context(ErrorKind::DnsmasqConfigWrite)?;
+    }
+
     if SetupVarsEntry::DnsFqdnRequired.read_as(env)? {
         config_file
             .write_all(b"domain-needed\n")
