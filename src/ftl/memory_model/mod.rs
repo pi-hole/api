@@ -23,6 +23,6 @@ mod upstream;
 pub use self::client::FtlClient;
 pub use self::counters::{FtlCounters, FtlQueryType};
 pub use self::domain::{FtlDomain, FtlRegexMatch};
-pub use self::query::{FtlDnssecType, FtlQuery, FtlQueryStatus};
+pub use self::query::{FtlDnssecType, FtlQuery, FtlQueryReplyType, FtlQueryStatus};
 pub use self::strings::FtlStrings;
 pub use self::upstream::FtlUpstream;
