@@ -47,6 +47,7 @@ fn open_config(env: &Env) -> Result<BufWriter<File>, Error> {
         .map(|file| BufWriter::new(file))
 }
 
+/// Write the header to the config file
 fn write_header(config_file: &mut BufWriter<File>) -> Result<(), Error> {
     config_file
         .write_all(DNSMASQ_HEADER.as_bytes())
@@ -70,17 +71,17 @@ fn write_servers(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Err
     Ok(())
 }
 
-/// Write the blocklist, blacklist, etc if applicable
+/// Write the blocklist, blacklist, and local list
 fn write_lists(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
-    // Add blocklist and blacklist if blocking is enabled
-    if SetupVarsEntry::BlockingEnabled.read_as(env)? {
-        config_file
-            .write_all(b"addn-hosts=/etc/pihole/gravity.list\n")
-            .context(ErrorKind::DnsmasqConfigWrite)?;
-        config_file
-            .write_all(b"addn-hosts=/etc/pihole/black.list\n")
-            .context(ErrorKind::DnsmasqConfigWrite)?;
-    }
+    // Always write the blocklist and blacklist, even if Pi-hole is disabled.
+    // When Pi-hole is disabled, the files will be empty. This is to make
+    // enabling/disabling very fast.
+    config_file
+        .write_all(b"addn-hosts=/etc/pihole/gravity.list\n")
+        .context(ErrorKind::DnsmasqConfigWrite)?;
+    config_file
+        .write_all(b"addn-hosts=/etc/pihole/black.list\n")
+        .context(ErrorKind::DnsmasqConfigWrite)?;
 
     // Always add local.list after the blocklists
     config_file
