@@ -233,24 +233,13 @@ mod tests {
     }
 
     /// Confirm that the blocklists are written (in addition to local.list)
-    /// when blocking is enabled
     #[test]
-    fn block_lists_written_when_enabled() {
+    fn block_lists_written() {
         test_config(
             "addn-hosts=/etc/pihole/gravity.list\n\
              addn-hosts=/etc/pihole/black.list\n\
              addn-hosts=/etc/pihole/local.list\n",
-            "BLOCKING_ENABLED=true",
-            |config, _| write_lists(config)
-        );
-    }
-
-    /// Confirm that only local.list is written when blocking is disabled
-    #[test]
-    fn block_lists_not_written_when_disabled() {
-        test_config(
-            "addn-hosts=/etc/pihole/local.list\n",
-            "BLOCKING_ENABLED=false",
+            "",
             |config, _| write_lists(config)
         );
     }
