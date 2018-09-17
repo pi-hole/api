@@ -35,7 +35,7 @@ pub fn generate_dnsmasq_config(env: &Env) -> Result<(), Error> {
 
     write_header(&mut config_file)?;
     write_servers(&mut config_file, env)?;
-    write_lists(&mut config_file, env)?;
+    write_lists(&mut config_file)?;
     write_dns_options(&mut config_file, env)?;
 
     Ok(())
@@ -72,7 +72,7 @@ fn write_servers(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Err
 }
 
 /// Write the blocklist, blacklist, and local list
-fn write_lists(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
+fn write_lists(config_file: &mut BufWriter<File>) -> Result<(), Error> {
     // Always write the blocklist and blacklist, even if Pi-hole is disabled.
     // When Pi-hole is disabled, the files will be empty. This is to make
     // enabling/disabling very fast.
@@ -96,7 +96,7 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
     if SetupVarsEntry::QueryLogging.read_as(env)? {
         config_file
             .write_all(
-                b"log-queries=extra\n\
+                b"log-queries\n\
             log-facility=/var/log/pihole.log\n\
             log-async\n"
             )
@@ -241,7 +241,7 @@ mod tests {
              addn-hosts=/etc/pihole/black.list\n\
              addn-hosts=/etc/pihole/local.list\n",
             "BLOCKING_ENABLED=true",
-            write_lists
+            |config, _| write_lists(config)
         );
     }
 
@@ -251,7 +251,7 @@ mod tests {
         test_config(
             "addn-hosts=/etc/pihole/local.list\n",
             "BLOCKING_ENABLED=false",
-            write_lists
+            |config, _| write_lists(config)
         );
     }
 
