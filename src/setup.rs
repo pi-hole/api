@@ -9,31 +9,36 @@
 // Please see LICENSE file for your rights under this license.
 
 use auth::{self, AuthData};
-use env::{Config, Env, PiholeFile};
+use env::{Config, Env};
 use ftl::{FtlConnectionType, FtlMemory};
 use rocket::{
     self,
-    config::{ConfigBuilder, Environment},
-    local::Client
+    config::{ConfigBuilder, Environment}
 };
 use rocket_cors::Cors;
 use routes::{dns, settings, stats, version, web};
 use settings::{ConfigEntry, SetupVarsEntry};
-use std::collections::HashMap;
-use tempfile::NamedTempFile;
-use toml;
 use util::{Error, ErrorKind};
+
+#[cfg(test)]
+use env::PiholeFile;
+#[cfg(test)]
+use rocket::local::Client;
+#[cfg(test)]
+use std::collections::HashMap;
+#[cfg(test)]
+use tempfile::NamedTempFile;
 
 const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
 
 #[error(404)]
 fn not_found() -> Error {
-    ErrorKind::NotFound.into()
+    Error::from(ErrorKind::NotFound)
 }
 
 #[error(401)]
 fn unauthorized() -> Error {
-    ErrorKind::Unauthorized.into()
+    Error::from(ErrorKind::Unauthorized)
 }
 
 /// Run the API normally (connect to FTL over the socket)
@@ -69,6 +74,8 @@ pub fn test(
     ftl_memory: FtlMemory,
     env_data: HashMap<PiholeFile, NamedTempFile>
 ) -> Client {
+    use toml;
+
     Client::new(setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Development)
@@ -84,24 +91,26 @@ pub fn test(
 }
 
 /// General server setup
-fn setup<'a>(
+fn setup(
     server: rocket::Rocket,
-    connection_type: FtlConnectionType,
+    ftl_socket: FtlConnectionType,
     ftl_memory: FtlMemory,
     env: Env,
     api_key: String
 ) -> rocket::Rocket {
-    // Setup CORS
-    let mut cors = Cors::default();
-    cors.allow_credentials = true;
+    // Set up CORS
+    let cors = Cors {
+        allow_credentials: true,
+        ..Cors::default()
+    };
 
-    // Start up the server
+    // Set up the server
     server
         // Attach CORS handler
         .attach(cors)
-        // Manage the connection type configuration
-        .manage(connection_type)
-        // Manage the shared memory configuration
+        // Manage the FTL socket configuration
+        .manage(ftl_socket)
+        // Manage the FTL shared memory configuration
         .manage(ftl_memory)
         // Manage the environment
         .manage(env)

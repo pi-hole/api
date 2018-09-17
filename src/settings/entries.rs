@@ -47,7 +47,7 @@ pub trait ConfigEntry {
         self.read(env)?
             .parse::<T>()
             .context(ErrorKind::InvalidSettingValue)
-            .map_err(|e| e.into())
+            .map_err(Error::from)
     }
 
     /// Read this setting from the config file it appears in.
@@ -91,7 +91,7 @@ pub trait ConfigEntry {
     fn write(&self, value: &str, env: &Env) -> Result<(), Error> {
         // Validate new value
         if !self.is_valid(value) {
-            return Err(ErrorKind::InvalidSettingValue.into());
+            return Err(Error::from(ErrorKind::InvalidSettingValue));
         }
 
         // Read specified file, removing any line matching the setting we are writing
@@ -115,8 +115,9 @@ pub trait ConfigEntry {
         // Create the context for the error lazily.
         // This way it is not allocating for errors at all, unless an error is thrown.
         let apply_context = |error: io::Error| {
-            let context = ErrorKind::FileWrite(env.file_location(self.file()).to_owned());
-            error.context(context.into())
+            error.context(ErrorKind::FileWrite(
+                env.file_location(self.file()).to_owned()
+            ))
         };
 
         // Write settings to file
@@ -292,8 +293,9 @@ impl SetupVarsEntry {
         // Create the context for the error lazily.
         // This way it is not allocating for errors at all, unless an error is thrown.
         let apply_context = |error: io::Error| {
-            let context = ErrorKind::FileWrite(env.file_location(PiholeFile::SetupVars).to_owned());
-            error.context(context.into())
+            error.context(ErrorKind::FileWrite(
+                env.file_location(PiholeFile::SetupVars).to_owned()
+            ))
         };
 
         // Write settings to file

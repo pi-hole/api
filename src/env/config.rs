@@ -37,16 +37,17 @@ impl Config {
             Err(e) => match e.kind() {
                 io::ErrorKind::NotFound => return Ok(Self::default()),
                 _ => {
-                    return Err(e.context(ErrorKind::FileRead(config_location.to_owned())))
-                        .map_err(Error::from)
+                    return Err(Error::from(
+                        e.context(ErrorKind::FileRead(config_location.to_owned()))
+                    ));
                 }
             }
         };
 
         file.read_to_string(&mut buffer)
-            .map_err(|e| e.context(ErrorKind::FileRead(config_location.to_owned())))?;
+            .map_err(|e| Error::from(e.context(ErrorKind::FileRead(config_location.to_owned()))))?;
 
-        toml::from_str(&buffer).map_err(|e| e.context(ErrorKind::ConfigParsingError).into())
+        toml::from_str(&buffer).map_err(|e| Error::from(e.context(ErrorKind::ConfigParsingError)))
     }
 
     /// Get the configured location of a file

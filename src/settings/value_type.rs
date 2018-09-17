@@ -15,7 +15,7 @@ use std::path::Path;
 use std::str::FromStr;
 
 /// Categories of allowable values, shared across settings files
-#[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
+#[cfg_attr(test, derive(Debug))]
 pub enum ValueType {
     Boolean,
     /// A comma separated array of strings which match at least one of the

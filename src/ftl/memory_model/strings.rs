@@ -10,8 +10,11 @@
 
 use libc;
 use shmem::Array;
-use std::collections::HashMap;
 use std::ffi::CStr;
+use std::marker::PhantomData;
+
+#[cfg(test)]
+use std::collections::HashMap;
 
 /// A safe wrapper around FTL's strings. It is used to access the strings
 /// referenced by other shared memory structs.
@@ -19,7 +22,10 @@ use std::ffi::CStr;
 /// Note: When testing, the 0 entry will be ignore in favor of returning the
 /// empty string
 pub enum FtlStrings<'test> {
-    Production(Array<libc::c_char>),
+    // Use `PhantomData` because when not in testing mode, the 'test lifetime will be unused and
+    // will cause an error. The `PhantomData` is zero-sized, so it will not actually exist.
+    Production(Array<libc::c_char>, PhantomData<&'test bool>),
+    #[cfg(test)]
     Test(&'test HashMap<usize, String>)
 }
 
@@ -30,7 +36,8 @@ impl<'test> FtlStrings<'test> {
     /// structs.
     pub fn get_str(&self, id: usize) -> Option<&str> {
         match self {
-            FtlStrings::Production(strings) => Self::get_str_prod(strings, id),
+            FtlStrings::Production(strings, ..) => Self::get_str_prod(strings, id),
+            #[cfg(test)]
             FtlStrings::Test(strings) => {
                 if id == 0 {
                     Some("")

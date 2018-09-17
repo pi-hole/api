@@ -13,11 +13,14 @@ use rmp::{
     decode::{self, DecodeStringError, ValueReadError},
     Marker
 };
-use std::collections::HashMap;
-use std::io::prelude::*;
-use std::io::{BufReader, Cursor};
+use std::io::{prelude::*, BufReader};
 use std::os::unix::net::UnixStream;
 use util::{Error, ErrorKind};
+
+#[cfg(test)]
+use std::collections::HashMap;
+#[cfg(test)]
+use std::io::Cursor;
 
 /// The location of the FTL socket
 const SOCKET_LOCATION: &'static str = "/var/run/pihole/FTL.sock";
@@ -33,6 +36,7 @@ pub struct FtlConnection<'test>(Box<Read + 'test>);
 /// data to be processed.   The map in Test maps FTL commands to data.
 pub enum FtlConnectionType {
     Socket,
+    #[cfg(test)]
     Test(HashMap<String, Vec<u8>>)
 }
 
@@ -45,7 +49,7 @@ impl FtlConnectionType {
                 // Try to connect to FTL
                 let mut stream = match UnixStream::connect(SOCKET_LOCATION) {
                     Ok(s) => s,
-                    Err(_) => return Err(ErrorKind::FtlConnectionFail.into())
+                    Err(_) => return Err(Error::from(ErrorKind::FtlConnectionFail))
                 };
 
                 // Send the command
@@ -56,13 +60,14 @@ impl FtlConnectionType {
                 // Return the connection so the API can read the response
                 Ok(FtlConnection(Box::new(BufReader::new(stream))))
             }
+            #[cfg(test)]
             FtlConnectionType::Test(ref map) => {
                 // Return a connection reading the testing data
                 Ok(FtlConnection(Box::new(Cursor::new(
                     // Try to get the testing data for this command
                     match map.get(command) {
                         Some(data) => data,
-                        None => return Err(ErrorKind::FtlConnectionFail.into())
+                        None => return Err(Error::from(ErrorKind::FtlConnectionFail))
                     }
                 ))))
             }
@@ -76,11 +81,11 @@ impl<'test> FtlConnection<'test> {
             if let ValueReadError::TypeMismatch(marker) = e {
                 if marker == Marker::Reserved {
                     // Received EOM
-                    return e.context(ErrorKind::FtlEomError).into();
+                    return Error::from(e.context(ErrorKind::FtlEomError));
                 }
             }
 
-            e.context(ErrorKind::FtlReadError).into()
+            Error::from(e.context(ErrorKind::FtlReadError))
         })
     }
 
@@ -89,11 +94,11 @@ impl<'test> FtlConnection<'test> {
             if let DecodeStringError::TypeMismatch(ref marker) = e {
                 if *marker == Marker::Reserved {
                     // Received EOM
-                    return ErrorKind::FtlEomError.into();
+                    return Error::from(ErrorKind::FtlEomError);
                 }
             }
 
-            ErrorKind::FtlReadError.into()
+            Error::from(ErrorKind::FtlReadError)
         })
     }
 
@@ -105,12 +110,12 @@ impl<'test> FtlConnection<'test> {
         // Read exactly 1 byte
         match self.0.read_exact(&mut buffer) {
             Ok(_) => (),
-            Err(e) => return Err(e.context(ErrorKind::FtlReadError).into())
+            Err(e) => return Err(Error::from(e.context(ErrorKind::FtlReadError)))
         }
 
         // Check if it was the EOM byte
         if buffer[0] != 0xc1 {
-            return Err(ErrorKind::FtlReadError.into());
+            return Err(Error::from(ErrorKind::FtlReadError));
         }
 
         Ok(())

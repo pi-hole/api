@@ -8,13 +8,16 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use ftl::memory_model::MAGIC_BYTE;
 use ftl::FtlStrings;
 use libc;
 
+#[cfg(test)]
+use ftl::memory_model::MAGIC_BYTE;
+
 /// The domain struct stored in shared memory
 #[repr(C)]
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(test, derive(PartialEq, Debug))]
+#[derive(Copy, Clone)]
 pub struct FtlDomain {
     magic: libc::c_uchar,
     pub query_count: libc::c_int,
@@ -24,6 +27,7 @@ pub struct FtlDomain {
 }
 
 impl FtlDomain {
+    #[cfg(test)]
     pub fn new(
         total_count: usize,
         blocked_count: usize,
@@ -47,6 +51,7 @@ impl FtlDomain {
     }
 }
 
+#[cfg(test)]
 impl Default for FtlDomain {
     fn default() -> Self {
         FtlDomain {
@@ -62,7 +67,9 @@ impl Default for FtlDomain {
 /// The regex state a domain can hold. Unknown is the default state, before it
 /// is checked when a query of the domain comes in.
 #[repr(u8)]
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(test, derive(PartialEq, Debug))]
+#[derive(Copy, Clone)]
+#[allow(dead_code)]
 pub enum FtlRegexMatch {
     Unknown,
     Blocked,

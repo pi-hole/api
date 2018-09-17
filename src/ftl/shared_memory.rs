@@ -11,9 +11,12 @@
 use ftl::memory_model::FtlUpstream;
 use ftl::{FtlClient, FtlCounters, FtlDomain, FtlQuery, FtlStrings};
 use shmem::{self, Array, Map, Object};
-use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::ops::Deref;
 use util::{Error, ErrorKind};
+
+#[cfg(test)]
+use std::collections::HashMap;
 
 const FTL_SHM_CLIENTS: &str = "/FTL-clients";
 const FTL_SHM_DOMAINS: &str = "/FTL-domains";
@@ -28,6 +31,7 @@ const FTL_SHM_COUNTERS: &str = "/FTL-counters";
 /// - Test mode uses the associated test data to mock FTL's shared memory.
 pub enum FtlMemory {
     Production,
+    #[cfg(test)]
     Test {
         clients: Vec<FtlClient>,
         domains: Vec<FtlDomain>,
@@ -35,19 +39,6 @@ pub enum FtlMemory {
         queries: Vec<FtlQuery>,
         strings: HashMap<usize, String>,
         counters: FtlCounters
-    }
-}
-
-impl Default for FtlMemory {
-    fn default() -> Self {
-        FtlMemory::Test {
-            clients: Vec::new(),
-            domains: Vec::new(),
-            upstreams: Vec::new(),
-            queries: Vec::new(),
-            strings: HashMap::new(),
-            counters: FtlCounters::default()
-        }
     }
 }
 
@@ -63,6 +54,7 @@ impl FtlMemory {
                 Array::new(Object::open(FTL_SHM_CLIENTS).map_err(from_shmem_error)?)
                     .map_err(from_shmem_error)?
             ),
+            #[cfg(test)]
             FtlMemory::Test { clients, .. } => Box::new(clients.as_slice())
         })
     }
@@ -78,6 +70,7 @@ impl FtlMemory {
                 Array::new(Object::open(FTL_SHM_DOMAINS).map_err(from_shmem_error)?)
                     .map_err(from_shmem_error)?
             ),
+            #[cfg(test)]
             FtlMemory::Test { domains, .. } => Box::new(domains.as_slice())
         })
     }
@@ -93,6 +86,7 @@ impl FtlMemory {
                 Array::new(Object::open(FTL_SHM_FORWARDED).map_err(from_shmem_error)?)
                     .map_err(from_shmem_error)?
             ),
+            #[cfg(test)]
             FtlMemory::Test { upstreams, .. } => Box::new(upstreams.as_slice())
         })
     }
@@ -108,6 +102,7 @@ impl FtlMemory {
                 Array::new(Object::open(FTL_SHM_QUERIES).map_err(from_shmem_error)?)
                     .map_err(from_shmem_error)?
             ),
+            #[cfg(test)]
             FtlMemory::Test { queries, .. } => Box::new(queries.as_slice())
         })
     }
@@ -117,8 +112,10 @@ impl FtlMemory {
         Ok(match self {
             FtlMemory::Production => FtlStrings::Production(
                 Array::new(Object::open(FTL_SHM_STRINGS).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?
+                    .map_err(from_shmem_error)?,
+                PhantomData
             ),
+            #[cfg(test)]
             FtlMemory::Test { strings, .. } => FtlStrings::Test(&strings)
         })
     }
@@ -133,6 +130,7 @@ impl FtlMemory {
                 Map::new(Object::open(FTL_SHM_COUNTERS).map_err(from_shmem_error)?)
                     .map_err(from_shmem_error)?
             ),
+            #[cfg(test)]
             FtlMemory::Test { counters, .. } => Box::new(counters)
         })
     }

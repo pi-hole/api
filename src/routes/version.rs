@@ -73,7 +73,7 @@ fn parse_web_version(version_str: &str) -> Result<Version, Error> {
     let version_split: Vec<&str> = version_str.trim_right_matches("\n").split(" ").collect();
 
     if version_split.len() != 3 {
-        return Err(ErrorKind::Unknown.into());
+        return Err(Error::from(ErrorKind::Unknown));
     }
 
     Ok(Version {
@@ -115,7 +115,7 @@ fn parse_git_version(git_version: &str, branch: &str) -> Result<Version, Error> 
 
     // Could include "-dirty", which would make the length equal 4
     if split.len() < 3 {
-        return Err(ErrorKind::Unknown.into());
+        return Err(Error::from(ErrorKind::Unknown));
     }
 
     // Only set the tag if this is the tagged commit (we are 0 commits after the
@@ -130,7 +130,8 @@ fn parse_git_version(git_version: &str, branch: &str) -> Result<Version, Error> 
     })
 }
 
-#[derive(Debug, PartialEq, Serialize, Default)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Serialize, Default)]
 struct Version {
     tag: String,
     branch: String,

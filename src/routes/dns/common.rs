@@ -48,7 +48,7 @@ pub fn reload_gravity(list: List, env: &Env) -> Result<(), Error> {
         .arg(match list {
             List::White => "--whitelist-only",
             List::Black => "--blacklist-only",
-            _ => return Err(ErrorKind::Unknown.into())
+            _ => return Err(Error::from(ErrorKind::Unknown))
         })
         // Ignore stdin, stdout, and stderr
         .stdin(Stdio::null())
@@ -61,6 +61,6 @@ pub fn reload_gravity(list: List, env: &Env) -> Result<(), Error> {
     if status.success() {
         Ok(())
     } else {
-        Err(ErrorKind::GravityError.into())
+        Err(Error::from(ErrorKind::GravityError))
     }
 }

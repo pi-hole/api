@@ -8,13 +8,16 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use ftl::memory_model::MAGIC_BYTE;
 use ftl::FtlQueryType;
 use libc;
 
+#[cfg(test)]
+use ftl::memory_model::MAGIC_BYTE;
+
 /// The query struct stored in shared memory
 #[repr(C)]
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(test, derive(PartialEq, Debug))]
+#[derive(Copy, Clone)]
 pub struct FtlQuery {
     magic: libc::c_uchar,
     pub timestamp: libc::time_t,
@@ -37,6 +40,7 @@ pub struct FtlQuery {
 }
 
 impl FtlQuery {
+    #[cfg(test)]
     pub fn new(
         id: usize,
         timestamp: usize,
@@ -76,7 +80,9 @@ impl FtlQuery {
 
 /// The statuses an FTL query can have
 #[repr(u8)]
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(test, derive(Debug))]
+#[derive(Copy, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum FtlQueryStatus {
     Unknown,
     Gravity,
@@ -89,7 +95,9 @@ pub enum FtlQueryStatus {
 
 /// The reply types an FTL query can have
 #[repr(u8)]
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(test, derive(PartialEq, Debug))]
+#[derive(Copy, Clone)]
+#[allow(dead_code)]
 pub enum FtlQueryReplyType {
     Unknown,
     NODATA,
@@ -102,7 +110,9 @@ pub enum FtlQueryReplyType {
 
 /// The DNSSEC reply types an FTL query can have
 #[repr(u8)]
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(test, derive(PartialEq, Debug))]
+#[derive(Copy, Clone)]
+#[allow(dead_code)]
 pub enum FtlDnssecType {
     Unspecified,
     Secure,

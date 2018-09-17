@@ -11,7 +11,7 @@
 extern crate serde_json;
 
 use env::PiholeFile;
-use ftl::FtlMemory;
+use ftl::{FtlCounters, FtlMemory};
 use rocket::http::{ContentType, Header, Method, Status};
 use setup;
 use std::collections::HashMap;
@@ -155,7 +155,14 @@ impl TestBuilder {
             should_auth: true,
             body_data: None,
             ftl_data: HashMap::new(),
-            ftl_memory: FtlMemory::default(),
+            ftl_memory: FtlMemory::Test {
+                clients: Vec::new(),
+                domains: Vec::new(),
+                upstreams: Vec::new(),
+                queries: Vec::new(),
+                strings: HashMap::new(),
+                counters: FtlCounters::default()
+            },
             test_config_builder: TestEnvBuilder::new(),
             expected_json: json!({
                 "data": [],

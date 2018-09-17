@@ -8,9 +8,11 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use ftl::memory_model::MAGIC_BYTE;
 use ftl::FtlStrings;
 use libc;
+
+#[cfg(test)]
+use ftl::memory_model::MAGIC_BYTE;
 
 /// The upstream (forward destination) struct stored in shared memory
 #[repr(C)]
@@ -25,6 +27,7 @@ pub struct FtlUpstream {
 }
 
 impl FtlUpstream {
+    #[cfg(test)]
     pub fn new(
         query_count: usize,
         failed_count: usize,

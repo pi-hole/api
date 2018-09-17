@@ -52,7 +52,7 @@ fn write_header(config_file: &mut BufWriter<File>) -> Result<(), Error> {
     config_file
         .write_all(DNSMASQ_HEADER.as_bytes())
         .context(ErrorKind::DnsmasqConfigWrite)
-        .map_err(|e| e.into())
+        .map_err(Error::from)
 }
 
 /// Write the upstream DNS servers

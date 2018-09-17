@@ -14,7 +14,8 @@ use rocket::request::FromFormValue;
 
 /// The FTL counters stored in shared memory
 #[repr(C)]
-#[derive(Copy, Clone, Default)]
+#[cfg_attr(test, derive(Default))]
+#[derive(Copy, Clone)]
 pub struct FtlCounters {
     pub total_queries: libc::c_int,
     pub blocked_queries: libc::c_int,

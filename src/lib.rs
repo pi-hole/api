@@ -32,7 +32,7 @@ extern crate get_if_addrs;
 extern crate hostname;
 extern crate tempfile;
 
-pub use setup::*;
+pub use setup::start;
 
 mod auth;
 mod env;

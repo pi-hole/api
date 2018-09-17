@@ -64,12 +64,12 @@ impl List {
     pub fn add(&self, domain: &str, env: &Env) -> Result<(), Error> {
         // Check if it's a valid domain before doing anything
         if !self.accepts(domain) {
-            return Err(ErrorKind::InvalidDomain.into());
+            return Err(Error::from(ErrorKind::InvalidDomain));
         }
 
         // Check if the domain is already in the list
         if self.get(env)?.contains(&domain.to_owned()) {
-            return Err(ErrorKind::AlreadyExists.into());
+            return Err(Error::from(ErrorKind::AlreadyExists));
         }
 
         // Open the list file in append mode (and create it if it doesn't exist)
@@ -104,13 +104,13 @@ impl List {
     pub fn remove(&self, domain: &str, env: &Env) -> Result<(), Error> {
         // Check if it's a valid domain before doing anything
         if !self.accepts(domain) {
-            return Err(ErrorKind::InvalidDomain.into());
+            return Err(Error::from(ErrorKind::InvalidDomain));
         }
 
         // Check if the domain is not in the list
         let domains = self.get(env)?;
         if !domains.contains(&domain.to_owned()) {
-            return Err(ErrorKind::NotFound.into());
+            return Err(Error::from(ErrorKind::NotFound));
         }
 
         // Open the list file (and create it if it doesn't exist). This will truncate

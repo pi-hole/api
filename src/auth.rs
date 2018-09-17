@@ -30,6 +30,8 @@ pub struct AuthData {
 }
 
 impl User {
+    /// Try to authenticate the user using `input_key`. If it succeeds, a new
+    /// cookie will be created.
     fn authenticate(request: &Request, input_key: &str) -> request::Outcome<Self, Error> {
         let auth_data: State<AuthData> = match request.guard().succeeded() {
             Some(auth_data) => auth_data,
@@ -48,6 +50,8 @@ impl User {
         }
     }
 
+    /// Try to get the user ID from cookies. An error is returned if none are
+    /// found.
     fn check_cookies(mut cookies: Cookies) -> request::Outcome<Self, Error> {
         cookies
             .get_private(USER_ATTR)
@@ -59,6 +63,7 @@ impl User {
             ))
     }
 
+    /// Log the user out by removing the cookie
     fn logout(&self, mut cookies: Cookies) {
         cookies.remove_private(Cookie::named(USER_ATTR));
     }

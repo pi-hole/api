@@ -9,12 +9,15 @@
 // Please see LICENSE file for your rights under this license.
 
 use ftl::memory_model::strings::FtlStrings;
-use ftl::memory_model::MAGIC_BYTE;
 use libc;
+
+#[cfg(test)]
+use ftl::memory_model::MAGIC_BYTE;
 
 /// The client struct stored in shared memory.
 #[repr(C)]
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(test, derive(PartialEq, Debug))]
+#[derive(Copy, Clone)]
 pub struct FtlClient {
     magic: libc::c_uchar,
     pub query_count: libc::c_int,
@@ -25,6 +28,7 @@ pub struct FtlClient {
 }
 
 impl FtlClient {
+    #[cfg(test)]
     pub fn new(
         query_count: usize,
         blocked_count: usize,
@@ -61,6 +65,7 @@ impl FtlClient {
     }
 }
 
+#[cfg(test)]
 impl Default for FtlClient {
     fn default() -> Self {
         FtlClient {

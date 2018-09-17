@@ -111,7 +111,7 @@ pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
     let settings: DnsSettings = data.into_inner();
 
     if !settings.is_valid() {
-        return Err(ErrorKind::InvalidSettingValue.into());
+        return Err(Error::from(ErrorKind::InvalidSettingValue));
     }
 
     // Delete previous upstream DNS entries
