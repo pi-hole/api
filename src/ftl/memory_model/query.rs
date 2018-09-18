@@ -42,7 +42,7 @@ pub struct FtlQuery {
 impl FtlQuery {
     #[cfg(test)]
     pub fn new(
-        id: usize,
+        id: isize,
         timestamp: usize,
         time_index: usize,
         response_time: usize,

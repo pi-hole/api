@@ -37,7 +37,7 @@ pub fn history_params(
 /// Represents the possible GET parameters on `/stats/history`
 #[derive(FromForm)]
 pub struct HistoryParams {
-    cursor: Option<usize>,
+    cursor: Option<isize>,
     from: Option<u64>,
     until: Option<u64>,
     domain: Option<String>,
@@ -177,7 +177,7 @@ fn skip_to_cursor<'a>(
     params: &HistoryParams
 ) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(cursor) = params.cursor {
-        Box::new(queries_iter.skip_while(move |query| query.id as usize != cursor))
+        Box::new(queries_iter.skip_while(move |query| query.id as isize != cursor))
     } else {
         queries_iter
     }
