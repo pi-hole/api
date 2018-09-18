@@ -66,8 +66,10 @@ impl Default for HistoryParams {
 fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Reply {
     // Check if query details are private
     if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)? >= FtlPrivacyLevel::Maximum {
+        // `None::<()>` represents `null` in JSON. It needs the type parameter because
+        // it doesn't know what type of Option it is (`Option<T>`)
         return reply_data(json!({
-            "cursor": 0,
+            "cursor": None::<()>,
             "history": []
         }));
     }
@@ -113,18 +115,23 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
     let queries_iter = filter_domain(queries_iter, &params, ftl_memory)?;
     let queries_iter = filter_client(queries_iter, &params, ftl_memory)?;
 
-    // Apply the limit
-    let queries_iter = queries_iter.take(params.limit.unwrap_or(100));
+    // Get the limit
+    let limit = params.limit.unwrap_or(100);
 
-    // Collect the queries so we can get the next cursor
-    let history: Vec<&FtlQuery> = queries_iter.collect();
+    // Apply the limit (plus one to get the cursor) and collect the queries
+    let history: Vec<&FtlQuery> = queries_iter.take(limit + 1).collect();
 
-    // Get the next cursor from the last query returned
-    let next_cursor = history.last().map(|query| query.id - 1).unwrap_or_default();
+    // Get the next cursor from the the "limit+1"-th query, or
+    // the query at index "limit". If no such query exists, the cursor will be None
+    // (null in JSON).
+    let next_cursor = history.get(limit).map(|query| query.id);
 
     // Map the queries into the output format
     let history: Vec<Value> = history
         .into_iter()
+        // Only take up to the limit this time, not including the last query,
+        // because it was just used to get the cursor
+        .take(limit)
         .map(map_query_to_json(ftl_memory)?)
         .collect();
 
@@ -537,7 +544,7 @@ mod test {
             .ftl_memory(ftl_memory)
             .expect_json(json!({
                 "history": history,
-                "cursor": 0
+                "cursor": None::<()>
             }))
             .test();
     }
@@ -577,7 +584,7 @@ mod test {
             .ftl_memory(test_memory())
             .expect_json(json!({
                 "history": [],
-                "cursor": 0
+                "cursor": None::<()>
             }))
             .test();
     }
