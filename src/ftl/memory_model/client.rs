@@ -16,8 +16,8 @@ use ftl::memory_model::MAGIC_BYTE;
 
 /// The client struct stored in shared memory.
 #[repr(C)]
-#[cfg_attr(test, derive(PartialEq, Debug))]
-#[derive(Copy, Clone)]
+#[cfg_attr(test, derive(Debug))]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct FtlClient {
     magic: libc::c_uchar,
     pub query_count: libc::c_int,

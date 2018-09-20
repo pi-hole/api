@@ -120,6 +120,8 @@ mod test {
                 },
                 clients: Vec::new(),
                 domains: Vec::new(),
+                over_time: Vec::new(),
+                over_time_clients: Vec::new(),
                 queries: Vec::new()
             })
             .expect_json(json!({
@@ -155,6 +157,8 @@ mod test {
                 },
                 clients: Vec::new(),
                 domains: Vec::new(),
+                over_time: Vec::new(),
+                over_time_clients: Vec::new(),
                 queries: Vec::new()
             })
             .expect_json(json!({

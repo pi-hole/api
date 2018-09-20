@@ -213,6 +213,8 @@ mod test {
                 FtlDomain::new(10, 9, 5, FtlRegexMatch::Unknown),
             ],
             clients: Vec::new(),
+            over_time: Vec::new(),
+            over_time_clients: Vec::new(),
             strings,
             upstreams: Vec::new(),
             queries: Vec::new(),

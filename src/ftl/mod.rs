@@ -12,9 +12,6 @@ mod memory_model;
 mod shared_memory;
 mod socket;
 
-pub use self::memory_model::{
-    FtlClient, FtlCounters, FtlDnssecType, FtlDomain, FtlQuery, FtlQueryReplyType, FtlQueryStatus,
-    FtlQueryType, FtlRegexMatch, FtlStrings, FtlUpstream
-};
+pub use self::memory_model::*;
 pub use self::shared_memory::FtlMemory;
 pub use self::socket::{FtlConnection, FtlConnectionType};

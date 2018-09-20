@@ -158,8 +158,10 @@ impl TestBuilder {
             ftl_memory: FtlMemory::Test {
                 clients: Vec::new(),
                 domains: Vec::new(),
-                upstreams: Vec::new(),
+                over_time: Vec::new(),
+                over_time_clients: Vec::new(),
                 queries: Vec::new(),
+                upstreams: Vec::new(),
                 strings: HashMap::new(),
                 counters: FtlCounters::default()
             },

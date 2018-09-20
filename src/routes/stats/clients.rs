@@ -10,12 +10,12 @@
 
 use auth::User;
 use env::Env;
-use ftl::{FtlConnectionType, FtlMemory};
+use ftl::FtlMemory;
 use rocket::State;
 use rocket_contrib::Value;
 use routes::stats::common::{remove_excluded_clients, remove_hidden_clients};
 use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel};
-use util::{reply_data, Error, ErrorKind, Reply};
+use util::{reply_data, Reply};
 
 /// Get the client information with default parameters
 #[get("/stats/clients")]
@@ -95,44 +95,6 @@ pub fn get_clients(ftl_memory: &FtlMemory, env: &Env, params: ClientParams) -> R
     )
 }
 
-// TODO: remove this and the Client struct when over_time_clients is rewritten
-// to use shared memory
-pub fn get_clients_socket(ftl: &FtlConnectionType) -> Result<Vec<Client>, Error> {
-    let mut con = ftl.connect("client-names")?;
-
-    // Create a 4KiB string buffer
-    let mut str_buffer = [0u8; 4096];
-    let mut client_data = Vec::new();
-
-    loop {
-        // Get the hostname, unless we are at the end of the list
-        let name = match con.read_str(&mut str_buffer) {
-            Ok(name) => name.to_owned(),
-            Err(e) => {
-                // Check if we received the EOM
-                if e.kind() == ErrorKind::FtlEomError {
-                    break;
-                }
-
-                // Unknown read error
-                return Err(e);
-            }
-        };
-
-        let ip = con.read_str(&mut str_buffer)?.to_owned();
-
-        client_data.push(Client { name, ip });
-    }
-
-    Ok(client_data)
-}
-
-#[derive(Serialize)]
-pub struct Client {
-    name: String,
-    ip: String
-}
-
 #[cfg(test)]
 mod test {
     use env::PiholeFile;
@@ -162,6 +124,8 @@ mod test {
                 FtlClient::new(0, 0, 8, None),
             ],
             domains: Vec::new(),
+            over_time: Vec::new(),
+            over_time_clients: Vec::new(),
             strings,
             upstreams: Vec::new(),
             queries: Vec::new(),

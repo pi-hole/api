@@ -145,6 +145,8 @@ mod test {
         FtlMemory::Test {
             queries: test_queries(),
             domains: test_domains(),
+            over_time: Vec::new(),
+            over_time_clients: Vec::new(),
             strings: test_strings(),
             clients: Vec::new(),
             upstreams: Vec::new(),

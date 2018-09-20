@@ -427,6 +427,8 @@ mod test {
             clients: test_clients(),
             counters: test_counters(),
             domains: test_domains(),
+            over_time: Vec::new(),
+            over_time_clients: Vec::new(),
             strings: test_strings(),
             queries: test_queries(),
             upstreams: test_upstreams()

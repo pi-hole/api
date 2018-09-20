@@ -8,8 +8,8 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use ftl::memory_model::FtlUpstream;
-use ftl::{FtlClient, FtlCounters, FtlDomain, FtlQuery, FtlStrings};
+use ftl::{FtlClient, FtlCounters, FtlDomain, FtlOverTime, FtlQuery, FtlStrings, FtlUpstream};
+use libc;
 use shmem::{self, Array, Map, Object};
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -21,6 +21,8 @@ use std::collections::HashMap;
 const FTL_SHM_CLIENTS: &str = "/FTL-clients";
 const FTL_SHM_DOMAINS: &str = "/FTL-domains";
 const FTL_SHM_FORWARDED: &str = "/FTL-forwarded";
+const FTL_SHM_OVERTIME: &str = "/FTL-overTime";
+const FTL_SHM_OVERTIME_CLIENT: &str = "/FTL-client-{}";
 const FTL_SHM_QUERIES: &str = "/FTL-queries";
 const FTL_SHM_STRINGS: &str = "/FTL-strings";
 const FTL_SHM_COUNTERS: &str = "/FTL-counters";
@@ -35,6 +37,8 @@ pub enum FtlMemory {
     Test {
         clients: Vec<FtlClient>,
         domains: Vec<FtlDomain>,
+        over_time: Vec<FtlOverTime>,
+        over_time_clients: Vec<Vec<libc::c_int>>,
         upstreams: Vec<FtlUpstream>,
         queries: Vec<FtlQuery>,
         strings: HashMap<usize, String>,
@@ -72,6 +76,43 @@ impl FtlMemory {
             ),
             #[cfg(test)]
             FtlMemory::Test { domains, .. } => Box::new(domains.as_slice())
+        })
+    }
+
+    /// Get the FTL shared memory overTime data. The resulting trait object can
+    /// dereference into `&[FtlOverTime]`.
+    pub fn over_time<'test>(
+        &'test self
+    ) -> Result<Box<dyn Deref<Target = [FtlOverTime]> + 'test>, Error> {
+        Ok(match self {
+            FtlMemory::Production => Box::new(
+                // Load the shared memory
+                Array::new(Object::open(FTL_SHM_OVERTIME).map_err(from_shmem_error)?)
+                    .map_err(from_shmem_error)?
+            ),
+            #[cfg(test)]
+            FtlMemory::Test { over_time, .. } => Box::new(over_time.as_slice())
+        })
+    }
+
+    /// Get the FTL shared memory overTime client data. The resulting trait
+    /// object can dereference into `&[libc::c_int]`.
+    pub fn over_time_client<'test>(
+        &'test self,
+        client_id: usize
+    ) -> Result<Box<dyn Deref<Target = [libc::c_int]> + 'test>, Error> {
+        Ok(match self {
+            FtlMemory::Production => Box::new(
+                // Load the shared memory
+                Array::new(
+                    Object::open(format!("{}{}", FTL_SHM_OVERTIME_CLIENT, client_id))
+                        .map_err(from_shmem_error)?
+                ).map_err(from_shmem_error)?
+            ),
+            #[cfg(test)]
+            FtlMemory::Test {
+                over_time_clients, ..
+            } => Box::new(over_time_clients[client_id].as_slice())
         })
     }
 
