@@ -138,7 +138,7 @@ mod test {
     use testing::TestBuilder;
 
     /// There are 6 clients, two inactive, one hidden, and two with names.
-    /// There are 3 overTime slots, with cooresponding client overTime data
+    /// There are 3 overTime slots, with corresponding client overTime data
     fn test_data() -> FtlMemory {
         let mut strings = HashMap::new();
         strings.insert(1, "10.1.1.1".to_owned());
