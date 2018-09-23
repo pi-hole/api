@@ -15,8 +15,10 @@ use rocket::State;
 use rocket_contrib::Value;
 use routes::stats::common::{remove_excluded_clients, remove_hidden_clients};
 use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel};
-use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    collections::HashMap,
+    time::{SystemTime, UNIX_EPOCH}
+};
 use util::{reply_data, Reply};
 
 /// Get the client queries over time

@@ -11,8 +11,10 @@
 use env::PiholeFile;
 use failure::Fail;
 use rocket::config::LoggingLevel;
-use std::fs::File;
-use std::io::{self, prelude::*};
+use std::{
+    fs::File,
+    io::{self, prelude::*}
+};
 use toml;
 use util::{Error, ErrorKind};
 

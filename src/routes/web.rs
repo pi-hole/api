@@ -8,10 +8,8 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use rocket::http::ContentType;
-use rocket::response::Response;
-use std::io::Cursor;
-use std::path::PathBuf;
+use rocket::{http::ContentType, response::Response};
+use std::{io::Cursor, path::PathBuf};
 
 #[derive(RustEmbed)]
 #[folder = "web/"]

@@ -13,8 +13,7 @@ use failure::ResultExt;
 use ftl::FtlConnectionType;
 use rocket::State;
 use routes::web::WebAssets;
-use std::io::Read;
-use std::str;
+use std::{io::Read, str};
 use util::{reply_data, Error, ErrorKind, Reply};
 
 /// Get the versions of all Pi-hole systems

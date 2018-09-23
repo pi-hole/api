@@ -9,14 +9,18 @@
 // Please see LICENSE file for your rights under this license.
 
 use failure::{Backtrace, Context, Fail};
-use rocket::http::Status;
-use rocket::request;
-use rocket::response::{self, Responder, Response};
-use rocket::{Outcome, Request};
+use rocket::{
+    http::Status,
+    request,
+    response::{self, Responder, Response},
+    Outcome, Request
+};
 use rocket_contrib::{Json, Value};
 use serde::Serialize;
-use std::env;
-use std::fmt::{self, Display};
+use std::{
+    env,
+    fmt::{self, Display}
+};
 
 /// Type alias for the most common return type of the API methods
 pub type Reply = Result<SetStatus<Json<Value>>, Error>;

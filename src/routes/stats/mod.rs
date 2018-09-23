@@ -20,13 +20,7 @@ mod top_clients;
 mod top_domains;
 mod upstreams;
 
-pub use self::clients::*;
-pub use self::history::*;
-pub use self::over_time_clients::*;
-pub use self::over_time_history::*;
-pub use self::query_types::*;
-pub use self::recent_blocked::*;
-pub use self::summary::*;
-pub use self::top_clients::*;
-pub use self::top_domains::*;
-pub use self::upstreams::*;
+pub use self::{
+    clients::*, history::*, over_time_clients::*, over_time_history::*, query_types::*,
+    recent_blocked::*, summary::*, top_clients::*, top_domains::*, upstreams::*
+};

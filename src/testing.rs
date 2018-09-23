@@ -14,10 +14,11 @@ use env::PiholeFile;
 use ftl::{FtlCounters, FtlMemory};
 use rocket::http::{ContentType, Header, Method, Status};
 use setup;
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::SeekFrom;
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{prelude::*, SeekFrom}
+};
 use tempfile::NamedTempFile;
 
 /// Add the end of message byte to the data

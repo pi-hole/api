@@ -11,8 +11,7 @@
 use env::{Env, PiholeFile};
 use failure::ResultExt;
 use routes::dns::common::{is_valid_domain, is_valid_regex};
-use std::io::prelude::*;
-use std::io::{BufReader, BufWriter};
+use std::io::{prelude::*, BufReader, BufWriter};
 use util::{Error, ErrorKind};
 
 pub enum List {

@@ -15,9 +15,4 @@ mod get_ftl;
 mod get_ftldb;
 mod get_network;
 
-pub use self::common::*;
-pub use self::dns::*;
-pub use self::get_dhcp::*;
-pub use self::get_ftl::*;
-pub use self::get_ftldb::*;
-pub use self::get_network::*;
+pub use self::{common::*, dns::*, get_dhcp::*, get_ftl::*, get_ftldb::*, get_network::*};

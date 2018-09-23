@@ -11,8 +11,10 @@
 use env::{Env, PiholeFile};
 use failure::ResultExt;
 use settings::{ConfigEntry, SetupVarsEntry};
-use std::fs::File;
-use std::io::{BufWriter, Write};
+use std::{
+    fs::File,
+    io::{BufWriter, Write}
+};
 use util::{Error, ErrorKind};
 
 const DNSMASQ_HEADER: &str = "\
@@ -167,8 +169,10 @@ mod tests {
         open_config, write_dns_options, write_header, write_lists, write_servers, DNSMASQ_HEADER
     };
     use env::{Config, Env, PiholeFile};
-    use std::fs::File;
-    use std::io::{BufWriter, Write};
+    use std::{
+        fs::File,
+        io::{BufWriter, Write}
+    };
     use testing::TestEnvBuilder;
     use util::Error;
 

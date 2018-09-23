@@ -11,8 +11,7 @@
 use ftl::{FtlClient, FtlCounters, FtlDomain, FtlOverTime, FtlQuery, FtlStrings, FtlUpstream};
 use libc;
 use shmem::{self, Array, Map, Object};
-use std::marker::PhantomData;
-use std::ops::Deref;
+use std::{marker::PhantomData, ops::Deref};
 use util::{Error, ErrorKind};
 
 #[cfg(test)]

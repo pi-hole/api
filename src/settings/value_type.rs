@@ -10,9 +10,11 @@
 
 use get_if_addrs::get_if_addrs;
 use regex::Regex;
-use std::net::{Ipv4Addr, Ipv6Addr};
-use std::path::Path;
-use std::str::FromStr;
+use std::{
+    net::{Ipv4Addr, Ipv6Addr},
+    path::Path,
+    str::FromStr
+};
 
 /// Categories of allowable values, shared across settings files
 #[cfg_attr(test, derive(Debug))]

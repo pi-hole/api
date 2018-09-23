@@ -9,8 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 use auth::User;
-use env::Env;
-use env::PiholeFile;
+use env::{Env, PiholeFile};
 use ftl::{FtlDomain, FtlMemory};
 use rocket::State;
 use rocket_contrib::Value;

@@ -8,10 +8,12 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use rocket::http::{Cookie, Cookies};
-use rocket::outcome::IntoOutcome;
-use rocket::request::{self, FromRequest, Request, State};
-use rocket::Outcome;
+use rocket::{
+    http::{Cookie, Cookies},
+    outcome::IntoOutcome,
+    request::{self, FromRequest, Request, State},
+    Outcome
+};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use util::{reply_success, Error, ErrorKind, Reply};
 

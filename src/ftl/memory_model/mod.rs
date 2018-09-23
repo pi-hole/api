@@ -23,10 +23,12 @@ mod query;
 mod strings;
 mod upstream;
 
-pub use self::client::FtlClient;
-pub use self::counters::{FtlCounters, FtlQueryType};
-pub use self::domain::{FtlDomain, FtlRegexMatch};
-pub use self::over_time::FtlOverTime;
-pub use self::query::{FtlDnssecType, FtlQuery, FtlQueryReplyType, FtlQueryStatus};
-pub use self::strings::FtlStrings;
-pub use self::upstream::FtlUpstream;
+pub use self::{
+    client::FtlClient,
+    counters::{FtlCounters, FtlQueryType},
+    domain::{FtlDomain, FtlRegexMatch},
+    over_time::FtlOverTime,
+    query::{FtlDnssecType, FtlQuery, FtlQueryReplyType, FtlQueryStatus},
+    strings::FtlStrings,
+    upstream::FtlUpstream
+};

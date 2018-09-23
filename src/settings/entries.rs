@@ -8,14 +8,14 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::Env;
-use env::PiholeFile;
+use env::{Env, PiholeFile};
 use failure::{Fail, ResultExt};
 use settings::value_type::ValueType;
-use std::borrow::Cow;
-use std::io::prelude::*;
-use std::io::{self, BufReader, BufWriter};
-use std::str::FromStr;
+use std::{
+    borrow::Cow,
+    io::{self, prelude::*, BufReader, BufWriter},
+    str::FromStr
+};
 use util::{Error, ErrorKind};
 
 /// Common functions for a configuration entry

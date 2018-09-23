@@ -12,6 +12,8 @@ mod memory_model;
 mod shared_memory;
 mod socket;
 
-pub use self::memory_model::*;
-pub use self::shared_memory::FtlMemory;
-pub use self::socket::{FtlConnection, FtlConnectionType};
+pub use self::{
+    memory_model::*,
+    shared_memory::FtlMemory,
+    socket::{FtlConnection, FtlConnectionType}
+};

@@ -10,9 +10,11 @@
 
 use env::{Config, PiholeFile};
 use failure::ResultExt;
-use std::fs::{File, OpenOptions};
-use std::os::unix::fs::OpenOptionsExt;
-use std::path::Path;
+use std::{
+    fs::{File, OpenOptions},
+    os::unix::fs::OpenOptionsExt,
+    path::Path
+};
 use util::{Error, ErrorKind};
 
 #[cfg(test)]

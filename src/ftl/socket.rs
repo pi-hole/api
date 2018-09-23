@@ -13,8 +13,10 @@ use rmp::{
     decode::{self, DecodeStringError, ValueReadError},
     Marker
 };
-use std::io::{prelude::*, BufReader};
-use std::os::unix::net::UnixStream;
+use std::{
+    io::{prelude::*, BufReader},
+    os::unix::net::UnixStream
+};
 use util::{Error, ErrorKind};
 
 #[cfg(test)]

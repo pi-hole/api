@@ -13,7 +13,9 @@ mod entries;
 mod privacy_level;
 mod value_type;
 
-pub use self::dnsmasq::generate_dnsmasq_config;
-pub use self::entries::{ConfigEntry, FtlConfEntry, SetupVarsEntry};
-pub use self::privacy_level::FtlPrivacyLevel;
-pub use self::value_type::ValueType;
+pub use self::{
+    dnsmasq::generate_dnsmasq_config,
+    entries::{ConfigEntry, FtlConfEntry, SetupVarsEntry},
+    privacy_level::FtlPrivacyLevel,
+    value_type::ValueType
+};

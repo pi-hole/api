@@ -10,8 +10,7 @@
 
 use libc;
 use shmem::Array;
-use std::ffi::CStr;
-use std::marker::PhantomData;
+use std::{ffi::CStr, marker::PhantomData};
 
 #[cfg(test)]
 use std::collections::HashMap;
