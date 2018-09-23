@@ -219,7 +219,6 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/overTime/clients")
             .ftl_memory(test_data())
-            // Abuse From<&str> for f64 and use all overTime data
             .file(PiholeFile::FtlConfig, "MAXLOGAGE=0")
             .expect_json(json!({
                 "clients": [
