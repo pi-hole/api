@@ -8,7 +8,6 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use ftl::FtlQueryType;
 use libc;
 
 #[cfg(test)]
@@ -28,12 +27,6 @@ pub struct FtlOverTime {
 }
 
 impl FtlOverTime {
-    /// Get the number of queries with the specified query type in this time
-    /// slot
-    pub fn query_type(&self, query_type: FtlQueryType) -> usize {
-        self.query_types[query_type as usize] as usize
-    }
-
     #[cfg(test)]
     pub fn new(
         timestamp: usize,

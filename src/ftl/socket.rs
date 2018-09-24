@@ -137,9 +137,4 @@ impl<'test> FtlConnection<'test> {
     pub fn read_str<'a>(&mut self, buffer: &'a mut [u8]) -> Result<&'a str, Error> {
         FtlConnection::handle_eom_str(decode::read_str(&mut self.0, buffer))
     }
-
-    /// Read in the length of the upcoming map (unsigned int)
-    pub fn read_map_len(&mut self) -> Result<u32, Error> {
-        FtlConnection::handle_eom_value(decode::read_map_len(&mut self.0))
-    }
 }
