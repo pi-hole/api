@@ -17,59 +17,46 @@ use util::{reply_data, Reply};
 /// Get the upstreams
 #[get("/stats/upstreams")]
 pub fn upstreams(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
-    let upstreams = ftl_memory.upstreams()?;
+    let ftl_upstreams = ftl_memory.upstreams()?;
     let strings = ftl_memory.strings()?;
     let counters = ftl_memory.counters()?;
 
     // Get an array of valid upstream references (FTL allocates more than it uses)
-    let mut upstreams: Vec<&FtlUpstream> = upstreams
+    let mut ftl_upstreams: Vec<&FtlUpstream> = ftl_upstreams
         .iter()
         .take(counters.total_upstreams as usize)
+        // Remove upstreams with a zero count
+        .filter(|upstream| upstream.query_count > 0)
         .collect();
-
-    // Remove upstreams with a zero count
-    upstreams.retain(|upstream| upstream.query_count > 0);
 
     // Sort the upstreams
-    upstreams.sort_by(|a, b| b.query_count.cmp(&a.query_count));
+    ftl_upstreams.sort_by(|a, b| b.query_count.cmp(&a.query_count));
+
+    let mut upstreams: Vec<Value> = Vec::with_capacity(ftl_upstreams.len() + 2);
+
+    // Add blocklist and cache upstreams
+    upstreams.push(json!({
+        "name": "blocklist",
+        "ip": "blocklist",
+        "count": counters.blocked_queries
+    }));
+    upstreams.push(json!({
+        "name": "cache",
+        "ip": "cache",
+        "count": counters.cached_queries
+    }));
 
     // Map the upstreams into the output format
-    let mut upstreams: Vec<Value> = upstreams
-        .into_iter()
-        .map(|upstream| {
-            let ip = upstream.get_ip(&strings);
-            let name = upstream.get_name(&strings).unwrap_or_default();
+    upstreams.extend(ftl_upstreams.into_iter().map(|upstream| {
+        let ip = upstream.get_ip(&strings);
+        let name = upstream.get_name(&strings).unwrap_or_default();
 
-            json!({
-                "name": name,
-                "ip": ip,
-                "count": upstream.query_count
-            })
+        json!({
+            "name": name,
+            "ip": ip,
+            "count": upstream.query_count
         })
-        .collect();
-
-    // Add cache and blocklist upstreams
-    if counters.cached_queries > 0 {
-        upstreams.insert(
-            0,
-            json!({
-                "name": "cache",
-                "ip": "cache",
-                "count": counters.cached_queries
-            })
-        );
-    }
-
-    if counters.blocked_queries > 0 {
-        upstreams.insert(
-            0,
-            json!({
-                "name": "blocklist",
-                "ip": "blocklist",
-                "count": counters.blocked_queries
-            })
-        );
-    }
+    }));
 
     reply_data(json!({
         "upstreams": upstreams,
@@ -102,7 +89,7 @@ mod test {
     }
 
     /// Get the upstreams when there have been no blocked or cached queries
-    /// (just the real upstreams)
+    /// (they are still shown though)
     #[test]
     fn no_blocked_or_cached() {
         let (upstreams, strings) = test_upstream_data();
@@ -126,6 +113,8 @@ mod test {
             })
             .expect_json(json!({
                 "upstreams": [
+                    { "name": "blocklist", "ip": "blocklist", "count": 0 },
+                    { "name": "cache", "ip": "cache", "count": 0 },
                     { "name": "google-public-dns-a.google.com", "ip": "8.8.8.8", "count": 10 },
                     { "name": "google-public-dns-b.google.com", "ip": "8.8.4.4", "count": 4 },
                     { "name": "", "ip": "1.1.1.1", "count": 3 }
