@@ -210,3 +210,62 @@ fn default_port() -> usize {
 fn default_log_level() -> String {
     "critical".to_owned()
 }
+
+#[cfg(test)]
+mod test {
+    use super::{Config, Files, General};
+
+    #[test]
+    fn valid_config() {
+        let config = Config::default();
+        assert!(config.is_valid());
+    }
+
+    #[test]
+    fn valid_files() {
+        let files = Files::default();
+        assert!(files.is_valid());
+    }
+
+    #[test]
+    fn valid_general() {
+        let general = General::default();
+        assert!(general.is_valid());
+    }
+
+    #[test]
+    fn invalid_file() {
+        let files = Files {
+            setup_vars: "!asd?f".to_owned(),
+            ..Files::default()
+        };
+        assert!(!files.is_valid());
+    }
+
+    #[test]
+    fn invalid_general_address() {
+        let general = General {
+            address: "hello_world".to_owned(),
+            ..General::default()
+        };
+        assert!(!general.is_valid());
+    }
+
+    #[test]
+    fn invalid_general_port() {
+        let general = General {
+            port: 65536,
+            ..General::default()
+        };
+        assert!(!general.is_valid());
+    }
+
+    #[test]
+    fn invalid_general_log_level() {
+        let general = General {
+            log_level: "hello_world".to_owned(),
+            ..General::default()
+        };
+        assert!(!general.is_valid());
+    }
+}
