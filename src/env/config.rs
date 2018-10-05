@@ -9,11 +9,14 @@
 // Please see LICENSE file for your rights under this license.
 
 use env::PiholeFile;
-use failure::Fail;
+use failure::{Fail, ResultExt};
 use rocket::config::LoggingLevel;
 use std::{
     fs::File,
-    io::{self, prelude::*}
+    io::{self, prelude::*},
+    net::Ipv4Addr,
+    path::Path,
+    str::FromStr
 };
 use toml;
 use util::{Error, ErrorKind};
@@ -49,7 +52,18 @@ impl Config {
         file.read_to_string(&mut buffer)
             .map_err(|e| Error::from(e.context(ErrorKind::FileRead(config_location.to_owned()))))?;
 
-        toml::from_str(&buffer).map_err(|e| Error::from(e.context(ErrorKind::ConfigParsingError)))
+        let config = toml::from_str::<Config>(&buffer).context(ErrorKind::ConfigParsingError)?;
+
+        if config.is_valid() {
+            Ok(config)
+        } else {
+            Err(Error::from(ErrorKind::ConfigParsingError))
+        }
+    }
+
+    /// Check if the config settings are valid
+    pub fn is_valid(&self) -> bool {
+        self.general.is_valid() && self.file_locations.is_valid()
     }
 
     /// Get the configured location of a file
@@ -80,7 +94,7 @@ impl Config {
             "critical" => LoggingLevel::Critical,
             "normal" => LoggingLevel::Normal,
             "debug" => LoggingLevel::Debug,
-            // TODO: validate config on startup
+            // Should never happen, since config is validated on startup
             _ => LoggingLevel::Critical
         }
     }
@@ -126,6 +140,22 @@ impl Default for Files {
     }
 }
 
+impl Files {
+    fn is_valid(&self) -> bool {
+        [
+            &self.dnsmasq_config,
+            &self.whitelist,
+            &self.blacklist,
+            &self.regexlist,
+            &self.setup_vars,
+            &self.ftl_config,
+            &self.local_versions,
+            &self.local_branches
+        ].into_iter()
+            .all(|file| Path::new(file).is_absolute())
+    }
+}
+
 /// Create an `fn() -> String` default function for deserialization
 macro_rules! default {
     ($fn_name:ident, $variant:ident) => {
@@ -166,6 +196,16 @@ impl Default for General {
     }
 }
 
+impl General {
+    fn is_valid(&self) -> bool {
+        Ipv4Addr::from_str(&self.address).is_ok() && self.port <= 65535
+            && match self.log_level.as_str() {
+                "debug" | "normal" | "critical" => true,
+                _ => false
+            }
+    }
+}
+
 fn default_address() -> String {
     "0.0.0.0".to_owned()
 }
@@ -176,4 +216,63 @@ fn default_port() -> usize {
 
 fn default_log_level() -> String {
     "critical".to_owned()
+}
+
+#[cfg(test)]
+mod test {
+    use super::{Config, Files, General};
+
+    #[test]
+    fn valid_config() {
+        let config = Config::default();
+        assert!(config.is_valid());
+    }
+
+    #[test]
+    fn valid_files() {
+        let files = Files::default();
+        assert!(files.is_valid());
+    }
+
+    #[test]
+    fn valid_general() {
+        let general = General::default();
+        assert!(general.is_valid());
+    }
+
+    #[test]
+    fn invalid_file() {
+        let files = Files {
+            setup_vars: "!asd?f".to_owned(),
+            ..Files::default()
+        };
+        assert!(!files.is_valid());
+    }
+
+    #[test]
+    fn invalid_general_address() {
+        let general = General {
+            address: "hello_world".to_owned(),
+            ..General::default()
+        };
+        assert!(!general.is_valid());
+    }
+
+    #[test]
+    fn invalid_general_port() {
+        let general = General {
+            port: 65536,
+            ..General::default()
+        };
+        assert!(!general.is_valid());
+    }
+
+    #[test]
+    fn invalid_general_log_level() {
+        let general = General {
+            log_level: "hello_world".to_owned(),
+            ..General::default()
+        };
+        assert!(!general.is_valid());
+    }
 }
