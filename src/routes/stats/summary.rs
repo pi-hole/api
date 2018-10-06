@@ -17,7 +17,9 @@ use util::{reply_data, Reply};
 /// Get the summary data
 #[get("/stats/summary")]
 pub fn get_summary(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
-    let counters = ftl_memory.counters()?;
+    let mut lock = ftl_memory.lock()?;
+    let lock_guard = lock.read()?;
+    let counters = ftl_memory.counters(&lock_guard)?;
 
     let percent_blocked = if counters.total_queries == 0 {
         0.0
@@ -33,8 +35,8 @@ pub fn get_summary(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
             (0, 0)
         } else {
             // Only show active clients, and ignore hidden clients
-            let clients = ftl_memory.clients()?;
-            let strings = ftl_memory.strings()?;
+            let clients = ftl_memory.clients(&lock_guard)?;
+            let strings = ftl_memory.strings(&lock_guard)?;
 
             let hidden_client_count = clients
                 .iter()

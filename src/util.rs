@@ -125,7 +125,9 @@ pub enum ErrorKind {
     #[fail(display = "Failed to open shared memory: {}", _0)]
     SharedMemoryOpen(String),
     #[fail(display = "Failed to read from shared memory")]
-    SharedMemoryRead
+    SharedMemoryRead,
+    #[fail(display = "Failed to lock shared memory")]
+    SharedMemoryLock
 }
 
 impl Error {
@@ -201,7 +203,8 @@ impl ErrorKind {
             ErrorKind::RestartDnsError => "restart_dns_error",
             ErrorKind::DnsmasqConfigWrite => "dnsmasq_config_write",
             ErrorKind::SharedMemoryOpen(_) => "shared_memory_open",
-            ErrorKind::SharedMemoryRead => "shared_memory_read"
+            ErrorKind::SharedMemoryRead => "shared_memory_read",
+            ErrorKind::SharedMemoryLock => "shared_memory_lock"
         }
     }
 
@@ -225,7 +228,8 @@ impl ErrorKind {
             ErrorKind::RestartDnsError => Status::InternalServerError,
             ErrorKind::DnsmasqConfigWrite => Status::InternalServerError,
             ErrorKind::SharedMemoryOpen(_) => Status::InternalServerError,
-            ErrorKind::SharedMemoryRead => Status::InternalServerError
+            ErrorKind::SharedMemoryRead => Status::InternalServerError,
+            ErrorKind::SharedMemoryLock => Status::InternalServerError
         }
     }
 }

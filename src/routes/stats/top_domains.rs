@@ -60,7 +60,10 @@ impl Default for TopParams {
 /// Get the top domains (blocked or not)
 fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Reply {
     let blocked = params.blocked.unwrap_or(false);
-    let counters = ftl_memory.counters()?;
+
+    let mut lock = ftl_memory.lock()?;
+    let lock_guard = lock.read()?;
+    let counters = ftl_memory.counters(&lock_guard)?;
     let display_setting = SetupVarsEntry::ApiQueryLogShow.read(env)?;
 
     // Check if we are allowed to share this data (even the number of queries)
@@ -104,8 +107,8 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
         }
     }
 
-    let domains = ftl_memory.domains()?;
-    let strings = ftl_memory.strings()?;
+    let domains = ftl_memory.domains(&lock_guard)?;
+    let strings = ftl_memory.strings(&lock_guard)?;
 
     // Get an array of valid domain references (FTL allocates more than it uses)
     let mut domains: Vec<&FtlDomain> = domains

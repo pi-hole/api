@@ -57,9 +57,11 @@ pub fn get_clients(ftl_memory: &FtlMemory, env: &Env, params: ClientParams) -> R
         return reply_data([0; 0]);
     }
 
-    let strings = ftl_memory.strings()?;
-    let counters = ftl_memory.counters()?;
-    let clients = ftl_memory.clients()?;
+    let mut lock = ftl_memory.lock()?;
+    let lock_guard = lock.read()?;
+    let strings = ftl_memory.strings(&lock_guard)?;
+    let counters = ftl_memory.counters(&lock_guard)?;
+    let clients = ftl_memory.clients(&lock_guard)?;
 
     // Get an array of valid client references (FTL allocates more than it uses)
     let mut clients = clients

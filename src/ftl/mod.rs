@@ -9,11 +9,13 @@
 // Please see LICENSE file for your rights under this license.
 
 mod memory_model;
+mod shared_lock;
 mod shared_memory;
 mod socket;
 
 pub use self::{
     memory_model::*,
+    shared_lock::{ShmLock, ShmLockGuard},
     shared_memory::FtlMemory,
     socket::{FtlConnection, FtlConnectionType}
 };
