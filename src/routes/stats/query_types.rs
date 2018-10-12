@@ -17,9 +17,8 @@ use util::{reply_data, Reply};
 /// Get the query types
 #[get("/stats/query_types")]
 pub fn query_types(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
-    let mut lock = ftl_memory.lock()?;
-    let lock_guard = lock.read()?;
-    let counters = ftl_memory.counters(&lock_guard)?;
+    let lock = ftl_memory.lock()?;
+    let counters = ftl_memory.counters(&lock)?;
 
     reply_data(
         FtlQueryType::variants()

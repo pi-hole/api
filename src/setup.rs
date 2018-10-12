@@ -59,7 +59,7 @@ pub fn start() -> Result<(), Error> {
             true
         ),
         FtlConnectionType::Socket,
-        FtlMemory::Production,
+        FtlMemory::production(),
         env,
         key
     ).launch();

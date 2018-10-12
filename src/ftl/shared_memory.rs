@@ -35,7 +35,9 @@ const FTL_SHM_COUNTERS: &str = "/FTL-counters";
 /// - Production mode connects to the real FTL shared memory.
 /// - Test mode uses the associated test data to mock FTL's shared memory.
 pub enum FtlMemory {
-    Production,
+    Production {
+        lock: ShmLock
+    },
     #[cfg(test)]
     Test {
         clients: Vec<FtlClient>,
@@ -50,24 +52,29 @@ pub enum FtlMemory {
 }
 
 impl FtlMemory {
-    /// Get the FTL shared memory lock. The resulting [`ShmLock`] can be used to
-    /// acquire a [`ShmLockGuard`] which is used for access the rest of
-    /// shared memory.
+    /// Create a production instance of `FtlMemory`
+    pub fn production() -> FtlMemory {
+        FtlMemory::Production {
+            lock: ShmLock::new()
+        }
+    }
+
+    /// Get the FTL shared memory lock. The resulting [`ShmLockGuard`] is used
+    /// to access the rest of shared memory.
     ///
-    /// [`ShmLock`]: ../shared_lock/enum.ShmLock.html
     /// [`ShmLockGuard`]: ../shared_lock/enum.ShmLockGuard.html
-    pub fn lock(&self) -> Result<ShmLock, Error> {
-        Ok(match self {
-            FtlMemory::Production => {
-                let lock: Map<libc::pthread_rwlock_t> = Map::new(
+    pub fn lock(&self) -> Result<ShmLockGuard, Error> {
+        match self {
+            FtlMemory::Production { lock } => {
+                let shm_lock: Map<libc::pthread_mutex_t> = Map::new(
                     Object::open(FTL_SHM_LOCK).map_err(from_shmem_error)?
                 ).map_err(from_shmem_error)?;
 
-                ShmLock::Production { lock }
+                lock.read(shm_lock)
             }
             #[cfg(test)]
-            FtlMemory::Test { .. } => ShmLock::Test
-        })
+            FtlMemory::Test { .. } => Ok(ShmLockGuard::Test)
+        }
     }
 
     /// Get the FTL shared memory client data. The resulting trait object can
@@ -77,7 +84,7 @@ impl FtlMemory {
         _lock_guard: &ShmLockGuard<'lock>
     ) -> Result<Box<dyn Deref<Target = [FtlClient]> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => Box::new(
+            FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
                 Array::new(Object::open(FTL_SHM_CLIENTS).map_err(from_shmem_error)?)
                     .map_err(from_shmem_error)?
@@ -94,7 +101,7 @@ impl FtlMemory {
         _lock_guard: &ShmLockGuard<'lock>
     ) -> Result<Box<dyn Deref<Target = [FtlDomain]> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => Box::new(
+            FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
                 Array::new(Object::open(FTL_SHM_DOMAINS).map_err(from_shmem_error)?)
                     .map_err(from_shmem_error)?
@@ -111,7 +118,7 @@ impl FtlMemory {
         _lock_guard: &ShmLockGuard<'lock>
     ) -> Result<Box<dyn Deref<Target = [FtlOverTime]> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => Box::new(
+            FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
                 Array::new(Object::open(FTL_SHM_OVERTIME).map_err(from_shmem_error)?)
                     .map_err(from_shmem_error)?
@@ -129,7 +136,7 @@ impl FtlMemory {
         _lock_guard: &ShmLockGuard<'lock>
     ) -> Result<Box<dyn Deref<Target = [libc::c_int]> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => Box::new(
+            FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
                 Array::new(
                     Object::open(format!("{}{}", FTL_SHM_OVERTIME_CLIENT, client_id))
@@ -150,7 +157,7 @@ impl FtlMemory {
         _lock_guard: &ShmLockGuard<'lock>
     ) -> Result<Box<dyn Deref<Target = [FtlUpstream]> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => Box::new(
+            FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
                 Array::new(Object::open(FTL_SHM_FORWARDED).map_err(from_shmem_error)?)
                     .map_err(from_shmem_error)?
@@ -167,7 +174,7 @@ impl FtlMemory {
         _lock_guard: &ShmLockGuard<'lock>
     ) -> Result<Box<dyn Deref<Target = [FtlQuery]> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => Box::new(
+            FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
                 Array::new(Object::open(FTL_SHM_QUERIES).map_err(from_shmem_error)?)
                     .map_err(from_shmem_error)?
@@ -183,7 +190,7 @@ impl FtlMemory {
         _lock_guard: &ShmLockGuard<'lock>
     ) -> Result<FtlStrings<'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => FtlStrings::Production(
+            FtlMemory::Production { .. } => FtlStrings::Production(
                 Array::new(Object::open(FTL_SHM_STRINGS).map_err(from_shmem_error)?)
                     .map_err(from_shmem_error)?,
                 PhantomData
@@ -200,7 +207,7 @@ impl FtlMemory {
         _lock_guard: &ShmLockGuard<'lock>
     ) -> Result<Box<dyn Deref<Target = FtlCounters> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => Box::new(
+            FtlMemory::Production { .. } => Box::new(
                 Map::new(Object::open(FTL_SHM_COUNTERS).map_err(from_shmem_error)?)
                     .map_err(from_shmem_error)?
             ),

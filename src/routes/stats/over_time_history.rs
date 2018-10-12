@@ -19,10 +19,9 @@ use util::{reply_data, Reply};
 /// Get the query history over time (separated into blocked and not blocked)
 #[get("/stats/overTime/history")]
 pub fn over_time_history(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
-    let mut lock = ftl_memory.lock()?;
-    let lock_guard = lock.read()?;
-    let counters = ftl_memory.counters(&lock_guard)?;
-    let over_time = ftl_memory.over_time(&lock_guard)?;
+    let lock = ftl_memory.lock()?;
+    let counters = ftl_memory.counters(&lock)?;
+    let over_time = ftl_memory.over_time(&lock)?;
 
     // Get the current timestamp, to be used when getting overTime data
     let timestamp = SystemTime::now()

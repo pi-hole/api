@@ -17,11 +17,10 @@ use util::{reply_data, Reply};
 /// Get the upstreams
 #[get("/stats/upstreams")]
 pub fn upstreams(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
-    let mut lock = ftl_memory.lock()?;
-    let lock_guard = lock.read()?;
-    let ftl_upstreams = ftl_memory.upstreams(&lock_guard)?;
-    let strings = ftl_memory.strings(&lock_guard)?;
-    let counters = ftl_memory.counters(&lock_guard)?;
+    let lock = ftl_memory.lock()?;
+    let ftl_upstreams = ftl_memory.upstreams(&lock)?;
+    let strings = ftl_memory.strings(&lock)?;
+    let counters = ftl_memory.counters(&lock)?;
 
     // Get an array of valid upstream references (FTL allocates more than it uses)
     let mut ftl_upstreams: Vec<&FtlUpstream> = ftl_upstreams

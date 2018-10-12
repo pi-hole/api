@@ -74,10 +74,9 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
         }));
     }
 
-    let mut lock = ftl_memory.lock()?;
-    let lock_guard = lock.read()?;
-    let counters = ftl_memory.counters(&lock_guard)?;
-    let queries = ftl_memory.queries(&lock_guard)?;
+    let lock = ftl_memory.lock()?;
+    let counters = ftl_memory.counters(&lock)?;
+    let queries = ftl_memory.queries(&lock)?;
 
     // The following code uses a boxed iterator, Box<Iterator<Item = &FtlQuery>>
     //
@@ -113,9 +112,9 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
     let queries_iter = filter_time_from(queries_iter, &params);
     let queries_iter = filter_time_until(queries_iter, &params);
     let queries_iter = filter_query_type(queries_iter, &params);
-    let queries_iter = filter_upstream(queries_iter, &params, ftl_memory, &lock_guard)?;
-    let queries_iter = filter_domain(queries_iter, &params, ftl_memory, &lock_guard)?;
-    let queries_iter = filter_client(queries_iter, &params, ftl_memory, &lock_guard)?;
+    let queries_iter = filter_upstream(queries_iter, &params, ftl_memory, &lock)?;
+    let queries_iter = filter_domain(queries_iter, &params, ftl_memory, &lock)?;
+    let queries_iter = filter_client(queries_iter, &params, ftl_memory, &lock)?;
 
     // Get the limit
     let limit = params.limit.unwrap_or(100);
@@ -134,7 +133,7 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
         // Only take up to the limit this time, not including the last query,
         // because it was just used to get the cursor
         .take(limit)
-        .map(map_query_to_json(ftl_memory, &lock_guard)?)
+        .map(map_query_to_json(ftl_memory, &lock)?)
         .collect();
 
     reply_data(json!({
