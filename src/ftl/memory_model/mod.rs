@@ -18,6 +18,7 @@ const MAGIC_BYTE: libc::c_uchar = 0x57;
 mod client;
 mod counters;
 mod domain;
+mod lock;
 mod over_time;
 mod query;
 mod strings;
@@ -27,6 +28,7 @@ pub use self::{
     client::FtlClient,
     counters::{FtlCounters, FtlQueryType},
     domain::{FtlDomain, FtlRegexMatch},
+    lock::FtlLock,
     over_time::FtlOverTime,
     query::{FtlDnssecType, FtlQuery, FtlQueryReplyType, FtlQueryStatus},
     strings::FtlStrings,

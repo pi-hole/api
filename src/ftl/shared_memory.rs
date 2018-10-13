@@ -9,8 +9,8 @@
 // Please see LICENSE file for your rights under this license.
 
 use ftl::{
-    FtlClient, FtlCounters, FtlDomain, FtlOverTime, FtlQuery, FtlStrings, FtlUpstream, ShmLock,
-    ShmLockGuard
+    memory_model::FtlLock, FtlClient, FtlCounters, FtlDomain, FtlOverTime, FtlQuery, FtlStrings,
+    FtlUpstream, ShmLock, ShmLockGuard
 };
 use libc;
 use shmem::{self, Array, Map, Object};
@@ -66,7 +66,7 @@ impl FtlMemory {
     pub fn lock(&self) -> Result<ShmLockGuard, Error> {
         match self {
             FtlMemory::Production { lock } => {
-                let shm_lock: Map<libc::pthread_mutex_t> = Map::new(
+                let shm_lock: Map<FtlLock> = Map::new(
                     Object::open(FTL_SHM_LOCK).map_err(from_shmem_error)?
                 ).map_err(from_shmem_error)?;
 

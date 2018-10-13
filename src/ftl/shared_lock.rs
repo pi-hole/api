@@ -9,13 +9,11 @@
 // Please see LICENSE file for your rights under this license.
 
 use failure::ResultExt;
-use libc::{pthread_mutex_lock, pthread_mutex_t, pthread_mutex_unlock};
+use ftl::memory_model::FtlLock;
+use libc::{pthread_cond_wait, pthread_mutex_lock, pthread_mutex_unlock};
 use nix::errno::Errno;
 use shmem::Map;
-use std::{
-    ops::DerefMut,
-    sync::{Condvar, Mutex}
-};
+use std::sync::Mutex;
 use util::{Error, ErrorKind};
 
 /// A lock for coordinating shared memory access with FTL. It locks a mutex in
@@ -38,7 +36,21 @@ impl ShmLock {
     /// guard (return value) lives. The shm_lock parameter is taken in case
     /// shared memory needs to be locked or unlocked (for the first lock to be
     /// taken, or the last lock to be released).
-    pub fn read(&self, mut shm_lock: Map<pthread_mutex_t>) -> Result<ShmLockGuard, Error> {
+    pub fn read(&self, mut shm_lock: Map<FtlLock>) -> Result<ShmLockGuard, Error> {
+        // Flag which marks if the shm lock was acquired via condition variable
+        let mut shm_lock_acquired = false;
+
+        // Check if FTL is waiting for the lock
+        if shm_lock.ftl_waiting_for_lock {
+            // Wait on the condition variable
+            while shm_lock.ftl_waiting_for_lock {
+                Errno::result(unsafe {
+                    pthread_cond_wait(&mut shm_lock.cond_var, &mut shm_lock.lock)
+                }).context(ErrorKind::SharedMemoryLock)?;
+                shm_lock_acquired = true;
+            }
+        }
+
         let mut lock_count = self.lock_count_lock.lock().unwrap_or_else(|e| {
             // The lock was poisoned, which means a thread panicked while
             // holding the lock. This most likely could have happened when
@@ -60,10 +72,11 @@ impl ShmLock {
             lock_count
         });
 
-        // Only acquire a lock if there are no active read locks
-        if *lock_count == 0 {
+        // Only acquire a lock if we didn't get it via the condition variable
+        // and there are no active read locks.
+        if !shm_lock_acquired && *lock_count == 0 {
             // Try to acquire a lock
-            Errno::result(unsafe { pthread_mutex_lock(shm_lock.deref_mut()) })
+            Errno::result(unsafe { pthread_mutex_lock(&mut shm_lock.lock) })
                 .context(ErrorKind::SharedMemoryLock)?;
         }
 
@@ -81,7 +94,7 @@ impl ShmLock {
 pub enum ShmLockGuard<'lock> {
     Production {
         lock: &'lock ShmLock,
-        shm_lock: Map<pthread_mutex_t>
+        shm_lock: Map<FtlLock>
     },
     #[cfg(test)]
     Test
@@ -90,16 +103,13 @@ pub enum ShmLockGuard<'lock> {
 impl<'lock> Drop for ShmLockGuard<'lock> {
     fn drop(&mut self) {
         match self {
-            ShmLockGuard::Production {
-                lock,
-                ref mut shm_lock
-            } => {
+            ShmLockGuard::Production { lock, shm_lock } => {
                 let mut lock_count = lock.lock_count_lock.lock().unwrap();
 
                 // Check if we should release the mutex
                 if *lock_count == 1 {
                     unsafe {
-                        pthread_mutex_unlock(shm_lock.deref_mut());
+                        pthread_mutex_unlock(&mut shm_lock.lock);
                     }
                 }
 
