@@ -3,15 +3,19 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// Program Main
+// DNS API Endpoints
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-extern crate pihole_api;
+mod add_list;
+mod common;
+mod delete_list;
+mod get_list;
+mod list;
+mod status;
 
-fn main() {
-    if let Err(e) = pihole_api::start() {
-        e.print_stacktrace();
-    }
-}
+pub use self::add_list::*;
+pub use self::delete_list::*;
+pub use self::get_list::*;
+pub use self::status::*;

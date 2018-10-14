@@ -3,15 +3,21 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// Program Main
+// Setting Endpoints
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-extern crate pihole_api;
+mod common;
+mod dns;
+mod get_dhcp;
+mod get_ftl;
+mod get_ftldb;
+mod get_network;
 
-fn main() {
-    if let Err(e) = pihole_api::start() {
-        e.print_stacktrace();
-    }
-}
+pub use self::common::*;
+pub use self::dns::*;
+pub use self::get_dhcp::*;
+pub use self::get_ftl::*;
+pub use self::get_ftldb::*;
+pub use self::get_network::*;

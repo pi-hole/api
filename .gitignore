@@ -16,3 +16,8 @@ CMakeLists.txt
 .idea
 !.idea/codeStyles/*
 !.idea/codeStyleSettings.xml
+
+### Misc
+
+# Compiled Web files
+/web/

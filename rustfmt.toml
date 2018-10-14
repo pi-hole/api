@@ -1,0 +1,6 @@
+trailing_comma = "Never"
+use_field_init_shorthand = true
+use_try_shorthand = true
+wrap_comments = true
+color = "Always"
+license_template_path = "LICENSE_TEMPLATE"

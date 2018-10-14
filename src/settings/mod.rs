@@ -3,15 +3,15 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// Program Main
+// Setting Specifications For SetupVars & FTL Configuration Files
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-extern crate pihole_api;
+mod dnsmasq;
+mod entries;
+mod value_type;
 
-fn main() {
-    if let Err(e) = pihole_api::start() {
-        e.print_stacktrace();
-    }
-}
+pub use self::dnsmasq::*;
+pub use self::entries::*;
+pub use self::value_type::*;

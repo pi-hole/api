@@ -2,36 +2,54 @@ version: 2
 
 .job_template: &job_template
   docker:
-    - image: "japaric/$TARGET:v0.1.14"
+    - image: pihole/api-build:$CIRCLE_JOB
   steps:
     - checkout
     - restore_cache:
         keys:
-          # Find a cache corresponding to this specific Cargo.toml checksum and target.
-          # When the target is different, this key will fail
-          - cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}
-          # Find a cache corresponding to this specific Cargo.toml checksum.
-          # When this file is changed, this key will fail.
-          - cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}
-          # Find a cache corresponding to any build in this branch, regardless of Cargo.toml checksum.
-          # The most recent one will be used.
-          - cargo-{{ .Branch }}
-          # Find the most recent cache used from any branch
-          - cargo
+          # Find a cache corresponding to this specific target and Cargo.lock checksum.
+          # When the checksum is different, this key will fail.
+          # There are two dashes used between job and checksum to avoid x86_64 using the x86_64-musl cache
+          - v3-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
+          # Find a cache corresponding to this specific target.
+          # When the target is different, this key will fail.
+          - v3-cargo-{{ .Environment.CIRCLE_JOB }}--
     - run:
-        name: "Setup Rust"
+        name: "Download Web"
         command: |
-          apt-get update
-          apt-get install -y --no-install-recommends curl
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2018-01-02
-          export PATH=$HOME/.cargo/bin:$PATH
-          echo 'export PATH=$HOME/.cargo/bin:$PATH' >> $BASH_ENV
-          [[ $SKIP_ADDING_TARGET ]] || rustup target add $TARGET
+          root="https://ftl.pi-hole.net"
+          file="pihole-web.tar.gz"
+
+          # Try the branch of the same name, then dev, then master, and if none exist then fail
+          if curl --output /dev/null --silent --head --fail "$root/$CIRCLE_BRANCH/$file"; then
+            branch="$CIRCLE_BRANCH"
+          elif curl --output /dev/null --silent --head --fail "$root/development/$file"; then
+            branch="development"
+          elif curl --output /dev/null --silent --head --fail "$root/master/$file"; then
+            branch="master"
+          else
+            echo "Could not find any web builds. Luckily they are not required for this CI yet."
+            exit 0
+          fi
+
+          echo "Using the $branch branch"
+
+          # Uncompress the files to the "web" folder
+          curl "$root/$branch/$file" -o web.tar.gz
+          mkdir web
+          tar -xzf web.tar.gz -C web
+    - run:
+        name: "Code Style Lint"
+        command: cargo fmt -- --check
     - run:
         name: "Build"
         command: |
-          time cargo build --release --target $TARGET -v
+          time cargo build --release --target $TARGET
           cp target/$TARGET/release/pihole_api ${BIN_NAME}
+    - run:
+        name: "Test"
+        command: |
+          [[ "$CIRCLE_JOB" != "x86_64" ]] || time cargo test --release --target $TARGET
     - run:
         name: "Upload"
         command: |
@@ -43,11 +61,10 @@ version: 2
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}.sha1" "${FTL_SECRET}"
           rm ./FTL-client
     - save_cache:
-        key: cargo-{{ .Branch }}-{{ checksum "Cargo.toml" }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cargo.lock" }}
+        key: v3-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
         paths:
           - target
           - /root/.cargo
-          - /root/.rustup
 
 jobs:
   arm:
@@ -59,8 +76,8 @@ jobs:
   armhf:
     <<: *job_template
     environment:
-      BIN_NAME: "pihole-API-armv7-linux-gnueabihf"
-      TARGET: "armv7-unknown-linux-gnueabihf"
+      BIN_NAME: "pihole-API-arm-linux-gnueabihf"
+      TARGET: "arm-unknown-linux-gnueabihf"
 
   aarch64:
     <<: *job_template
@@ -73,7 +90,6 @@ jobs:
     environment:
       BIN_NAME: "pihole-API-linux-x86_64"
       TARGET: "x86_64-unknown-linux-gnu"
-      SKIP_ADDING_TARGET: "1" # We're already running on x86_64
 
   x86_64-musl:
     <<: *job_template
