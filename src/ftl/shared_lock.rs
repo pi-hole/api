@@ -108,3 +108,126 @@ impl<'lock> Drop for ShmLockGuard<'lock> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use ftl::{
+        lock_thread::{LockRequest, RequestType},
+        ShmLock
+    };
+    use std::{
+        sync::{
+            mpsc::{channel, Receiver},
+            Mutex
+        },
+        thread,
+        time::Duration
+    };
+
+    /// Wait for a millisecond before trying to get a response and checking the
+    /// request type. After asserting the request type is correct, send a
+    /// successful response.
+    fn check_request(receiver: &Receiver<LockRequest>, request_type: RequestType) {
+        // Sleep for 10 milliseconds to allow the send call to run before
+        // checking for the request
+        thread::sleep(Duration::new(0, 10000000));
+
+        let (request, response_sender) = receiver.try_recv().unwrap();
+
+        assert_eq!(request, request_type);
+
+        response_sender.send(Ok(0)).unwrap();
+    }
+
+    /// Check that the correct requests are sent to the lock thread when
+    /// locking and unlocking
+    #[test]
+    fn send_correct_requests() {
+        // Initialize the ShmLock
+        let (sender, receiver) = channel();
+
+        let lock = ShmLock {
+            sender: Mutex::new(sender)
+        };
+
+        // Create the mock lock handler thread
+        let handler_thread = thread::spawn(move || {
+            check_request(&receiver, RequestType::Lock);
+            check_request(&receiver, RequestType::Unlock);
+        });
+
+        // Take a lock
+        let guard = lock.read().unwrap();
+
+        // Drop the lock (check unlock functionality)
+        drop(guard);
+
+        // Join with the mock lock handler thread
+        handler_thread.join().unwrap();
+    }
+
+    /// Check that error returned from the pthread lock call (returned as
+    /// Ok(error_num)) is returned as an `Error`.
+    #[test]
+    fn return_pthread_lock_errors() {
+        // Initialize the ShmLock
+        let (sender, receiver) = channel();
+
+        let lock = ShmLock {
+            sender: Mutex::new(sender)
+        };
+
+        // Create the mock lock handler thread
+        let handler_thread = thread::spawn(move || {
+            // Sleep for 10 milliseconds to allow the send call to run before
+            // checking for the request
+            thread::sleep(Duration::new(0, 10000000));
+
+            let (_, response_sender) = receiver.try_recv().unwrap();
+
+            // Send an error (returned from pthread unlock call)
+            response_sender.send(Ok(1)).unwrap();
+        });
+
+        // Take a lock (should be a Result::Err)
+        let guard_result = lock.read();
+
+        assert!(guard_result.is_err());
+
+        // Join with the mock lock handler thread
+        handler_thread.join().unwrap();
+    }
+
+    /// Check that error returned from the pthread unlock call (returned as
+    /// Ok(error_num)) is returned as an `Error`.
+    #[test]
+    #[should_panic(expected = "EPERM")]
+    fn return_pthread_unlock_errors() {
+        // Initialize the ShmLock
+        let (sender, receiver) = channel();
+
+        let lock = ShmLock {
+            sender: Mutex::new(sender)
+        };
+
+        // Create the mock lock handler thread
+        let handler_thread = thread::spawn(move || {
+            check_request(&receiver, RequestType::Lock);
+
+            // Sleep for 1 millisecond to allow the send call to run before
+            // checking for the request
+            thread::sleep(Duration::new(0, 1000000));
+
+            let (_, response_sender) = receiver.try_recv().unwrap();
+
+            // Send an error (returned from pthread unlock call)
+            response_sender.send(Ok(1)).unwrap();
+        });
+
+        // Take a lock
+        let guard = lock.read().unwrap();
+
+        // Should panic because the thread returned a return code of 1
+        drop(guard);
+    }
+}

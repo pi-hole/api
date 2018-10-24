@@ -35,7 +35,7 @@ fn open_shm_lock() -> Result<Map<FtlLock>, Error> {
 }
 
 /// The type of action that the lock thread is requested to perform.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum RequestType {
     Lock,
     Unlock
