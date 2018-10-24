@@ -84,8 +84,15 @@ impl LockThread {
     /// the shared memory lock, the lock count will simply be incremented.
     fn lock(&mut self, shm_lock: &mut FtlLock, sender: Sender<LockResponse>) {
         if shm_lock.ftl_waiting_for_lock {
-            self.wait_queue.push_back(sender);
-            return;
+            if self.lock_count > 0 {
+                // If we own the lock, defer to FTL
+                self.wait_queue.push_back(sender);
+                return;
+            } else {
+                // If we don't own the lock, FTL should get it very soon (or it
+                // died and we can take the lock)
+                LockThread::wait_for_ftl(shm_lock);
+            }
         }
 
         // Check if we need to lock the shared memory lock
@@ -130,6 +137,20 @@ impl LockThread {
 
         // If FTL is waiting for the lock, let it get the lock before going
         // through the queued lock requests.
+        LockThread::wait_for_ftl(shm_lock);
+
+        // Only go through the lock requests that were in the queue initially
+        // (not those which might be added in the process)
+        let queued_senders: Vec<_> = self.wait_queue.drain(..).collect();
+        for queued_sender in queued_senders {
+            self.lock(shm_lock, queued_sender);
+        }
+    }
+
+    /// Wait for FTL to take the lock if it signaled it needs it. If it doesn't
+    /// take the lock within a timeout (10 seconds), the signal will be turned
+    /// off. Either way, when the function returns it is safe to take the lock.
+    fn wait_for_ftl(shm_lock: &mut FtlLock) {
         let mut ftl_wait_count = 0;
         while shm_lock.ftl_waiting_for_lock {
             // Sleep for 1 millisecond
@@ -143,13 +164,6 @@ impl LockThread {
                 shm_lock.ftl_waiting_for_lock = false;
                 break;
             }
-        }
-
-        // Only go through the lock requests that were in the queue initially
-        // (not those which might be added in the process)
-        let queued_senders: Vec<_> = self.wait_queue.drain(..).collect();
-        for queued_sender in queued_senders {
-            self.lock(shm_lock, queued_sender);
         }
     }
 }
