@@ -17,6 +17,7 @@ use rocket::{
 };
 use rocket_contrib::{Json, Value};
 use serde::Serialize;
+use shmem;
 use std::{
     env,
     fmt::{self, Display}
@@ -118,10 +119,10 @@ pub enum ErrorKind {
     RestartDnsError,
     #[fail(display = "Error generating the dnsmasq config")]
     DnsmasqConfigWrite,
-    // shmem::Error does not implement std::error::Error, so we can not use
-    // `.context()` on a `Result<T, shmem::Error>`. It also does not implement
-    // Eq and PartialEq, so the best we can do is have the error message stored
-    // here.
+    /// `shmem::Error` does not implement `std::error::Error`, so we can not use
+    /// `.context()` on a `Result<T, shmem::Error>`. It also does not implement
+    /// `Eq` or `PartialEq`, so the best we can do is have the error message
+    /// stored here.
     #[fail(display = "Failed to open shared memory: {}", _0)]
     SharedMemoryOpen(String),
     #[fail(display = "Failed to read from shared memory")]
@@ -261,6 +262,18 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Error {
         Error { inner }
+    }
+}
+
+impl From<shmem::Error> for Error {
+    /// Converts `shmem::Error` into an `Error` of kind
+    /// [`ErrorKind::SharedMemoryOpen`]. See the comment on
+    /// [`ErrorKind::SharedMemoryOpen`] for more information.
+    ///
+    /// [`ErrorKind::SharedMemoryOpen`]:
+    /// enum.ErrorKind.html#variant.SharedMemoryOpen
+    fn from(e: shmem::Error) -> Self {
+        Error::from(ErrorKind::SharedMemoryOpen(format!("{:?}", e)))
     }
 }
 

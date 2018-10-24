@@ -9,18 +9,17 @@
 // Please see LICENSE file for your rights under this license.
 
 use ftl::{
-    memory_model::FtlLock, FtlClient, FtlCounters, FtlDomain, FtlOverTime, FtlQuery, FtlStrings,
-    FtlUpstream, ShmLock, ShmLockGuard
+    FtlClient, FtlCounters, FtlDomain, FtlOverTime, FtlQuery, FtlStrings, FtlUpstream, ShmLock,
+    ShmLockGuard
 };
 use libc;
-use shmem::{self, Array, Map, Object};
+use shmem::{Array, Map, Object};
 use std::{marker::PhantomData, ops::Deref};
-use util::{Error, ErrorKind};
+use util::Error;
 
 #[cfg(test)]
 use std::collections::HashMap;
 
-const FTL_SHM_LOCK: &str = "/FTL-lock";
 const FTL_SHM_CLIENTS: &str = "/FTL-clients";
 const FTL_SHM_DOMAINS: &str = "/FTL-domains";
 const FTL_SHM_FORWARDED: &str = "/FTL-forwarded";
@@ -65,13 +64,7 @@ impl FtlMemory {
     /// [`ShmLockGuard`]: ../shared_lock/enum.ShmLockGuard.html
     pub fn lock(&self) -> Result<ShmLockGuard, Error> {
         match self {
-            FtlMemory::Production { lock } => {
-                let shm_lock: Map<FtlLock> = Map::new(
-                    Object::open(FTL_SHM_LOCK).map_err(from_shmem_error)?
-                ).map_err(from_shmem_error)?;
-
-                lock.read(shm_lock)
-            }
+            FtlMemory::Production { lock } => lock.read(),
             #[cfg(test)]
             FtlMemory::Test { .. } => Ok(ShmLockGuard::Test)
         }
@@ -86,8 +79,7 @@ impl FtlMemory {
         Ok(match self {
             FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_CLIENTS).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?
+                Array::new(Object::open(FTL_SHM_CLIENTS)?)?
             ),
             #[cfg(test)]
             FtlMemory::Test { clients, .. } => Box::new(clients.as_slice())
@@ -103,8 +95,7 @@ impl FtlMemory {
         Ok(match self {
             FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_DOMAINS).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?
+                Array::new(Object::open(FTL_SHM_DOMAINS)?)?
             ),
             #[cfg(test)]
             FtlMemory::Test { domains, .. } => Box::new(domains.as_slice())
@@ -120,8 +111,7 @@ impl FtlMemory {
         Ok(match self {
             FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_OVERTIME).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?
+                Array::new(Object::open(FTL_SHM_OVERTIME)?)?
             ),
             #[cfg(test)]
             FtlMemory::Test { over_time, .. } => Box::new(over_time.as_slice())
@@ -138,10 +128,10 @@ impl FtlMemory {
         Ok(match self {
             FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(
-                    Object::open(format!("{}{}", FTL_SHM_OVERTIME_CLIENT, client_id))
-                        .map_err(from_shmem_error)?
-                ).map_err(from_shmem_error)?
+                Array::new(Object::open(format!(
+                    "{}{}",
+                    FTL_SHM_OVERTIME_CLIENT, client_id
+                ))?)?
             ),
             #[cfg(test)]
             FtlMemory::Test {
@@ -159,8 +149,7 @@ impl FtlMemory {
         Ok(match self {
             FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_FORWARDED).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?
+                Array::new(Object::open(FTL_SHM_FORWARDED)?)?
             ),
             #[cfg(test)]
             FtlMemory::Test { upstreams, .. } => Box::new(upstreams.as_slice())
@@ -176,8 +165,7 @@ impl FtlMemory {
         Ok(match self {
             FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_QUERIES).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?
+                Array::new(Object::open(FTL_SHM_QUERIES)?)?
             ),
             #[cfg(test)]
             FtlMemory::Test { queries, .. } => Box::new(queries.as_slice())
@@ -190,11 +178,9 @@ impl FtlMemory {
         _lock_guard: &ShmLockGuard<'lock>
     ) -> Result<FtlStrings<'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production { .. } => FtlStrings::Production(
-                Array::new(Object::open(FTL_SHM_STRINGS).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?,
-                PhantomData
-            ),
+            FtlMemory::Production { .. } => {
+                FtlStrings::Production(Array::new(Object::open(FTL_SHM_STRINGS)?)?, PhantomData)
+            }
             #[cfg(test)]
             FtlMemory::Test { strings, .. } => FtlStrings::Test(&strings)
         })
@@ -207,21 +193,9 @@ impl FtlMemory {
         _lock_guard: &ShmLockGuard<'lock>
     ) -> Result<Box<dyn Deref<Target = FtlCounters> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production { .. } => Box::new(
-                Map::new(Object::open(FTL_SHM_COUNTERS).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?
-            ),
+            FtlMemory::Production { .. } => Box::new(Map::new(Object::open(FTL_SHM_COUNTERS)?)?),
             #[cfg(test)]
             FtlMemory::Test { counters, .. } => Box::new(counters)
         })
     }
-}
-
-/// Converts `shmem::Error` into [`ErrorKind::SharedMemoryOpen`]. See the
-/// comment on [`ErrorKind::SharedMemoryOpen`] for more information.
-///
-/// [`ErrorKind::SharedMemoryOpen`]:
-/// ../../util/enum.ErrorKind.html#variant.SharedMemoryOpen
-fn from_shmem_error(e: shmem::Error) -> ErrorKind {
-    ErrorKind::SharedMemoryOpen(format!("{:?}", e))
 }

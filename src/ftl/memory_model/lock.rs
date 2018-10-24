@@ -15,6 +15,5 @@ use libc;
 #[repr(C)]
 pub struct FtlLock {
     pub lock: libc::pthread_mutex_t,
-    pub cond_var: libc::pthread_cond_t,
     pub ftl_waiting_for_lock: bool
 }

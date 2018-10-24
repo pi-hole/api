@@ -8,93 +8,90 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use failure::ResultExt;
-use ftl::memory_model::FtlLock;
-use libc::{pthread_cond_wait, pthread_mutex_lock, pthread_mutex_unlock};
+use failure::{Fail, ResultExt};
+use ftl::lock_thread::{LockRequest, LockThread, RequestType};
 use nix::errno::Errno;
-use shmem::Map;
-use std::sync::Mutex;
+use std::{
+    sync::{
+        mpsc::{channel, Sender},
+        Mutex
+    },
+    thread
+};
 use util::{Error, ErrorKind};
 
 /// A lock for coordinating shared memory access with FTL. It locks a mutex in
 /// shared memory, and while holding the lock it distributes read locks. If it
 /// detects that FTL is waiting for a lock on the shared mutex, it will stop
 /// distributing read locks until FTL gets the lock back.
+///
+/// The shared memory lock must be locked and unlocked from the same thread, so
+/// the locking happens on a dedicated lock handling thread.
 pub struct ShmLock {
-    lock_count_lock: Mutex<usize>
+    sender: Mutex<Sender<LockRequest>>
 }
 
 impl ShmLock {
     /// Create a new `ShmLock` with a lock count of zero.
     pub fn new() -> ShmLock {
+        // Create a lock thread which handles taking the shared lock, since
+        // pthread doesn't like locking and unlocking from different threads.
+        let (request_sender, request_receiver) = channel();
+
+        thread::Builder::new()
+            .name("Lock Handler".to_owned())
+            .spawn(move || {
+                let mut lock_thread = LockThread::new();
+                lock_thread.handle_requests(request_receiver);
+            })
+            .unwrap();
+
         ShmLock {
-            lock_count_lock: Mutex::new(0)
+            sender: Mutex::new(request_sender)
         }
     }
 
     /// Acquire a read lock on the shared memory. It will last as long as the
-    /// guard (return value) lives. The shm_lock parameter is taken in case
-    /// shared memory needs to be locked or unlocked (for the first lock to be
-    /// taken, or the last lock to be released).
-    pub fn read(&self, mut shm_lock: Map<FtlLock>) -> Result<ShmLockGuard, Error> {
-        // Flag which marks if the shm lock was acquired via condition variable
-        let mut shm_lock_acquired = false;
+    /// guard (return value) lives.
+    pub fn read(&self) -> Result<ShmLockGuard, Error> {
+        self.send_request(RequestType::Lock)?;
+        Ok(ShmLockGuard::Production { lock: self })
+    }
 
-        // Check if FTL is waiting for the lock
-        if shm_lock.ftl_waiting_for_lock {
-            // Wait on the condition variable
-            while shm_lock.ftl_waiting_for_lock {
-                Errno::result(unsafe {
-                    pthread_cond_wait(&mut shm_lock.cond_var, &mut shm_lock.lock)
-                }).context(ErrorKind::SharedMemoryLock)?;
-                shm_lock_acquired = true;
-            }
+    /// Send a request to the lock thread. This will block until the request
+    /// has finished. For a lock request, this is until the lock is obtained.
+    /// For an unlock request, this is until the lock has been unlocked.
+    fn send_request(&self, request: RequestType) -> Result<(), Error> {
+        let (sender, receiver) = channel();
+
+        // Lock access to the lock thread. Ignore the poison error because the
+        // state of the sender should still be consistent.
+        let lock_thread = self.sender.lock().unwrap_or_else(|e| e.into_inner());
+
+        lock_thread
+            .send((request, sender))
+            .map_err(|_| Error::from(ErrorKind::SharedMemoryLock))?;
+
+        // The lock thread guard is dropped so other threads can communicate
+        // with the lock thread while this thread waits for a response.
+        drop(lock_thread);
+
+        let ret = receiver.recv().context(ErrorKind::SharedMemoryLock)??;
+
+        if ret != 0 {
+            Err(Error::from(
+                Errno::from_i32(ret).context(ErrorKind::SharedMemoryLock)
+            ))
+        } else {
+            Ok(())
         }
-
-        let mut lock_count = self.lock_count_lock.lock().unwrap_or_else(|e| {
-            // The lock was poisoned, which means a thread panicked while
-            // holding the lock. This most likely could have happened when
-            // trying to acquire the shared memory lock, or when unlocking the
-            // shared memory lock.
-
-            // Get the MutexGuard from the poisoned lock
-            let mut lock_count = e.into_inner();
-
-            // If the lock_count is zero, it failed while acquiring the lock and
-            // no action needs to be taken.
-            // If the lock_count is non-zero, it failed while holding the lock,
-            // and so the lock_count should be decremented because the thread no
-            // longer holds the lock.
-            if *lock_count != 0 {
-                *lock_count -= 1;
-            }
-
-            lock_count
-        });
-
-        // Only acquire a lock if we didn't get it via the condition variable
-        // and there are no active read locks.
-        if !shm_lock_acquired && *lock_count == 0 {
-            // Try to acquire a lock
-            Errno::result(unsafe { pthread_mutex_lock(&mut shm_lock.lock) })
-                .context(ErrorKind::SharedMemoryLock)?;
-        }
-
-        // Increment the lock count
-        *lock_count += 1;
-
-        Ok(ShmLockGuard::Production {
-            lock: self,
-            shm_lock
-        })
     }
 }
 
 /// A RAII type lock guard which keeps the lock active until it is dropped.
 pub enum ShmLockGuard<'lock> {
     Production {
-        lock: &'lock ShmLock,
-        shm_lock: Map<FtlLock>
+        lock: &'lock ShmLock
     },
     #[cfg(test)]
     Test
@@ -103,18 +100,8 @@ pub enum ShmLockGuard<'lock> {
 impl<'lock> Drop for ShmLockGuard<'lock> {
     fn drop(&mut self) {
         match self {
-            ShmLockGuard::Production { lock, shm_lock } => {
-                let mut lock_count = lock.lock_count_lock.lock().unwrap();
-
-                // Check if we should release the mutex
-                if *lock_count == 1 {
-                    unsafe {
-                        pthread_mutex_unlock(&mut shm_lock.lock);
-                    }
-                }
-
-                // Decrement the lock count
-                *lock_count -= 1;
+            ShmLockGuard::Production { lock } => {
+                lock.send_request(RequestType::Unlock).unwrap();
             }
             #[cfg(test)]
             ShmLockGuard::Test => ()

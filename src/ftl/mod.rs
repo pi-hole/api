@@ -8,6 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+mod lock_thread;
 mod memory_model;
 mod shared_lock;
 mod shared_memory;
