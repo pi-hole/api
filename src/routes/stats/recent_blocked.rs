@@ -88,6 +88,7 @@ mod test {
         ($id:expr, $status:ident, $domain:expr) => {
             FtlQuery::new(
                 $id,
+                0,
                 1,
                 1,
                 1,
@@ -98,7 +99,6 @@ mod test {
                 FtlQueryStatus::$status,
                 FtlQueryReplyType::IP,
                 FtlDnssecType::Unspecified,
-                false,
                 true,
                 false
             )

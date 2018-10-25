@@ -11,15 +11,17 @@
 #![feature(plugin, custom_derive)]
 #![plugin(rocket_codegen)]
 
+extern crate base64;
 extern crate regex;
 extern crate rmp;
 extern crate rocket;
-#[macro_use]
 extern crate rocket_contrib;
 extern crate rocket_cors;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate serde_json;
 #[macro_use]
 extern crate rust_embed;
 extern crate failure;

@@ -27,7 +27,7 @@ pub struct FtlQuery {
     pub domain_id: libc::c_int,
     pub client_id: libc::c_int,
     pub upstream_id: libc::c_int,
-    pub in_database: bool,
+    pub database_id: i64,
     pub id: libc::c_int,
     pub is_complete: bool,
     pub is_private: bool,
@@ -43,6 +43,7 @@ impl FtlQuery {
     #[cfg(test)]
     pub fn new(
         id: isize,
+        database_id: i64,
         timestamp: usize,
         time_index: usize,
         response_time: usize,
@@ -53,13 +54,13 @@ impl FtlQuery {
         status: FtlQueryStatus,
         reply_type: FtlQueryReplyType,
         dnssec_type: FtlDnssecType,
-        in_database: bool,
         is_complete: bool,
         is_private: bool
     ) -> FtlQuery {
         FtlQuery {
             magic: MAGIC_BYTE,
             id: id as libc::c_int,
+            database_id,
             timestamp: timestamp as libc::time_t,
             time_index: time_index as libc::c_int,
             response_time: response_time as libc::c_ulong,
@@ -70,7 +71,6 @@ impl FtlQuery {
             status,
             reply_type,
             dnssec_type,
-            in_database,
             is_complete,
             is_private,
             ad_bit: false

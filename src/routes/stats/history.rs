@@ -9,13 +9,16 @@
 // Please see LICENSE file for your rights under this license.
 
 use auth::User;
+use base64::{decode, encode};
 use env::Env;
+use failure::ResultExt;
 use ftl::{FtlMemory, FtlQuery, FtlQueryStatus, FtlQueryType};
-use rocket::State;
+use rocket::{http::RawStr, request::FromFormValue, State};
 use rocket_contrib::Value;
+use serde_json;
 use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry};
 use std::iter;
-use util::{reply_data, Error, Reply};
+use util::{reply_data, Error, ErrorKind, Reply};
 
 /// Get the entire query history (as stored in FTL)
 #[get("/stats/history")]
@@ -37,7 +40,7 @@ pub fn history_params(
 /// Represents the possible GET parameters on `/stats/history`
 #[derive(FromForm)]
 pub struct HistoryParams {
-    cursor: Option<isize>,
+    cursor: Option<HistoryCursor>,
     from: Option<u64>,
     until: Option<u64>,
     domain: Option<String>,
@@ -59,6 +62,36 @@ impl Default for HistoryParams {
             query_type: None,
             limit: Some(100)
         }
+    }
+}
+
+/// The cursor object used for history pagination
+#[derive(Copy, Clone, Serialize, Deserialize)]
+pub struct HistoryCursor {
+    id: Option<i32>,
+    db_id: Option<i64>
+}
+
+impl HistoryCursor {
+    /// Get the Base64 representation of the cursor
+    fn as_base64(&self) -> Result<String, Error> {
+        let bytes = serde_json::to_vec(self).context(ErrorKind::Unknown)?;
+
+        Ok(encode(&bytes))
+    }
+}
+
+impl<'a> FromFormValue<'a> for HistoryCursor {
+    type Error = Error;
+
+    fn from_form_value(form_value: &'a RawStr) -> Result<Self, Self::Error> {
+        // Decode from Base64
+        let decoded = decode(form_value).context(ErrorKind::BadRequest)?;
+
+        // Deserialize from JSON
+        let cursor = serde_json::from_slice(&decoded).context(ErrorKind::BadRequest)?;
+
+        Ok(cursor)
     }
 }
 
@@ -121,10 +154,27 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
     // Apply the limit (plus one to get the cursor) and collect the queries
     let history: Vec<&FtlQuery> = queries_iter.take(limit + 1).collect();
 
-    // Get the next cursor from the the "limit+1"-th query, or
-    // the query at index "limit". If no such query exists, the cursor will be None
-    // (null in JSON).
-    let next_cursor = history.get(limit).map(|query| query.id);
+    // Get the next cursor from the the "limit+1"-th query, which is the query
+    // at index "limit".
+    // If no such query exists, the cursor will be None (null in JSON).
+    // The cursor is a JSON object with either the DB ID of the query if it is
+    // non-zero, or the normal ID. Example: { id: 1, db_id: null }
+    let next_cursor = history.get(limit).map(|query: &&FtlQuery| {
+        let db_id = if query.database_id != 0 {
+            Some(query.database_id)
+        } else {
+            None
+        };
+        let id = if db_id.is_none() {
+            Some(query.id)
+        } else {
+            None
+        };
+
+        let cursor = HistoryCursor { id, db_id };
+
+        cursor.as_base64().unwrap()
+    });
 
     // Map the queries into the output format
     let history: Vec<Value> = history
@@ -184,7 +234,18 @@ fn skip_to_cursor<'a>(
     params: &HistoryParams
 ) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(cursor) = params.cursor {
-        Box::new(queries_iter.skip_while(move |query| query.id as isize != cursor))
+        Box::new(queries_iter.skip_while(move |query| {
+            if let Some(id) = cursor.id {
+                // Check ID
+                query.id as i32 != id
+            } else if let Some(db_id) = cursor.db_id {
+                // Check database ID
+                query.database_id != db_id
+            } else {
+                // No cursor data, don't skip any queries
+                false
+            }
+        }))
     } else {
         queries_iter
     }
@@ -387,6 +448,7 @@ mod test {
         FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlUpstream
     };
     use rocket_contrib::Value;
+    use routes::stats::history::HistoryCursor;
     use std::collections::HashMap;
     use testing::{TestBuilder, TestEnvBuilder};
 
@@ -394,6 +456,7 @@ mod test {
     macro_rules! query {
         (
             $id:expr,
+            $database:expr,
             $qtype:ident,
             $status:ident,
             $domain:expr,
@@ -404,6 +467,7 @@ mod test {
         ) => {
             FtlQuery::new(
                 $id,
+                $database,
                 $timestamp,
                 1,
                 1,
@@ -414,7 +478,6 @@ mod test {
                 FtlQueryStatus::$status,
                 FtlQueryReplyType::IP,
                 FtlDnssecType::Unspecified,
-                false,
                 true,
                 $private
             )
@@ -435,30 +498,30 @@ mod test {
         }
     }
 
-    /// 9 queries. Query 9 is private.
+    /// 9 queries. Query 9 is private. Last two are not in the database.
     ///
-    /// | ID | Type |   Status   | Domain | Client | Upstream | Timestamp |
-    /// | -- | ---- | ---------- | ------ | ------ | -------- | --------- |
-    /// | 1  | A    | Forward    | 0      | 0      | 0        | 1         |
-    /// | 2  | AAAA | Forward    | 0      | 0      | 0        | 2         |
-    /// | 3  | PTR  | Forward    | 0      | 0      | 0        | 3         |
-    /// | 4  | A    | Gravity    | 1      | 1      | 0        | 3         |
-    /// | 5  | AAAA | Cache      | 0      | 1      | 0        | 4         |
-    /// | 6  | AAAA | Wildcard   | 2      | 1      | 0        | 5         |
-    /// | 7  | A    | Blacklist  | 3      | 2      | 0        | 5         |
-    /// | 8  | AAAA | ExternalB. | 4      | 2      | 1        | 6         |
-    /// | 9  | A    | Forward    | 5      | 3      | 0        | 7         |
+    /// | ID | DB | Type |   Status   | Domain | Client | Upstream | Timestamp |
+    /// | -- | -- | ---- | ---------- | ------ | ------ | -------- | --------- |
+    /// | 1  | 1  | A    | Forward    | 0      | 0      | 0        | 1         |
+    /// | 2  | 2  | AAAA | Forward    | 0      | 0      | 0        | 2         |
+    /// | 3  | 3  | PTR  | Forward    | 0      | 0      | 0        | 3         |
+    /// | 4  | 4  | A    | Gravity    | 1      | 1      | 0        | 3         |
+    /// | 5  | 5  | AAAA | Cache      | 0      | 1      | 0        | 4         |
+    /// | 6  | 6  | AAAA | Wildcard   | 2      | 1      | 0        | 5         |
+    /// | 7  | 7  | A    | Blacklist  | 3      | 2      | 0        | 5         |
+    /// | 8  | 0  | AAAA | ExternalB. | 4      | 2      | 1        | 6         |
+    /// | 9  | 0  | A    | Forward    | 5      | 3      | 0        | 7         |
     fn test_queries() -> Vec<FtlQuery> {
         vec![
-            query!(1, A, Forward, 0, 0, 0, 1, false),
-            query!(2, AAAA, Forward, 0, 0, 0, 2, false),
-            query!(3, PTR, Forward, 0, 0, 0, 3, false),
-            query!(4, A, Gravity, 1, 1, 0, 3, false),
-            query!(5, AAAA, Cache, 0, 1, 0, 4, false),
-            query!(6, AAAA, Wildcard, 2, 1, 0, 5, false),
-            query!(7, A, Blacklist, 3, 2, 0, 5, false),
-            query!(8, AAAA, ExternalBlock, 4, 2, 1, 6, false),
-            query!(9, A, Forward, 5, 3, 0, 7, true),
+            query!(1, 1, A, Forward, 0, 0, 0, 1, false),
+            query!(2, 2, AAAA, Forward, 0, 0, 0, 2, false),
+            query!(3, 3, PTR, Forward, 0, 0, 0, 3, false),
+            query!(4, 4, A, Gravity, 1, 1, 0, 3, false),
+            query!(5, 5, AAAA, Cache, 0, 1, 0, 4, false),
+            query!(6, 6, AAAA, Wildcard, 2, 1, 0, 5, false),
+            query!(7, 7, A, Blacklist, 3, 2, 0, 5, false),
+            query!(8, 0, AAAA, ExternalBlock, 4, 2, 1, 6, false),
+            query!(9, 0, A, Forward, 5, 3, 0, 7, true),
         ]
     }
 
@@ -572,7 +635,7 @@ mod test {
             .ftl_memory(ftl_memory)
             .expect_json(json!({
                 "history": history,
-                "cursor": 3
+                "cursor": "eyJpZCI6bnVsbCwiZGJfaWQiOjN9"
             }))
             .test();
     }
@@ -614,15 +677,37 @@ mod test {
         );
     }
 
-    /// Skip queries according to the cursor
+    /// Skip queries according to the cursor (dnsmasq ID)
     #[test]
-    fn test_skip_to_cursor() {
+    fn test_skip_to_cursor_dnsmasq() {
+        let queries = test_queries();
+        let expected_queries: Vec<&FtlQuery> = queries.iter().skip(7).collect();
+        let filtered_queries: Vec<&FtlQuery> = skip_to_cursor(
+            Box::new(queries.iter()),
+            &HistoryParams {
+                cursor: Some(HistoryCursor {
+                    id: Some(8),
+                    db_id: None
+                }),
+                ..HistoryParams::default()
+            }
+        ).collect();
+
+        assert_eq!(filtered_queries, expected_queries);
+    }
+
+    /// Skip queries according to the cursor (database ID)
+    #[test]
+    fn test_skip_to_cursor_database() {
         let queries = test_queries();
         let expected_queries: Vec<&FtlQuery> = queries.iter().skip(4).collect();
         let filtered_queries: Vec<&FtlQuery> = skip_to_cursor(
             Box::new(queries.iter()),
             &HistoryParams {
-                cursor: Some(5),
+                cursor: Some(HistoryCursor {
+                    id: None,
+                    db_id: Some(5)
+                }),
                 ..HistoryParams::default()
             }
         ).collect();
