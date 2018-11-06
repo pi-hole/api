@@ -239,7 +239,7 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::Ipv4Address => ValueType::Ipv4Mask,
             SetupVarsEntry::Ipv6Address => ValueType::Ipv6,
             SetupVarsEntry::PiholeDns(_) => ValueType::IPv4OptionalPort,
-            SetupVarsEntry::PiholeDomain => ValueType::Domain,
+            SetupVarsEntry::PiholeDomain => ValueType::Hostname,
             SetupVarsEntry::PiholeInterface => ValueType::Interface,
             SetupVarsEntry::QueryLogging => ValueType::Boolean,
             SetupVarsEntry::WebPassword => ValueType::WebPassword
