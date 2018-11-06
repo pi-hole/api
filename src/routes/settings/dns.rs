@@ -230,7 +230,7 @@ mod test {
                     "bogus_priv": true,
                     "dnssec": false,
                     "fqdn_required": true,
-                    "listening_type": "single"
+                    "listening_type": "local"
                 },
                 "upstream_dns": []
             }))

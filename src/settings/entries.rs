@@ -264,7 +264,7 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DhcpLeasetime => "24",
             SetupVarsEntry::DhcpStart => "",
             SetupVarsEntry::DhcpRouter => "",
-            SetupVarsEntry::DnsmasqListening => "single",
+            SetupVarsEntry::DnsmasqListening => "local",
             SetupVarsEntry::Dnssec => "false",
             SetupVarsEntry::HostRecord => "",
             SetupVarsEntry::Ipv4Address => "",
