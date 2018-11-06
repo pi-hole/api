@@ -123,9 +123,8 @@ mod test {
         thread
     };
 
-    /// Wait for a millisecond before trying to get a response and checking the
-    /// request type. After asserting the request type is correct, send a
-    /// successful response.
+    /// Get a request from the receiver and check the request type. After
+    /// asserting the request type is correct, send a successful response.
     fn check_request(receiver: &Receiver<LockRequest>, request_type: RequestType) {
         let (request, response_sender) = receiver.recv().unwrap();
 
