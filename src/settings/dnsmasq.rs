@@ -166,7 +166,7 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
 
 /// Write DHCP settings, if enabled
 fn write_dhcp(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
-    if !SetupVarsEntry::DhcpActive.read_as::<bool>(env)? {
+    if !SetupVarsEntry::DhcpActive.is_true(env)? {
         // Skip DHCP settings if it is not enabled
         return Ok(());
     }
@@ -192,7 +192,7 @@ fn write_dhcp(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error>
     ).context(ErrorKind::DnsmasqConfigWrite)?;
 
     // Additional settings for IPv6
-    if SetupVarsEntry::DhcpIpv6.read_as(env)? {
+    if SetupVarsEntry::DhcpIpv6.is_true(env)? {
         writeln!(
             config_file,
             "dhcp-option=option6:dns-server,[::]\n\

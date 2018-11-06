@@ -51,13 +51,13 @@ impl DhcpSettings {
 #[get("/settings/dhcp")]
 pub fn get_dhcp(env: State<Env>, _auth: User) -> Reply {
     let dhcp_settings = DhcpSettings {
-        active: SetupVarsEntry::DhcpActive.read_as(&env)?,
+        active: SetupVarsEntry::DhcpActive.is_true(&env)?,
         ip_start: SetupVarsEntry::DhcpStart.read(&env)?,
         ip_end: SetupVarsEntry::DhcpEnd.read(&env)?,
         router_ip: SetupVarsEntry::DhcpRouter.read(&env)?,
         lease_time: SetupVarsEntry::DhcpLeasetime.read_as(&env)?,
         domain: SetupVarsEntry::PiholeDomain.read(&env)?,
-        ipv6_support: SetupVarsEntry::DhcpIpv6.read_as(&env)?
+        ipv6_support: SetupVarsEntry::DhcpIpv6.is_true(&env)?
     };
 
     reply_data(dhcp_settings)
