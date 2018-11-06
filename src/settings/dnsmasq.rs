@@ -96,7 +96,7 @@ fn write_lists(config_file: &mut BufWriter<File>) -> Result<(), Error> {
 
 /// Write various DNS settings
 fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
-    if SetupVarsEntry::QueryLogging.read_as(env)? {
+    if SetupVarsEntry::QueryLogging.is_true(env)? {
         config_file
             .write_all(
                 b"log-queries\n\
@@ -106,19 +106,19 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
             .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
-    if SetupVarsEntry::DnsFqdnRequired.read_as(env)? {
+    if SetupVarsEntry::DnsFqdnRequired.is_true(env)? {
         config_file
             .write_all(b"domain-needed\n")
             .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
-    if SetupVarsEntry::DnsBogusPriv.read_as(env)? {
+    if SetupVarsEntry::DnsBogusPriv.is_true(env)? {
         config_file
             .write_all(b"bogus-priv\n")
             .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
-    if SetupVarsEntry::Dnssec.read_as(env)? {
+    if SetupVarsEntry::Dnssec.is_true(env)? {
         config_file.write_all(
             b"dnssec\n\
             trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5\n\
@@ -148,7 +148,7 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
         }
     }
 
-    if SetupVarsEntry::ConditionalForwarding.read_as(env)? {
+    if SetupVarsEntry::ConditionalForwarding.is_true(env)? {
         let ip = SetupVarsEntry::ConditionalForwardingIp.read(env)?;
 
         writeln!(

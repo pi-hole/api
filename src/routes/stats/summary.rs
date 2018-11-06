@@ -53,7 +53,7 @@ pub fn get_summary(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
         }
     };
 
-    let status = if SetupVarsEntry::BlockingEnabled.read_as(&env)? {
+    let status = if SetupVarsEntry::BlockingEnabled.is_true(&env)? {
         "enabled"
     } else {
         "disabled"

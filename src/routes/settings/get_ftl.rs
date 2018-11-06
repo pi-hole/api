@@ -31,7 +31,7 @@ pub fn get_ftl(env: State<Env>, _auth: User) -> Reply {
     let privacy_level: i32 = FtlConfEntry::PrivacyLevel.read_as(&env)?;
     let ignore_local_host = FtlConfEntry::IgnoreLocalHost.read(&env)?;
     let blocking_mode = FtlConfEntry::BlockingMode.read(&env)?;
-    let regex_debug_mode: bool = FtlConfEntry::RegexDebugMode.read_as(&env)?;
+    let regex_debug_mode = FtlConfEntry::RegexDebugMode.is_true(&env)?;
 
     reply_data(json!({
         "socket_listening": socket_listening,

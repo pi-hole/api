@@ -38,6 +38,11 @@ pub trait ConfigEntry {
         value.is_empty() || self.value_type().is_valid(value)
     }
 
+    /// Try to read the value and parse into a boolean.
+    fn is_true(&self, env: &Env) -> Result<bool, Error> {
+        self.read_as::<bool>(env)
+    }
+
     /// Try to read the value and parse into `T`.
     /// If it is unable to be parsed into `T`, an error is returned.
     fn read_as<T: FromStr>(&self, env: &Env) -> Result<T, Error>
