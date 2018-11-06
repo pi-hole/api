@@ -56,7 +56,8 @@ impl Default for TopClientParams {
 
 /// Get the top clients according to the parameters
 fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -> Reply {
-    let counters = ftl_memory.counters()?;
+    let lock = ftl_memory.lock()?;
+    let counters = ftl_memory.counters(&lock)?;
     let blocked = params.blocked.unwrap_or(false);
 
     // Check if the client details are private
@@ -76,8 +77,8 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
         };
     }
 
-    let strings = ftl_memory.strings()?;
-    let clients = ftl_memory.clients()?;
+    let strings = ftl_memory.strings(&lock)?;
+    let clients = ftl_memory.clients(&lock)?;
 
     // Get an array of valid client references (FTL allocates more than it uses)
     let mut clients: Vec<&FtlClient> = clients

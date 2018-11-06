@@ -85,7 +85,7 @@ mod tests {
         remove_hidden_domains
     };
     use env::{Config, Env, PiholeFile};
-    use ftl::{FtlClient, FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch};
+    use ftl::{FtlClient, FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch, ShmLockGuard};
     use std::collections::HashMap;
     use testing::TestEnvBuilder;
 
@@ -135,10 +135,15 @@ mod tests {
                 .build()
         );
 
-        let clients = ftl_memory.clients().unwrap();
+        let lock_guard = ShmLockGuard::Test;
+        let clients = ftl_memory.clients(&lock_guard).unwrap();
         let mut clients = clients.iter().collect();
 
-        remove_excluded_clients(&mut clients, &env, &ftl_memory.strings().unwrap()).unwrap();
+        remove_excluded_clients(
+            &mut clients,
+            &env,
+            &ftl_memory.strings(&lock_guard).unwrap()
+        ).unwrap();
 
         assert_eq!(clients, vec![&FtlClient::new(0, 0, 4, None)]);
     }
@@ -158,10 +163,15 @@ mod tests {
                 .build()
         );
 
-        let domains = ftl_memory.domains().unwrap();
+        let lock_guard = ShmLockGuard::Test;
+        let domains = ftl_memory.domains(&lock_guard).unwrap();
         let mut clients = domains.iter().collect();
 
-        remove_excluded_domains(&mut clients, &env, &ftl_memory.strings().unwrap()).unwrap();
+        remove_excluded_domains(
+            &mut clients,
+            &env,
+            &ftl_memory.strings(&lock_guard).unwrap()
+        ).unwrap();
 
         assert_eq!(
             clients,
@@ -176,13 +186,14 @@ mod tests {
     #[test]
     fn hidden_clients() {
         let ftl_memory = test_data();
+        let lock_guard = ShmLockGuard::Test;
 
-        let clients = ftl_memory.clients().unwrap();
+        let clients = ftl_memory.clients(&lock_guard).unwrap();
         let mut clients: Vec<&FtlClient> = clients.iter().collect();
         let mut clients_clone = clients.clone();
         clients_clone.remove(2);
 
-        remove_hidden_clients(&mut clients, &ftl_memory.strings().unwrap());
+        remove_hidden_clients(&mut clients, &ftl_memory.strings(&lock_guard).unwrap());
 
         assert_eq!(clients, clients_clone);
     }
@@ -191,13 +202,14 @@ mod tests {
     #[test]
     fn hidden_domains() {
         let ftl_memory = test_data();
+        let lock_guard = ShmLockGuard::Test;
 
-        let domains = ftl_memory.domains().unwrap();
+        let domains = ftl_memory.domains(&lock_guard).unwrap();
         let mut domains: Vec<&FtlDomain> = domains.iter().collect();
         let mut domains_clone = domains.clone();
         domains_clone.remove(2);
 
-        remove_hidden_domains(&mut domains, &ftl_memory.strings().unwrap());
+        remove_hidden_domains(&mut domains, &ftl_memory.strings(&lock_guard).unwrap());
 
         assert_eq!(domains, domains_clone);
     }

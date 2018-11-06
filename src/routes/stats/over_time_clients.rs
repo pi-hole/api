@@ -35,10 +35,11 @@ pub fn over_time_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<E
     }
 
     // Load FTL shared memory
-    let counters = ftl_memory.counters()?;
-    let strings = ftl_memory.strings()?;
-    let over_time = ftl_memory.over_time()?;
-    let clients = ftl_memory.clients()?;
+    let lock = ftl_memory.lock()?;
+    let counters = ftl_memory.counters(&lock)?;
+    let strings = ftl_memory.strings(&lock)?;
+    let over_time = ftl_memory.over_time(&lock)?;
+    let clients = ftl_memory.clients(&lock)?;
 
     // Store the client IDs (indexes), even after going through filters
     let mut client_ids = HashMap::new();
@@ -69,7 +70,7 @@ pub fn over_time_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<E
 
         for &client in &clients {
             // Client overTime data is stored using the client ID (index)
-            client_data.push(ftl_memory.over_time_client(client_ids[client])?);
+            client_data.push(ftl_memory.over_time_client(client_ids[client], &lock)?);
         }
 
         client_data

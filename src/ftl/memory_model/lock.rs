@@ -3,20 +3,17 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// FTL Utilities
+// FTL Shared Memory Lock Structure
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-mod lock_thread;
-mod memory_model;
-mod shared_lock;
-mod shared_memory;
-mod socket;
+use libc;
 
-pub use self::{
-    memory_model::*,
-    shared_lock::{ShmLock, ShmLockGuard},
-    shared_memory::FtlMemory,
-    socket::{FtlConnection, FtlConnectionType}
-};
+/// The lock structure used to synchronize access to shared memory
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct FtlLock {
+    pub lock: libc::pthread_mutex_t,
+    pub ftl_waiting_for_lock: bool
+}

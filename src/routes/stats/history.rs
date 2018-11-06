@@ -12,7 +12,7 @@ use auth::User;
 use base64::{decode, encode};
 use env::Env;
 use failure::ResultExt;
-use ftl::{FtlMemory, FtlQuery, FtlQueryStatus, FtlQueryType};
+use ftl::{FtlMemory, FtlQuery, FtlQueryStatus, FtlQueryType, ShmLockGuard};
 use rocket::{http::RawStr, request::FromFormValue, State};
 use rocket_contrib::Value;
 use serde_json;
@@ -107,8 +107,9 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
         }));
     }
 
-    let counters = ftl_memory.counters()?;
-    let queries = ftl_memory.queries()?;
+    let lock = ftl_memory.lock()?;
+    let counters = ftl_memory.counters(&lock)?;
+    let queries = ftl_memory.queries(&lock)?;
 
     // The following code uses a boxed iterator, Box<Iterator<Item = &FtlQuery>>
     //
@@ -144,9 +145,9 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
     let queries_iter = filter_time_from(queries_iter, &params);
     let queries_iter = filter_time_until(queries_iter, &params);
     let queries_iter = filter_query_type(queries_iter, &params);
-    let queries_iter = filter_upstream(queries_iter, &params, ftl_memory)?;
-    let queries_iter = filter_domain(queries_iter, &params, ftl_memory)?;
-    let queries_iter = filter_client(queries_iter, &params, ftl_memory)?;
+    let queries_iter = filter_upstream(queries_iter, &params, ftl_memory, &lock)?;
+    let queries_iter = filter_domain(queries_iter, &params, ftl_memory, &lock)?;
+    let queries_iter = filter_client(queries_iter, &params, ftl_memory, &lock)?;
 
     // Get the limit
     let limit = params.limit.unwrap_or(100);
@@ -182,7 +183,7 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
         // Only take up to the limit this time, not including the last query,
         // because it was just used to get the cursor
         .take(limit)
-        .map(map_query_to_json(ftl_memory)?)
+        .map(map_query_to_json(ftl_memory, &lock)?)
         .collect();
 
     reply_data(json!({
@@ -193,11 +194,12 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
 
 /// Create a function to map `FtlQuery` structs to JSON `Value` structs.
 fn map_query_to_json<'a>(
-    ftl_memory: &'a FtlMemory
+    ftl_memory: &'a FtlMemory,
+    ftl_lock: &ShmLockGuard<'a>
 ) -> Result<impl Fn(&FtlQuery) -> Value + 'a, Error> {
-    let domains = ftl_memory.domains()?;
-    let clients = ftl_memory.clients()?;
-    let strings = ftl_memory.strings()?;
+    let domains = ftl_memory.domains(ftl_lock)?;
+    let clients = ftl_memory.clients(ftl_lock)?;
+    let strings = ftl_memory.strings(ftl_lock)?;
 
     Ok(move |query: &FtlQuery| {
         let domain = domains[query.domain_id as usize].get_domain(&strings);
@@ -321,7 +323,8 @@ fn filter_query_type<'a>(
 fn filter_upstream<'a>(
     queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams,
-    ftl_memory: &FtlMemory
+    ftl_memory: &FtlMemory,
+    ftl_lock: &ShmLockGuard<'a>
 ) -> Result<Box<Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     if let Some(ref upstream) = params.upstream {
         if upstream == "blocklist" {
@@ -338,9 +341,9 @@ fn filter_upstream<'a>(
         } else {
             // Find the upstream. If none can be found, return an empty iterator because no
             // query can match the upstream requested
-            let counters = ftl_memory.counters()?;
-            let strings = ftl_memory.strings()?;
-            let upstreams = ftl_memory.upstreams()?;
+            let counters = ftl_memory.counters(ftl_lock)?;
+            let strings = ftl_memory.strings(ftl_lock)?;
+            let upstreams = ftl_memory.upstreams(ftl_lock)?;
             let upstream_id = upstreams
                 .iter()
                 .take(counters.total_upstreams as usize)
@@ -372,14 +375,15 @@ fn filter_upstream<'a>(
 fn filter_domain<'a>(
     queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams,
-    ftl_memory: &FtlMemory
+    ftl_memory: &FtlMemory,
+    ftl_lock: &ShmLockGuard<'a>
 ) -> Result<Box<Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     if let Some(ref domain_filter) = params.domain {
         // Find the domain. If none can be found, return an empty iterator because no
         // query can match the domain requested
-        let counters = ftl_memory.counters()?;
-        let strings = ftl_memory.strings()?;
-        let domains = ftl_memory.domains()?;
+        let counters = ftl_memory.counters(ftl_lock)?;
+        let strings = ftl_memory.strings(ftl_lock)?;
+        let domains = ftl_memory.domains(ftl_lock)?;
         let domain_id = domains
             .iter()
             .take(counters.total_domains as usize)
@@ -401,14 +405,15 @@ fn filter_domain<'a>(
 fn filter_client<'a>(
     queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams,
-    ftl_memory: &FtlMemory
+    ftl_memory: &FtlMemory,
+    ftl_lock: &ShmLockGuard<'a>
 ) -> Result<Box<Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     if let Some(ref client_filter) = params.client {
         // Find the client. If none can be found, return an empty iterator because no
         // query can match the client requested
-        let counters = ftl_memory.counters()?;
-        let strings = ftl_memory.strings()?;
-        let clients = ftl_memory.clients()?;
+        let counters = ftl_memory.counters(ftl_lock)?;
+        let strings = ftl_memory.strings(ftl_lock)?;
+        let clients = ftl_memory.clients(ftl_lock)?;
         let client_id = clients
             .iter()
             .take(counters.total_clients as usize)
@@ -445,7 +450,7 @@ mod test {
     use env::{Config, Env, PiholeFile};
     use ftl::{
         FtlClient, FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
-        FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlUpstream
+        FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlUpstream, ShmLockGuard
     };
     use rocket_contrib::Value;
     use routes::stats::history::HistoryCursor;
@@ -601,7 +606,7 @@ mod test {
         let history: Vec<Value> = expected_queries
             .iter()
             .rev()
-            .map(map_query_to_json(&ftl_memory).unwrap())
+            .map(map_query_to_json(&ftl_memory, &ShmLockGuard::Test).unwrap())
             .collect();
 
         TestBuilder::new()
@@ -627,7 +632,7 @@ mod test {
             .iter()
             .rev()
             .take(5)
-            .map(map_query_to_json(&ftl_memory).unwrap())
+            .map(map_query_to_json(&ftl_memory, &ShmLockGuard::Test).unwrap())
             .collect();
 
         TestBuilder::new()
@@ -659,7 +664,7 @@ mod test {
     fn test_map_query_to_json() {
         let query = test_queries()[0];
         let ftl_memory = test_memory();
-        let map_function = map_query_to_json(&ftl_memory).unwrap();
+        let map_function = map_query_to_json(&ftl_memory, &ShmLockGuard::Test).unwrap();
         let mapped_query = map_function(&query);
 
         assert_eq!(
@@ -850,7 +855,8 @@ mod test {
                 upstream: Some("8.8.4.4".to_owned()),
                 ..HistoryParams::default()
             },
-            &test_memory()
+            &test_memory(),
+            &ShmLockGuard::Test
         ).unwrap()
             .collect();
 
@@ -868,7 +874,8 @@ mod test {
                 upstream: Some("google-public-dns-b.google.com".to_owned()),
                 ..HistoryParams::default()
             },
-            &test_memory()
+            &test_memory(),
+            &ShmLockGuard::Test
         ).unwrap()
             .collect();
 
@@ -886,7 +893,8 @@ mod test {
                 domain: Some("domain2.com".to_owned()),
                 ..HistoryParams::default()
             },
-            &test_memory()
+            &test_memory(),
+            &ShmLockGuard::Test
         ).unwrap()
             .collect();
 
@@ -904,7 +912,8 @@ mod test {
                 client: Some("192.168.1.10".to_owned()),
                 ..HistoryParams::default()
             },
-            &test_memory()
+            &test_memory(),
+            &ShmLockGuard::Test
         ).unwrap()
             .collect();
 
@@ -922,7 +931,8 @@ mod test {
                 client: Some("client1".to_owned()),
                 ..HistoryParams::default()
             },
-            &test_memory()
+            &test_memory(),
+            &ShmLockGuard::Test
         ).unwrap()
             .collect();
 

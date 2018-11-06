@@ -8,11 +8,14 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use ftl::{FtlClient, FtlCounters, FtlDomain, FtlOverTime, FtlQuery, FtlStrings, FtlUpstream};
+use ftl::{
+    FtlClient, FtlCounters, FtlDomain, FtlOverTime, FtlQuery, FtlStrings, FtlUpstream, ShmLock,
+    ShmLockGuard
+};
 use libc;
-use shmem::{self, Array, Map, Object};
+use shmem::{Array, Map, Object};
 use std::{marker::PhantomData, ops::Deref};
-use util::{Error, ErrorKind};
+use util::Error;
 
 #[cfg(test)]
 use std::collections::HashMap;
@@ -31,7 +34,9 @@ const FTL_SHM_COUNTERS: &str = "/FTL-counters";
 /// - Production mode connects to the real FTL shared memory.
 /// - Test mode uses the associated test data to mock FTL's shared memory.
 pub enum FtlMemory {
-    Production,
+    Production {
+        lock: ShmLock
+    },
     #[cfg(test)]
     Test {
         clients: Vec<FtlClient>,
@@ -46,16 +51,35 @@ pub enum FtlMemory {
 }
 
 impl FtlMemory {
+    /// Create a production instance of `FtlMemory`
+    pub fn production() -> FtlMemory {
+        FtlMemory::Production {
+            lock: ShmLock::new()
+        }
+    }
+
+    /// Get the FTL shared memory lock. The resulting [`ShmLockGuard`] is used
+    /// to access the rest of shared memory.
+    ///
+    /// [`ShmLockGuard`]: ../shared_lock/enum.ShmLockGuard.html
+    pub fn lock(&self) -> Result<ShmLockGuard, Error> {
+        match self {
+            FtlMemory::Production { lock } => lock.read(),
+            #[cfg(test)]
+            FtlMemory::Test { .. } => Ok(ShmLockGuard::Test)
+        }
+    }
+
     /// Get the FTL shared memory client data. The resulting trait object can
     /// dereference into `&[FtlClient]`.
-    pub fn clients<'test>(
-        &'test self
-    ) -> Result<Box<dyn Deref<Target = [FtlClient]> + 'test>, Error> {
+    pub fn clients<'lock>(
+        &'lock self,
+        _lock_guard: &ShmLockGuard<'lock>
+    ) -> Result<Box<dyn Deref<Target = [FtlClient]> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => Box::new(
+            FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_CLIENTS).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?
+                Array::new(Object::open(FTL_SHM_CLIENTS)?)?
             ),
             #[cfg(test)]
             FtlMemory::Test { clients, .. } => Box::new(clients.as_slice())
@@ -64,14 +88,14 @@ impl FtlMemory {
 
     /// Get the FTL shared memory domain data. The resulting trait object can
     /// dereference into `&[FtlDomain]`.
-    pub fn domains<'test>(
-        &'test self
-    ) -> Result<Box<dyn Deref<Target = [FtlDomain]> + 'test>, Error> {
+    pub fn domains<'lock>(
+        &'lock self,
+        _lock_guard: &ShmLockGuard<'lock>
+    ) -> Result<Box<dyn Deref<Target = [FtlDomain]> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => Box::new(
+            FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_DOMAINS).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?
+                Array::new(Object::open(FTL_SHM_DOMAINS)?)?
             ),
             #[cfg(test)]
             FtlMemory::Test { domains, .. } => Box::new(domains.as_slice())
@@ -80,14 +104,14 @@ impl FtlMemory {
 
     /// Get the FTL shared memory overTime data. The resulting trait object can
     /// dereference into `&[FtlOverTime]`.
-    pub fn over_time<'test>(
-        &'test self
-    ) -> Result<Box<dyn Deref<Target = [FtlOverTime]> + 'test>, Error> {
+    pub fn over_time<'lock>(
+        &'lock self,
+        _lock_guard: &ShmLockGuard<'lock>
+    ) -> Result<Box<dyn Deref<Target = [FtlOverTime]> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => Box::new(
+            FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_OVERTIME).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?
+                Array::new(Object::open(FTL_SHM_OVERTIME)?)?
             ),
             #[cfg(test)]
             FtlMemory::Test { over_time, .. } => Box::new(over_time.as_slice())
@@ -96,17 +120,18 @@ impl FtlMemory {
 
     /// Get the FTL shared memory overTime client data. The resulting trait
     /// object can dereference into `&[libc::c_int]`.
-    pub fn over_time_client<'test>(
-        &'test self,
-        client_id: usize
-    ) -> Result<Box<dyn Deref<Target = [libc::c_int]> + 'test>, Error> {
+    pub fn over_time_client<'lock>(
+        &'lock self,
+        client_id: usize,
+        _lock_guard: &ShmLockGuard<'lock>
+    ) -> Result<Box<dyn Deref<Target = [libc::c_int]> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => Box::new(
+            FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(
-                    Object::open(format!("{}{}", FTL_SHM_OVERTIME_CLIENT, client_id))
-                        .map_err(from_shmem_error)?
-                ).map_err(from_shmem_error)?
+                Array::new(Object::open(format!(
+                    "{}{}",
+                    FTL_SHM_OVERTIME_CLIENT, client_id
+                ))?)?
             ),
             #[cfg(test)]
             FtlMemory::Test {
@@ -117,14 +142,14 @@ impl FtlMemory {
 
     /// Get the FTL shared memory upstream data. The resulting trait object can
     /// dereference into `&[FtlUpstream]`.
-    pub fn upstreams<'test>(
-        &'test self
-    ) -> Result<Box<dyn Deref<Target = [FtlUpstream]> + 'test>, Error> {
+    pub fn upstreams<'lock>(
+        &'lock self,
+        _lock_guard: &ShmLockGuard<'lock>
+    ) -> Result<Box<dyn Deref<Target = [FtlUpstream]> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => Box::new(
+            FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_FORWARDED).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?
+                Array::new(Object::open(FTL_SHM_FORWARDED)?)?
             ),
             #[cfg(test)]
             FtlMemory::Test { upstreams, .. } => Box::new(upstreams.as_slice())
@@ -133,14 +158,14 @@ impl FtlMemory {
 
     /// Get the FTL shared memory query data. The resulting trait object can
     /// dereference into `&[FtlQuery]`.
-    pub fn queries<'test>(
-        &'test self
-    ) -> Result<Box<dyn Deref<Target = [FtlQuery]> + 'test>, Error> {
+    pub fn queries<'lock>(
+        &'lock self,
+        _lock_guard: &ShmLockGuard<'lock>
+    ) -> Result<Box<dyn Deref<Target = [FtlQuery]> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => Box::new(
+            FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_QUERIES).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?
+                Array::new(Object::open(FTL_SHM_QUERIES)?)?
             ),
             #[cfg(test)]
             FtlMemory::Test { queries, .. } => Box::new(queries.as_slice())
@@ -148,13 +173,14 @@ impl FtlMemory {
     }
 
     /// Get the FTL shared memory string data
-    pub fn strings(&self) -> Result<FtlStrings, Error> {
+    pub fn strings<'lock>(
+        &'lock self,
+        _lock_guard: &ShmLockGuard<'lock>
+    ) -> Result<FtlStrings<'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => FtlStrings::Production(
-                Array::new(Object::open(FTL_SHM_STRINGS).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?,
-                PhantomData
-            ),
+            FtlMemory::Production { .. } => {
+                FtlStrings::Production(Array::new(Object::open(FTL_SHM_STRINGS)?)?, PhantomData)
+            }
             #[cfg(test)]
             FtlMemory::Test { strings, .. } => FtlStrings::Test(&strings)
         })
@@ -162,25 +188,14 @@ impl FtlMemory {
 
     /// Get the FTL shared memory counters data. The resulting trait object can
     /// dereference into `&FtlCounters`.
-    pub fn counters<'test>(
-        &'test self
-    ) -> Result<Box<dyn Deref<Target = FtlCounters> + 'test>, Error> {
+    pub fn counters<'lock>(
+        &'lock self,
+        _lock_guard: &ShmLockGuard<'lock>
+    ) -> Result<Box<dyn Deref<Target = FtlCounters> + 'lock>, Error> {
         Ok(match self {
-            FtlMemory::Production => Box::new(
-                Map::new(Object::open(FTL_SHM_COUNTERS).map_err(from_shmem_error)?)
-                    .map_err(from_shmem_error)?
-            ),
+            FtlMemory::Production { .. } => Box::new(Map::new(Object::open(FTL_SHM_COUNTERS)?)?),
             #[cfg(test)]
             FtlMemory::Test { counters, .. } => Box::new(counters)
         })
     }
-}
-
-/// Converts `shmem::Error` into [`ErrorKind::SharedMemoryOpen`]. See the
-/// comment on [`ErrorKind::SharedMemoryOpen`] for more information.
-///
-/// [`ErrorKind::SharedMemoryOpen`]:
-/// ../../util/enum.ErrorKind.html#variant.SharedMemoryOpen
-fn from_shmem_error(e: shmem::Error) -> ErrorKind {
-    ErrorKind::SharedMemoryOpen(format!("{:?}", e))
 }

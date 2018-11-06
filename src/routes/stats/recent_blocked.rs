@@ -46,10 +46,11 @@ pub fn get_recent_blocked(ftl_memory: &FtlMemory, env: &Env, num: usize) -> Repl
         return reply_data([0; 0]);
     }
 
-    let counters = ftl_memory.counters()?;
-    let queries = ftl_memory.queries()?;
-    let strings = ftl_memory.strings()?;
-    let domains = ftl_memory.domains()?;
+    let lock = ftl_memory.lock()?;
+    let counters = ftl_memory.counters(&lock)?;
+    let queries = ftl_memory.queries(&lock)?;
+    let strings = ftl_memory.strings(&lock)?;
+    let domains = ftl_memory.domains(&lock)?;
 
     let recent_blocked: Vec<&str> = queries
         .iter()
