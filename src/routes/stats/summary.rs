@@ -54,7 +54,7 @@ pub fn get_summary(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
         }
     };
 
-    let status = if SetupVarsEntry::BlockingEnabled.read_as(&env)? {
+    let status = if SetupVarsEntry::BlockingEnabled.is_true(&env)? {
         "enabled"
     } else {
         "disabled"
@@ -160,7 +160,7 @@ mod test {
                     "TXT": 0
                 },
                 "blocked_queries": 2,
-                "percent_blocked": 28.571428571428577,
+                "percent_blocked": 28.571428571428573,
                 "unique_domains": 6,
                 "forwarded_queries": 3,
                 "cached_queries": 2,
@@ -197,7 +197,7 @@ mod test {
                     "TXT": 0
                 },
                 "blocked_queries": 2,
-                "percent_blocked": 28.571428571428577,
+                "percent_blocked": 28.571428571428573,
                 "unique_domains": 6,
                 "forwarded_queries": 3,
                 "cached_queries": 2,
