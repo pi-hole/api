@@ -90,13 +90,13 @@ pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
     let dns_settings = DnsSettings {
         upstream_dns: get_upstream_dns(&env)?,
         options: DnsOptions {
-            fqdn_required: SetupVarsEntry::DnsFqdnRequired.read_as(&env)?,
-            bogus_priv: SetupVarsEntry::DnsBogusPriv.read_as(&env)?,
-            dnssec: SetupVarsEntry::Dnssec.read_as(&env)?,
+            fqdn_required: SetupVarsEntry::DnsFqdnRequired.is_true(&env)?,
+            bogus_priv: SetupVarsEntry::DnsBogusPriv.is_true(&env)?,
+            dnssec: SetupVarsEntry::Dnssec.is_true(&env)?,
             listening_type: SetupVarsEntry::DnsmasqListening.read(&env)?
         },
         conditional_forwarding: DnsConditionalForwarding {
-            enabled: SetupVarsEntry::ConditionalForwarding.read_as(&env)?,
+            enabled: SetupVarsEntry::ConditionalForwarding.is_true(&env)?,
             router_ip: SetupVarsEntry::ConditionalForwardingIp.read(&env)?,
             domain: SetupVarsEntry::ConditionalForwardingDomain.read(&env)?
         }
