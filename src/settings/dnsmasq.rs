@@ -39,6 +39,7 @@ pub fn generate_dnsmasq_config(env: &Env) -> Result<(), Error> {
     write_servers(&mut config_file, env)?;
     write_lists(&mut config_file)?;
     write_dns_options(&mut config_file, env)?;
+    write_dhcp(&mut config_file, env)?;
 
     Ok(())
 }
@@ -46,7 +47,7 @@ pub fn generate_dnsmasq_config(env: &Env) -> Result<(), Error> {
 /// Open the dnsmasq config and truncate it
 fn open_config(env: &Env) -> Result<BufWriter<File>, Error> {
     env.write_file(PiholeFile::DnsmasqConfig, false)
-        .map(|file| BufWriter::new(file))
+        .map(BufWriter::new)
 }
 
 /// Write the header to the config file
@@ -163,10 +164,53 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
     Ok(())
 }
 
+/// Write DHCP settings, if enabled
+fn write_dhcp(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
+    if !SetupVarsEntry::DhcpActive.is_true(env)? {
+        // Skip DHCP settings if it is not enabled
+        return Ok(());
+    }
+
+    let lease_time: usize = SetupVarsEntry::DhcpLeasetime.read_as(env)?;
+    let lease_time = if lease_time == 0 {
+        "infinite".to_owned()
+    } else {
+        format!("{}h", lease_time)
+    };
+
+    // Main DHCP settings
+    writeln!(
+        config_file,
+        "dhcp-authoritative\n\
+         dhcp-leasefile=/etc/pihole/dhcp.leases\n\
+         dhcp-range={},{},{}\n\
+         dhcp-option=option:router,{}",
+        SetupVarsEntry::DhcpStart.read(env)?,
+        SetupVarsEntry::DhcpEnd.read(env)?,
+        lease_time,
+        SetupVarsEntry::DhcpRouter.read(env)?
+    ).context(ErrorKind::DnsmasqConfigWrite)?;
+
+    // Additional settings for IPv6
+    if SetupVarsEntry::DhcpIpv6.is_true(env)? {
+        writeln!(
+            config_file,
+            "dhcp-option=option6:dns-server,[::]\n\
+             dhcp-range=::100,::1ff,constructor:{},ra-names,slaac,{}\n\
+             ra-param=*,0,0",
+            SetupVarsEntry::PiholeInterface.read(env)?,
+            lease_time
+        ).context(ErrorKind::DnsmasqConfigWrite)?;
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        open_config, write_dns_options, write_header, write_lists, write_servers, DNSMASQ_HEADER
+        open_config, write_dhcp, write_dns_options, write_header, write_lists, write_servers,
+        DNSMASQ_HEADER
     };
     use env::{Config, Env, PiholeFile};
     use std::{
@@ -289,5 +333,90 @@ mod tests {
             CONDITIONAL_FORWARDING_REVERSE=8.8.8.in-addr.arpa",
             write_dns_options
         );
+    }
+
+    /// No DHCP settings should be written if DHCP is inactive
+    #[test]
+    fn dhcp_inactive() {
+        test_config(
+            "",
+            "PIHOLE_INTERFACE=eth0\n\
+             DHCP_ACTIVE=false\n\
+             DHCP_START=192.168.1.50\n\
+             DHCP_END=192.168.1.150\n\
+             DHCP_ROUTER=192.168.1.1\n\
+             DHCP_LEASETIME=24\n\
+             PIHOLE_DOMAIN=lan\n\
+             DHCP_IPv6=false",
+            write_dhcp
+        )
+    }
+
+    /// DHCP settings should be written if DHCP is active. IPv6 is not enabled
+    /// and those settings should not appear.
+    #[test]
+    fn dhcp_active() {
+        test_config(
+            "dhcp-authoritative\n\
+             dhcp-leasefile=/etc/pihole/dhcp.leases\n\
+             dhcp-range=192.168.1.50,192.168.1.150,24h\n\
+             dhcp-option=option:router,192.168.1.1\n",
+            "PIHOLE_INTERFACE=eth0\n\
+             DHCP_ACTIVE=true\n\
+             DHCP_START=192.168.1.50\n\
+             DHCP_END=192.168.1.150\n\
+             DHCP_ROUTER=192.168.1.1\n\
+             DHCP_LEASETIME=24\n\
+             PIHOLE_DOMAIN=lan\n\
+             DHCP_IPv6=false",
+            write_dhcp
+        )
+    }
+
+    /// DHCP IPv6 settings are written if IPv6 is enabled
+    #[test]
+    fn dhcp_ipv6() {
+        test_config(
+            "dhcp-authoritative\n\
+             dhcp-leasefile=/etc/pihole/dhcp.leases\n\
+             dhcp-range=192.168.1.50,192.168.1.150,24h\n\
+             dhcp-option=option:router,192.168.1.1\n\
+             dhcp-option=option6:dns-server,[::]\n\
+             dhcp-range=::100,::1ff,constructor:eth0,ra-names,slaac,24h\n\
+             ra-param=*,0,0\n",
+            "PIHOLE_INTERFACE=eth0\n\
+             DHCP_ACTIVE=true\n\
+             DHCP_START=192.168.1.50\n\
+             DHCP_END=192.168.1.150\n\
+             DHCP_ROUTER=192.168.1.1\n\
+             DHCP_LEASETIME=24\n\
+             PIHOLE_DOMAIN=lan\n\
+             DHCP_IPv6=true",
+            write_dhcp
+        )
+    }
+
+    /// An infinite lease (`DHCP_LEASETIME=0`) is written as "infinite" in the
+    /// settings. This test also checks the IPv6 settings.
+    #[test]
+    fn dhcp_infinite_lease() {
+        test_config(
+            "dhcp-authoritative\n\
+             dhcp-leasefile=/etc/pihole/dhcp.leases\n\
+             dhcp-range=192.168.1.50,192.168.1.150,infinite\n\
+             dhcp-option=option:router,192.168.1.1\n\
+             dhcp-option=option6:dns-server,[::]\n\
+             dhcp-range=::100,::1ff,constructor:eth0,ra-names,slaac,infinite\n\
+             ra-param=*,0,0\n",
+            "PIHOLE_INTERFACE=eth0\n\
+             DHCP_ACTIVE=true\n\
+             DHCP_START=192.168.1.50\n\
+             DHCP_END=192.168.1.150\n\
+             DHCP_ROUTER=192.168.1.1\n\
+             DHCP_LEASETIME=0\n\
+             PIHOLE_DOMAIN=lan\n\
+             DHCP_IPv6=true",
+            write_dhcp
+        )
     }
 }

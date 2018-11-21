@@ -152,6 +152,7 @@ fn setup(
             dns::delete_blacklist,
             dns::delete_regexlist,
             settings::get_dhcp,
+            settings::put_dhcp,
             settings::get_dns,
             settings::put_dns,
             settings::get_ftldb,
