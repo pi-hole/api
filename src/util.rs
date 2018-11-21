@@ -84,7 +84,7 @@ pub struct Error {
 pub enum ErrorKind {
     #[fail(display = "Unknown error")]
     Unknown,
-    #[fail(display = "Gravity failed to form")]
+    #[fail(display = "Failed to create the blocklist")]
     GravityError,
     #[fail(display = "Failed to connect to FTL")]
     FtlConnectionFail,
