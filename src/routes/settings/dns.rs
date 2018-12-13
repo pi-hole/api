@@ -60,6 +60,11 @@ pub struct DnsConditionalForwarding {
 impl DnsConditionalForwarding {
     /// Check if the conditional forwarding options are valid
     fn is_valid(&self) -> bool {
+        // If conditional forwarding is turned on, no setting may be empty
+        if self.enabled && (self.router_ip.is_empty() || self.domain.is_empty()) {
+            return false;
+        }
+
         // `enabled` is already known to be valid because it was already parsed into
         // a boolean
         SetupVarsEntry::DhcpRouter.is_valid(&self.router_ip)
