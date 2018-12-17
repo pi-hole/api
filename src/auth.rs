@@ -123,6 +123,7 @@ pub fn logout(user: User, cookies: Cookies) -> Reply {
 #[cfg(test)]
 mod test {
     use rocket::http::{Header, Status};
+    use rocket_contrib::Value;
     use testing::TestBuilder;
 
     #[test]
@@ -145,7 +146,8 @@ mod test {
             .expect_json(json!({
                 "error": {
                     "key": "unauthorized",
-                    "message": "Unauthorized"
+                    "message": "Unauthorized",
+                    "data": Value::Null
                 }
             }))
             .test()
@@ -164,7 +166,8 @@ mod test {
             .expect_json(json!({
                 "error": {
                     "key": "unauthorized",
-                    "message": "Unauthorized"
+                    "message": "Unauthorized",
+                    "data": Value::Null
                 }
             }))
             .test();
