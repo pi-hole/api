@@ -38,10 +38,14 @@ pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
                 _ => e.print_stacktrace()
             }
 
+            // Get the extra error data, or null if there is none
+            let data = e.data().unwrap_or_default();
+
             json!({
                 "error": {
                     "key": e.key(),
-                    "message": format!("{}", e)
+                    "message": format!("{}", e),
+                    "data": data
                 }
             })
         }
@@ -163,6 +167,13 @@ impl Error {
         self.inner.get_context().clone()
     }
 
+    /// Get extra data about the error from the [`ErrorKind`]
+    ///
+    /// [`ErrorKind`]: enum.ErrorKind.html
+    fn data(&self) -> Option<Value> {
+        self.inner.get_context().data()
+    }
+
     /// See [`ErrorKind::key`]
     ///
     /// [`ErrorKind::key`]: enum.ErrorKind.html#method.key
@@ -186,7 +197,7 @@ impl ErrorKind {
     /// Get the error key. This should be used by clients to determine the
     /// error type instead of using the message because it will not change.
     pub fn key(&self) -> &'static str {
-        match *self {
+        match self {
             ErrorKind::Unknown => "unknown",
             ErrorKind::GravityError => "gravity_error",
             ErrorKind::FtlConnectionFail => "ftl_connection_fail",
@@ -211,7 +222,7 @@ impl ErrorKind {
 
     /// Get the error HTTP status. This will be used when calling `reply_error`
     pub fn status(&self) -> Status {
-        match *self {
+        match self {
             ErrorKind::Unknown => Status::InternalServerError,
             ErrorKind::GravityError => Status::InternalServerError,
             ErrorKind::FtlConnectionFail => Status::InternalServerError,
@@ -231,6 +242,15 @@ impl ErrorKind {
             ErrorKind::SharedMemoryOpen(_) => Status::InternalServerError,
             ErrorKind::SharedMemoryRead => Status::InternalServerError,
             ErrorKind::SharedMemoryLock => Status::InternalServerError
+        }
+    }
+
+    /// Get extra data about the error, to be used in the JSON error object
+    fn data(&self) -> Option<Value> {
+        match self {
+            ErrorKind::FileRead(file) => Some(json!({ "file": file })),
+            ErrorKind::FileWrite(file) => Some(json!({ "file": file })),
+            _ => None
         }
     }
 }
