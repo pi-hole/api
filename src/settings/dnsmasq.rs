@@ -11,8 +11,10 @@
 use env::{Env, PiholeFile};
 use failure::ResultExt;
 use settings::{ConfigEntry, SetupVarsEntry};
-use std::fs::File;
-use std::io::{BufWriter, Write};
+use std::{
+    fs::File,
+    io::{BufWriter, Write}
+};
 use util::{Error, ErrorKind};
 
 const DNSMASQ_HEADER: &str = "\
@@ -25,6 +27,8 @@ const DNSMASQ_HEADER: &str = "\
 ################################################################
 
 localise-queries
+local-ttl=2
+cache-size=10000
 ";
 
 /// Generate a dnsmasq config based off of SetupVars.
@@ -33,8 +37,9 @@ pub fn generate_dnsmasq_config(env: &Env) -> Result<(), Error> {
 
     write_header(&mut config_file)?;
     write_servers(&mut config_file, env)?;
-    write_lists(&mut config_file, env)?;
+    write_lists(&mut config_file)?;
     write_dns_options(&mut config_file, env)?;
+    write_dhcp(&mut config_file, env)?;
 
     Ok(())
 }
@@ -42,14 +47,15 @@ pub fn generate_dnsmasq_config(env: &Env) -> Result<(), Error> {
 /// Open the dnsmasq config and truncate it
 fn open_config(env: &Env) -> Result<BufWriter<File>, Error> {
     env.write_file(PiholeFile::DnsmasqConfig, false)
-        .map(|file| BufWriter::new(file))
+        .map(BufWriter::new)
 }
 
+/// Write the header to the config file
 fn write_header(config_file: &mut BufWriter<File>) -> Result<(), Error> {
     config_file
         .write_all(DNSMASQ_HEADER.as_bytes())
         .context(ErrorKind::DnsmasqConfigWrite)
-        .map_err(|e| e.into())
+        .map_err(Error::from)
 }
 
 /// Write the upstream DNS servers
@@ -68,17 +74,17 @@ fn write_servers(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Err
     Ok(())
 }
 
-/// Write the blocklist, blacklist, etc if applicable
-fn write_lists(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
-    // Add blocklist and blacklist if blocking is enabled
-    if SetupVarsEntry::BlockingEnabled.read_as(env)? {
-        config_file
-            .write_all(b"addn-hosts=/etc/pihole/gravity.list\n")
-            .context(ErrorKind::DnsmasqConfigWrite)?;
-        config_file
-            .write_all(b"addn-hosts=/etc/pihole/black.list\n")
-            .context(ErrorKind::DnsmasqConfigWrite)?;
-    }
+/// Write the blocklist, blacklist, and local list
+fn write_lists(config_file: &mut BufWriter<File>) -> Result<(), Error> {
+    // Always write the blocklist and blacklist, even if Pi-hole is disabled.
+    // When Pi-hole is disabled, the files will be empty. This is to make
+    // enabling/disabling very fast.
+    config_file
+        .write_all(b"addn-hosts=/etc/pihole/gravity.list\n")
+        .context(ErrorKind::DnsmasqConfigWrite)?;
+    config_file
+        .write_all(b"addn-hosts=/etc/pihole/black.list\n")
+        .context(ErrorKind::DnsmasqConfigWrite)?;
 
     // Always add local.list after the blocklists
     config_file
@@ -90,19 +96,29 @@ fn write_lists(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error
 
 /// Write various DNS settings
 fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
-    if SetupVarsEntry::DnsFqdnRequired.read_as(env)? {
+    if SetupVarsEntry::QueryLogging.is_true(env)? {
+        config_file
+            .write_all(
+                b"log-queries\n\
+            log-facility=/var/log/pihole.log\n\
+            log-async\n"
+            )
+            .context(ErrorKind::DnsmasqConfigWrite)?;
+    }
+
+    if SetupVarsEntry::DnsFqdnRequired.is_true(env)? {
         config_file
             .write_all(b"domain-needed\n")
             .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
-    if SetupVarsEntry::DnsBogusPriv.read_as(env)? {
+    if SetupVarsEntry::DnsBogusPriv.is_true(env)? {
         config_file
             .write_all(b"bogus-priv\n")
             .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
-    if SetupVarsEntry::Dnssec.read_as(env)? {
+    if SetupVarsEntry::Dnssec.is_true(env)? {
         config_file.write_all(
             b"dnssec\n\
             trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5\n\
@@ -132,7 +148,7 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
         }
     }
 
-    if SetupVarsEntry::ConditionalForwarding.read_as(env)? {
+    if SetupVarsEntry::ConditionalForwarding.is_true(env)? {
         let ip = SetupVarsEntry::ConditionalForwardingIp.read(env)?;
 
         writeln!(
@@ -148,14 +164,59 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
     Ok(())
 }
 
+/// Write DHCP settings, if enabled
+fn write_dhcp(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error> {
+    if !SetupVarsEntry::DhcpActive.is_true(env)? {
+        // Skip DHCP settings if it is not enabled
+        return Ok(());
+    }
+
+    let lease_time: usize = SetupVarsEntry::DhcpLeasetime.read_as(env)?;
+    let lease_time = if lease_time == 0 {
+        "infinite".to_owned()
+    } else {
+        format!("{}h", lease_time)
+    };
+
+    // Main DHCP settings
+    writeln!(
+        config_file,
+        "dhcp-authoritative\n\
+         dhcp-leasefile=/etc/pihole/dhcp.leases\n\
+         dhcp-range={},{},{}\n\
+         dhcp-option=option:router,{}",
+        SetupVarsEntry::DhcpStart.read(env)?,
+        SetupVarsEntry::DhcpEnd.read(env)?,
+        lease_time,
+        SetupVarsEntry::DhcpRouter.read(env)?
+    ).context(ErrorKind::DnsmasqConfigWrite)?;
+
+    // Additional settings for IPv6
+    if SetupVarsEntry::DhcpIpv6.is_true(env)? {
+        writeln!(
+            config_file,
+            "dhcp-option=option6:dns-server,[::]\n\
+             dhcp-range=::100,::1ff,constructor:{},ra-names,slaac,{}\n\
+             ra-param=*,0,0",
+            SetupVarsEntry::PiholeInterface.read(env)?,
+            lease_time
+        ).context(ErrorKind::DnsmasqConfigWrite)?;
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        open_config, write_dns_options, write_header, write_lists, write_servers, DNSMASQ_HEADER
+        open_config, write_dhcp, write_dns_options, write_header, write_lists, write_servers,
+        DNSMASQ_HEADER
     };
     use env::{Config, Env, PiholeFile};
-    use std::fs::File;
-    use std::io::{BufWriter, Write};
+    use std::{
+        fs::File,
+        io::{BufWriter, Write}
+    };
     use testing::TestEnvBuilder;
     use util::Error;
 
@@ -220,25 +281,14 @@ mod tests {
     }
 
     /// Confirm that the blocklists are written (in addition to local.list)
-    /// when blocking is enabled
     #[test]
-    fn block_lists_written_when_enabled() {
+    fn block_lists_written() {
         test_config(
             "addn-hosts=/etc/pihole/gravity.list\n\
              addn-hosts=/etc/pihole/black.list\n\
              addn-hosts=/etc/pihole/local.list\n",
-            "BLOCKING_ENABLED=true",
-            write_lists
-        );
-    }
-
-    /// Confirm that only local.list is written when blocking is disabled
-    #[test]
-    fn block_lists_not_written_when_disabled() {
-        test_config(
-            "addn-hosts=/etc/pihole/local.list\n",
-            "BLOCKING_ENABLED=false",
-            write_lists
+            "",
+            |config, _| write_lists(config)
         );
     }
 
@@ -283,5 +333,90 @@ mod tests {
             CONDITIONAL_FORWARDING_REVERSE=8.8.8.in-addr.arpa",
             write_dns_options
         );
+    }
+
+    /// No DHCP settings should be written if DHCP is inactive
+    #[test]
+    fn dhcp_inactive() {
+        test_config(
+            "",
+            "PIHOLE_INTERFACE=eth0\n\
+             DHCP_ACTIVE=false\n\
+             DHCP_START=192.168.1.50\n\
+             DHCP_END=192.168.1.150\n\
+             DHCP_ROUTER=192.168.1.1\n\
+             DHCP_LEASETIME=24\n\
+             PIHOLE_DOMAIN=lan\n\
+             DHCP_IPv6=false",
+            write_dhcp
+        )
+    }
+
+    /// DHCP settings should be written if DHCP is active. IPv6 is not enabled
+    /// and those settings should not appear.
+    #[test]
+    fn dhcp_active() {
+        test_config(
+            "dhcp-authoritative\n\
+             dhcp-leasefile=/etc/pihole/dhcp.leases\n\
+             dhcp-range=192.168.1.50,192.168.1.150,24h\n\
+             dhcp-option=option:router,192.168.1.1\n",
+            "PIHOLE_INTERFACE=eth0\n\
+             DHCP_ACTIVE=true\n\
+             DHCP_START=192.168.1.50\n\
+             DHCP_END=192.168.1.150\n\
+             DHCP_ROUTER=192.168.1.1\n\
+             DHCP_LEASETIME=24\n\
+             PIHOLE_DOMAIN=lan\n\
+             DHCP_IPv6=false",
+            write_dhcp
+        )
+    }
+
+    /// DHCP IPv6 settings are written if IPv6 is enabled
+    #[test]
+    fn dhcp_ipv6() {
+        test_config(
+            "dhcp-authoritative\n\
+             dhcp-leasefile=/etc/pihole/dhcp.leases\n\
+             dhcp-range=192.168.1.50,192.168.1.150,24h\n\
+             dhcp-option=option:router,192.168.1.1\n\
+             dhcp-option=option6:dns-server,[::]\n\
+             dhcp-range=::100,::1ff,constructor:eth0,ra-names,slaac,24h\n\
+             ra-param=*,0,0\n",
+            "PIHOLE_INTERFACE=eth0\n\
+             DHCP_ACTIVE=true\n\
+             DHCP_START=192.168.1.50\n\
+             DHCP_END=192.168.1.150\n\
+             DHCP_ROUTER=192.168.1.1\n\
+             DHCP_LEASETIME=24\n\
+             PIHOLE_DOMAIN=lan\n\
+             DHCP_IPv6=true",
+            write_dhcp
+        )
+    }
+
+    /// An infinite lease (`DHCP_LEASETIME=0`) is written as "infinite" in the
+    /// settings. This test also checks the IPv6 settings.
+    #[test]
+    fn dhcp_infinite_lease() {
+        test_config(
+            "dhcp-authoritative\n\
+             dhcp-leasefile=/etc/pihole/dhcp.leases\n\
+             dhcp-range=192.168.1.50,192.168.1.150,infinite\n\
+             dhcp-option=option:router,192.168.1.1\n\
+             dhcp-option=option6:dns-server,[::]\n\
+             dhcp-range=::100,::1ff,constructor:eth0,ra-names,slaac,infinite\n\
+             ra-param=*,0,0\n",
+            "PIHOLE_INTERFACE=eth0\n\
+             DHCP_ACTIVE=true\n\
+             DHCP_START=192.168.1.50\n\
+             DHCP_END=192.168.1.150\n\
+             DHCP_ROUTER=192.168.1.1\n\
+             DHCP_LEASETIME=0\n\
+             PIHOLE_DOMAIN=lan\n\
+             DHCP_IPv6=true",
+            write_dhcp
+        )
     }
 }

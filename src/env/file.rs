@@ -18,7 +18,8 @@ pub enum PiholeFile {
     SetupVars,
     FtlConfig,
     LocalVersions,
-    LocalBranches
+    LocalBranches,
+    AuditLog
 }
 
 impl PiholeFile {
@@ -32,7 +33,8 @@ impl PiholeFile {
             PiholeFile::SetupVars => "/etc/pihole/setupVars.conf",
             PiholeFile::FtlConfig => "/etc/pihole/pihole-FTL.conf",
             PiholeFile::LocalVersions => "/etc/pihole/localversions",
-            PiholeFile::LocalBranches => "/etc/pihole/localbranches"
+            PiholeFile::LocalBranches => "/etc/pihole/localbranches",
+            PiholeFile::AuditLog => "/etc/pihole/auditlog.list"
         }
     }
 }

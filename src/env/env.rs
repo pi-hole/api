@@ -10,24 +10,32 @@
 
 use env::{Config, PiholeFile};
 use failure::ResultExt;
-use std::collections::HashMap;
-use std::fs::{File, OpenOptions};
-use std::os::unix::fs::OpenOptionsExt;
-use std::path::Path;
-use tempfile::NamedTempFile;
+use std::{
+    fs::{File, OpenOptions},
+    os::unix::fs::OpenOptionsExt,
+    path::Path
+};
 use util::{Error, ErrorKind};
+
+#[cfg(test)]
+use std::collections::HashMap;
+#[cfg(test)]
+use tempfile::{tempfile, NamedTempFile};
 
 /// Environment of the Pi-hole API. Stores the config and abstracts away some
 /// systems to make testing easier.
 pub enum Env {
     Production(Config),
+    #[cfg(test)]
     Test(Config, HashMap<PiholeFile, NamedTempFile>)
 }
 
 impl Env {
+    /// Get the API config that was loaded
     pub fn config(&self) -> &Config {
         match *self {
             Env::Production(ref config) => config,
+            #[cfg(test)]
             Env::Test(ref config, _) => config
         }
     }
@@ -36,6 +44,7 @@ impl Env {
     pub fn file_location(&self, file: PiholeFile) -> &str {
         match *self {
             Env::Production(ref config_options) => config_options.file_location(file),
+            #[cfg(test)]
             Env::Test(_, _) => file.default_location()
         }
     }
@@ -49,9 +58,10 @@ impl Env {
                     .context(ErrorKind::FileRead(file_location.to_owned()))
                     .map_err(Error::from)
             }
+            #[cfg(test)]
             Env::Test(_, ref map) => match map.get(&file) {
                 Some(data) => data,
-                None => return Err(ErrorKind::NotFound.into())
+                None => return tempfile().context(ErrorKind::Unknown).map_err(Error::from)
             }.reopen()
                 .context(ErrorKind::Unknown)
                 .map_err(Error::from)
@@ -78,10 +88,11 @@ impl Env {
                     .context(ErrorKind::FileWrite(file_location.to_owned()))
                     .map_err(Error::from)
             }
+            #[cfg(test)]
             Env::Test(_, ref map) => {
                 let file = match map.get(&file) {
                     Some(data) => data,
-                    None => return Err(ErrorKind::NotFound.into())
+                    None => return tempfile().context(ErrorKind::Unknown).map_err(Error::from)
                 }.reopen()
                     .context(ErrorKind::Unknown)?;
 
@@ -99,6 +110,7 @@ impl Env {
     pub fn file_exists(&self, file: PiholeFile) -> bool {
         match *self {
             Env::Production(_) => Path::new(self.file_location(file)).is_file(),
+            #[cfg(test)]
             Env::Test(_, ref map) => map.contains_key(&file)
         }
     }
@@ -107,6 +119,7 @@ impl Env {
     pub fn is_test(&self) -> bool {
         match *self {
             Env::Production(_) => false,
+            #[cfg(test)]
             Env::Test(_, _) => true
         }
     }

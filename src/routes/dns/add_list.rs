@@ -13,8 +13,7 @@ use env::Env;
 use ftl::FtlConnectionType;
 use rocket::State;
 use rocket_contrib::Json;
-use routes::dns::common::reload_gravity;
-use routes::dns::list::List;
+use routes::dns::{common::reload_gravity, list::List};
 use util::{reply_success, Reply};
 
 /// Represents an API input containing a domain

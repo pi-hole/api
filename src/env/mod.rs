@@ -12,6 +12,4 @@ mod config;
 mod env;
 mod file;
 
-pub use self::config::Config;
-pub use self::env::Env;
-pub use self::file::PiholeFile;
+pub use self::{config::Config, env::Env, file::PiholeFile};

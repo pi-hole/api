@@ -60,6 +60,11 @@ pub struct DnsConditionalForwarding {
 impl DnsConditionalForwarding {
     /// Check if the conditional forwarding options are valid
     fn is_valid(&self) -> bool {
+        // If conditional forwarding is turned on, no setting may be empty
+        if self.enabled && (self.router_ip.is_empty() || self.domain.is_empty()) {
+            return false;
+        }
+
         // `enabled` is already known to be valid because it was already parsed into
         // a boolean
         SetupVarsEntry::DhcpRouter.is_valid(&self.router_ip)
@@ -90,13 +95,13 @@ pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
     let dns_settings = DnsSettings {
         upstream_dns: get_upstream_dns(&env)?,
         options: DnsOptions {
-            fqdn_required: SetupVarsEntry::DnsFqdnRequired.read_as(&env)?,
-            bogus_priv: SetupVarsEntry::DnsBogusPriv.read_as(&env)?,
-            dnssec: SetupVarsEntry::Dnssec.read_as(&env)?,
+            fqdn_required: SetupVarsEntry::DnsFqdnRequired.is_true(&env)?,
+            bogus_priv: SetupVarsEntry::DnsBogusPriv.is_true(&env)?,
+            dnssec: SetupVarsEntry::Dnssec.is_true(&env)?,
             listening_type: SetupVarsEntry::DnsmasqListening.read(&env)?
         },
         conditional_forwarding: DnsConditionalForwarding {
-            enabled: SetupVarsEntry::ConditionalForwarding.read_as(&env)?,
+            enabled: SetupVarsEntry::ConditionalForwarding.is_true(&env)?,
             router_ip: SetupVarsEntry::ConditionalForwardingIp.read(&env)?,
             domain: SetupVarsEntry::ConditionalForwardingDomain.read(&env)?
         }
@@ -111,7 +116,7 @@ pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
     let settings: DnsSettings = data.into_inner();
 
     if !settings.is_valid() {
-        return Err(ErrorKind::InvalidSettingValue.into());
+        return Err(Error::from(ErrorKind::InvalidSettingValue));
     }
 
     // Delete previous upstream DNS entries
@@ -230,7 +235,7 @@ mod test {
                     "bogus_priv": true,
                     "dnssec": false,
                     "fqdn_required": true,
-                    "listening_type": "single"
+                    "listening_type": "local"
                 },
                 "upstream_dns": []
             }))
@@ -269,6 +274,8 @@ mod test {
                     ################################################################\n\
                     \n\
                     localise-queries\n\
+                    local-ttl=2\n\
+                    cache-size=10000\n\
                     server=8.8.8.8\n\
                     server=8.8.4.4\n\
                     addn-hosts=/etc/pihole/gravity.list\n\

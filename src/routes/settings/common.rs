@@ -10,13 +10,12 @@
 
 use env::Env;
 use failure::ResultExt;
-use std::process::Command;
-use std::process::Stdio;
-use util::Error;
-use util::ErrorKind;
+use std::process::{Command, Stdio};
+use util::{Error, ErrorKind};
 
 /// Restart the DNS server (via `pihole restartdns`)
 pub fn restart_dns(env: &Env) -> Result<(), Error> {
+    // Don't actually run anything during a test
     if env.is_test() {
         return Ok(());
     }
@@ -33,6 +32,6 @@ pub fn restart_dns(env: &Env) -> Result<(), Error> {
     if status.success() {
         Ok(())
     } else {
-        Err(ErrorKind::RestartDnsError.into())
+        Err(Error::from(ErrorKind::RestartDnsError))
     }
 }

@@ -9,29 +9,36 @@
 // Please see LICENSE file for your rights under this license.
 
 use auth::{self, AuthData};
-use env::{Config, Env, PiholeFile};
-use ftl::FtlConnectionType;
-use rocket;
-use rocket::config::{ConfigBuilder, Environment};
-use rocket::local::Client;
+use env::{Config, Env};
+use ftl::{FtlConnectionType, FtlMemory};
+use rocket::{
+    self,
+    config::{ConfigBuilder, Environment}
+};
 use rocket_cors::Cors;
 use routes::{dns, settings, stats, version, web};
 use settings::{ConfigEntry, SetupVarsEntry};
-use std::collections::HashMap;
-use tempfile::NamedTempFile;
-use toml;
 use util::{Error, ErrorKind};
+
+#[cfg(test)]
+use env::PiholeFile;
+#[cfg(test)]
+use rocket::local::Client;
+#[cfg(test)]
+use std::collections::HashMap;
+#[cfg(test)]
+use tempfile::NamedTempFile;
 
 const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
 
 #[error(404)]
 fn not_found() -> Error {
-    ErrorKind::NotFound.into()
+    Error::from(ErrorKind::NotFound)
 }
 
 #[error(401)]
 fn unauthorized() -> Error {
-    ErrorKind::Unauthorized.into()
+    Error::from(ErrorKind::Unauthorized)
 }
 
 /// Run the API normally (connect to FTL over the socket)
@@ -52,6 +59,7 @@ pub fn start() -> Result<(), Error> {
             true
         ),
         FtlConnectionType::Socket,
+        FtlMemory::production(),
         env,
         key
     ).launch();
@@ -60,10 +68,14 @@ pub fn start() -> Result<(), Error> {
 }
 
 /// Setup the API with the testing data and return a Client to test with
+#[cfg(test)]
 pub fn test(
     ftl_data: HashMap<String, Vec<u8>>,
+    ftl_memory: FtlMemory,
     env_data: HashMap<PiholeFile, NamedTempFile>
 ) -> Client {
+    use toml;
+
     Client::new(setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Development)
@@ -72,28 +84,34 @@ pub fn test(
             false
         ),
         FtlConnectionType::Test(ftl_data),
+        ftl_memory,
         Env::Test(toml::from_str("").unwrap(), env_data),
         "test_key".to_owned()
     )).unwrap()
 }
 
 /// General server setup
-fn setup<'a>(
+fn setup(
     server: rocket::Rocket,
-    connection_type: FtlConnectionType,
+    ftl_socket: FtlConnectionType,
+    ftl_memory: FtlMemory,
     env: Env,
     api_key: String
 ) -> rocket::Rocket {
-    // Setup CORS
-    let mut cors = Cors::default();
-    cors.allow_credentials = true;
+    // Set up CORS
+    let cors = Cors {
+        allow_credentials: true,
+        ..Cors::default()
+    };
 
-    // Start up the server
+    // Set up the server
     server
         // Attach CORS handler
         .attach(cors)
-        // Manage the connection type configuration
-        .manage(connection_type)
+        // Manage the FTL socket configuration
+        .manage(ftl_socket)
+        // Manage the FTL shared memory configuration
+        .manage(ftl_memory)
         // Manage the environment
         .manage(env)
         // Manage the API key
@@ -111,18 +129,16 @@ fn setup<'a>(
             stats::get_summary,
             stats::top_domains,
             stats::top_domains_params,
-            stats::top_blocked,
-            stats::top_blocked_params,
             stats::top_clients,
             stats::top_clients_params,
-            stats::forward_destinations,
+            stats::upstreams,
             stats::query_types,
             stats::history,
             stats::history_params,
             stats::recent_blocked,
             stats::recent_blocked_params,
             stats::clients,
-            stats::unknown_queries,
+            stats::clients_params,
             stats::over_time_history,
             stats::over_time_clients,
             dns::get_whitelist,
@@ -136,6 +152,7 @@ fn setup<'a>(
             dns::delete_blacklist,
             dns::delete_regexlist,
             settings::get_dhcp,
+            settings::put_dhcp,
             settings::get_dns,
             settings::put_dns,
             settings::get_ftldb,

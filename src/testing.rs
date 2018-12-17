@@ -11,12 +11,14 @@
 extern crate serde_json;
 
 use env::PiholeFile;
+use ftl::{FtlCounters, FtlMemory};
 use rocket::http::{ContentType, Header, Method, Status};
 use setup;
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::SeekFrom;
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{prelude::*, SeekFrom}
+};
 use tempfile::NamedTempFile;
 
 /// Add the end of message byte to the data
@@ -139,6 +141,7 @@ pub struct TestBuilder {
     should_auth: bool,
     body_data: Option<serde_json::Value>,
     ftl_data: HashMap<String, Vec<u8>>,
+    ftl_memory: FtlMemory,
     test_config_builder: TestEnvBuilder,
     expected_json: serde_json::Value,
     expected_status: Status
@@ -153,6 +156,16 @@ impl TestBuilder {
             should_auth: true,
             body_data: None,
             ftl_data: HashMap::new(),
+            ftl_memory: FtlMemory::Test {
+                clients: Vec::new(),
+                domains: Vec::new(),
+                over_time: Vec::new(),
+                over_time_clients: Vec::new(),
+                queries: Vec::new(),
+                upstreams: Vec::new(),
+                strings: HashMap::new(),
+                counters: FtlCounters::default()
+            },
             test_config_builder: TestEnvBuilder::new(),
             expected_json: json!({
                 "data": [],
@@ -192,6 +205,11 @@ impl TestBuilder {
         self
     }
 
+    pub fn ftl_memory(mut self, ftl_memory: FtlMemory) -> Self {
+        self.ftl_memory = ftl_memory;
+        self
+    }
+
     pub fn file(mut self, pihole_file: PiholeFile, initial_data: &str) -> Self {
         self.test_config_builder = self.test_config_builder.file(pihole_file, initial_data);
         self
@@ -224,8 +242,8 @@ impl TestBuilder {
         let test_files = self.test_config_builder.get_test_files();
 
         // Start the test client
-        let config_data = self.test_config_builder.build();
-        let client = setup::test(self.ftl_data, config_data);
+        let env_data = self.test_config_builder.build();
+        let client = setup::test(self.ftl_data, self.ftl_memory, env_data);
 
         // Create the request
         let mut request = client.req(self.method, self.endpoint);

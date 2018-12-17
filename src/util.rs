@@ -9,14 +9,19 @@
 // Please see LICENSE file for your rights under this license.
 
 use failure::{Backtrace, Context, Fail};
-use rocket::http::Status;
-use rocket::request;
-use rocket::response::{self, Responder, Response};
-use rocket::{Outcome, Request};
+use rocket::{
+    http::Status,
+    request,
+    response::{self, Responder, Response},
+    Outcome, Request
+};
 use rocket_contrib::{Json, Value};
 use serde::Serialize;
-use std::env;
-use std::fmt::{self, Display};
+use shmem;
+use std::{
+    env,
+    fmt::{self, Display}
+};
 
 /// Type alias for the most common return type of the API methods
 pub type Reply = Result<SetStatus<Json<Value>>, Error>;
@@ -117,7 +122,17 @@ pub enum ErrorKind {
     #[fail(display = "Failed to restart the DNS server")]
     RestartDnsError,
     #[fail(display = "Error generating the dnsmasq config")]
-    DnsmasqConfigWrite
+    DnsmasqConfigWrite,
+    /// `shmem::Error` does not implement `std::error::Error`, so we can not use
+    /// `.context()` on a `Result<T, shmem::Error>`. It also does not implement
+    /// `Eq` or `PartialEq`, so the best we can do is have the error message
+    /// stored here.
+    #[fail(display = "Failed to open shared memory: {}", _0)]
+    SharedMemoryOpen(String),
+    #[fail(display = "Failed to read from shared memory")]
+    SharedMemoryRead,
+    #[fail(display = "Failed to lock shared memory")]
+    SharedMemoryLock
 }
 
 impl Error {
@@ -198,7 +213,10 @@ impl ErrorKind {
             ErrorKind::ConfigParsingError => "config_parsing_error",
             ErrorKind::InvalidSettingValue => "invalid_setting_value",
             ErrorKind::RestartDnsError => "restart_dns_error",
-            ErrorKind::DnsmasqConfigWrite => "dnsmasq_config_write"
+            ErrorKind::DnsmasqConfigWrite => "dnsmasq_config_write",
+            ErrorKind::SharedMemoryOpen(_) => "shared_memory_open",
+            ErrorKind::SharedMemoryRead => "shared_memory_read",
+            ErrorKind::SharedMemoryLock => "shared_memory_lock"
         }
     }
 
@@ -220,7 +238,10 @@ impl ErrorKind {
             ErrorKind::ConfigParsingError => Status::InternalServerError,
             ErrorKind::InvalidSettingValue => Status::BadRequest,
             ErrorKind::RestartDnsError => Status::InternalServerError,
-            ErrorKind::DnsmasqConfigWrite => Status::InternalServerError
+            ErrorKind::DnsmasqConfigWrite => Status::InternalServerError,
+            ErrorKind::SharedMemoryOpen(_) => Status::InternalServerError,
+            ErrorKind::SharedMemoryRead => Status::InternalServerError,
+            ErrorKind::SharedMemoryLock => Status::InternalServerError
         }
     }
 
@@ -261,6 +282,18 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Error {
         Error { inner }
+    }
+}
+
+impl From<shmem::Error> for Error {
+    /// Converts `shmem::Error` into an `Error` of kind
+    /// [`ErrorKind::SharedMemoryOpen`]. See the comment on
+    /// [`ErrorKind::SharedMemoryOpen`] for more information.
+    ///
+    /// [`ErrorKind::SharedMemoryOpen`]:
+    /// enum.ErrorKind.html#variant.SharedMemoryOpen
+    fn from(e: shmem::Error) -> Self {
+        Error::from(ErrorKind::SharedMemoryOpen(format!("{:?}", e)))
     }
 }
 

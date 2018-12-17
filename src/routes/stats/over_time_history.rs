@@ -8,84 +8,104 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use ftl::{FtlConnection, FtlConnectionType};
+use env::Env;
+use ftl::FtlMemory;
 use rocket::State;
-use util::{reply_data, Error, Reply};
+use rocket_contrib::Value;
+use settings::{ConfigEntry, FtlConfEntry};
+use std::time::{SystemTime, UNIX_EPOCH};
+use util::{reply_data, Reply};
 
 /// Get the query history over time (separated into blocked and not blocked)
 #[get("/stats/overTime/history")]
-pub fn over_time_history(ftl: State<FtlConnectionType>) -> Reply {
-    let mut con = ftl.connect("overTime")?;
+pub fn over_time_history(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
+    let lock = ftl_memory.lock()?;
+    let counters = ftl_memory.counters(&lock)?;
+    let over_time = ftl_memory.over_time(&lock)?;
 
-    let domains_over_time = get_over_time_data(&mut con)?;
-    let blocked_over_time = get_over_time_data(&mut con)?;
+    // Get the current timestamp, to be used when getting overTime data
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time web backwards")
+        .as_secs() as f64;
 
-    reply_data(json!({
-        "domains_over_time": domains_over_time,
-        "blocked_over_time": blocked_over_time
-    }))
-}
+    // Get the max log age FTL setting, to be used when getting overTime data
+    let max_log_age = FtlConfEntry::MaxLogAge.read_as::<f64>(&env).unwrap_or(24.0) * 3600.0;
 
-/// Read in some time data (represented by FTL as a map of ints to ints)
-fn get_over_time_data(ftl: &mut FtlConnection) -> Result<Vec<TimeStep>, Error> {
-    // Read in the length of the data to optimize memory usage
-    let map_len = ftl.read_map_len()? as usize;
+    let over_time_data: Vec<Value> = over_time.iter()
+       .take(counters.over_time_size as usize)
+        // Skip the overTime slots without any data, and any slots which are
+        // before the max-log-age time.
+        .skip_while(|time| {
+            (time.total_queries <= 0 && time.blocked_queries <= 0)
+                || ((time.timestamp as f64) < timestamp - max_log_age)
+        })
+        .map(|time| {
+            json!({
+                "timestamp": time.timestamp,
+                "total_queries": time.total_queries,
+                "blocked_queries": time.blocked_queries
+            })
+        })
+        .collect();
 
-    // Create the data
-    let mut over_time = Vec::with_capacity(map_len);
-
-    // Read in the data
-    for _ in 0..map_len {
-        let key = ftl.read_i32()?;
-        let value = ftl.read_i32()?;
-        over_time.push(TimeStep {
-            timestamp: key,
-            count: value
-        });
-    }
-
-    Ok(over_time)
-}
-
-#[derive(Serialize)]
-struct TimeStep {
-    timestamp: i32,
-    count: i32
+    reply_data(over_time_data)
 }
 
 #[cfg(test)]
 mod test {
-    use rmp::encode;
-    use testing::{write_eom, TestBuilder};
+    use env::PiholeFile;
+    use ftl::{FtlCounters, FtlMemory, FtlOverTime};
+    use std::collections::HashMap;
+    use testing::TestBuilder;
 
+    /// Data for testing over_time_history
+    fn test_data() -> FtlMemory {
+        FtlMemory::Test {
+            over_time: vec![
+                FtlOverTime::new(1, 1, 0, 0, 1, [0; 7]),
+                FtlOverTime::new(2, 1, 1, 1, 0, [0; 7]),
+                FtlOverTime::new(3, 0, 1, 0, 0, [0; 7]),
+            ],
+            counters: FtlCounters {
+                over_time_size: 3,
+                ..FtlCounters::default()
+            },
+            clients: Vec::new(),
+            over_time_clients: Vec::new(),
+            upstreams: Vec::new(),
+            strings: HashMap::new(),
+            domains: Vec::new(),
+            queries: Vec::new()
+        }
+    }
+
+    /// Default params will show overTime data from within the MAXLOGAGE
+    /// timeframe, and will skip overTime slots until it finds the first slot
+    /// with queries.
     #[test]
-    fn test_over_time_history() {
-        let mut data = Vec::new();
-        encode::write_map_len(&mut data, 2).unwrap();
-        encode::write_i32(&mut data, 1520126228).unwrap();
-        encode::write_i32(&mut data, 10).unwrap();
-        encode::write_i32(&mut data, 1520126406).unwrap();
-        encode::write_i32(&mut data, 20).unwrap();
-        encode::write_map_len(&mut data, 2).unwrap();
-        encode::write_i32(&mut data, 1520126228).unwrap();
-        encode::write_i32(&mut data, 5).unwrap();
-        encode::write_i32(&mut data, 1520126406).unwrap();
-        encode::write_i32(&mut data, 5).unwrap();
-        write_eom(&mut data);
-
+    fn default_params() {
         TestBuilder::new()
             .endpoint("/admin/api/stats/overTime/history")
-            .ftl("overTime", data)
-            .expect_json(json!({
-                "domains_over_time": [
-                    { "timestamp": 1520126228, "count": 10 },
-                    { "timestamp": 1520126406, "count": 20 }
-                ],
-                "blocked_over_time": [
-                    { "timestamp": 1520126228, "count": 5 },
-                    { "timestamp": 1520126406, "count": 5 }
-                ]
-            }))
+            .ftl_memory(test_data())
+            // Abuse From<&str> for f64 and use all overTime data
+            .file(PiholeFile::FtlConfig, "MAXLOGAGE=inf")
+            .expect_json(json!([
+                { "timestamp": 1, "total_queries": 1, "blocked_queries": 0 },
+                { "timestamp": 2, "total_queries": 1, "blocked_queries": 1 },
+                { "timestamp": 3, "total_queries": 0, "blocked_queries": 1 }
+            ]))
+            .test();
+    }
+
+    /// Only overTime slots within the MAXLOGAGE value are considered
+    #[test]
+    fn max_log_age() {
+        TestBuilder::new()
+            .endpoint("/admin/api/stats/overTime/history")
+            .ftl_memory(test_data())
+            .file(PiholeFile::FtlConfig, "MAXLOGAGE=0")
+            .expect_json(json!([]))
             .test();
     }
 }

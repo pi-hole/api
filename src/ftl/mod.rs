@@ -3,19 +3,20 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// Setting Specifications For SetupVars & FTL Configuration Files
+// FTL Utilities
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-mod dnsmasq;
-mod entries;
-mod privacy_level;
-mod value_type;
+mod lock_thread;
+mod memory_model;
+mod shared_lock;
+mod shared_memory;
+mod socket;
 
 pub use self::{
-    dnsmasq::generate_dnsmasq_config,
-    entries::{ConfigEntry, FtlConfEntry, SetupVarsEntry},
-    privacy_level::FtlPrivacyLevel,
-    value_type::ValueType
+    memory_model::*,
+    shared_lock::{ShmLock, ShmLockGuard},
+    shared_memory::FtlMemory,
+    socket::{FtlConnection, FtlConnectionType}
 };
