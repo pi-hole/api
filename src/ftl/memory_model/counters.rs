@@ -42,7 +42,7 @@ pub struct FtlCounters {
 
 impl FtlCounters {
     pub fn query_type(&self, query_type: FtlQueryType) -> usize {
-        self.query_type_counters[query_type as usize] as usize
+        self.query_type_counters[query_type as usize - 1] as usize
     }
 }
 
@@ -52,7 +52,7 @@ impl FtlCounters {
 #[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum FtlQueryType {
-    A,
+    A = 1,
     AAAA,
     ANY,
     SRV,
@@ -66,13 +66,13 @@ impl<'v> FromFormValue<'v> for FtlQueryType {
 
     fn from_form_value(form_value: &'v RawStr) -> Result<Self, Self::Error> {
         match form_value.parse::<u8>().map_err(|_| form_value)? {
-            0 => Ok(FtlQueryType::A),
-            1 => Ok(FtlQueryType::AAAA),
-            2 => Ok(FtlQueryType::ANY),
-            3 => Ok(FtlQueryType::SRV),
-            4 => Ok(FtlQueryType::SOA),
-            5 => Ok(FtlQueryType::PTR),
-            6 => Ok(FtlQueryType::TXT),
+            1 => Ok(FtlQueryType::A),
+            2 => Ok(FtlQueryType::AAAA),
+            3 => Ok(FtlQueryType::ANY),
+            4 => Ok(FtlQueryType::SRV),
+            5 => Ok(FtlQueryType::SOA),
+            6 => Ok(FtlQueryType::PTR),
+            7 => Ok(FtlQueryType::TXT),
             _ => Err(form_value)
         }
     }

@@ -671,7 +671,7 @@ mod test {
             mapped_query,
             json!({
                 "timestamp": 1,
-                "type": 0,
+                "type": 1,
                 "status": 2,
                 "domain": "domain1.com",
                 "client": "client1",
