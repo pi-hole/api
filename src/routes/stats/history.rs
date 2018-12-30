@@ -17,7 +17,7 @@ use rocket::{http::RawStr, request::FromFormValue, State};
 use rocket_contrib::Value;
 use serde_json;
 use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry};
-use std::iter;
+use std::{collections::HashSet, iter};
 use util::{reply_data, Error, ErrorKind, Reply};
 
 /// Get the entire query history (as stored in FTL)
@@ -335,28 +335,30 @@ fn filter_upstream<'a>(
                 queries_iter.filter(|query| query.status == FtlQueryStatus::Cache)
             ))
         } else {
-            // Find the upstream. If none can be found, return an empty iterator because no
-            // query can match the upstream requested
+            // Find the matching upstreams. If none are found, return an empty
+            // iterator because no query can match the upstream requested
             let counters = ftl_memory.counters(ftl_lock)?;
             let strings = ftl_memory.strings(ftl_lock)?;
             let upstreams = ftl_memory.upstreams(ftl_lock)?;
-            let upstream_id = upstreams
+            let upstream_ids: HashSet<usize> = upstreams
                 .iter()
                 .take(counters.total_upstreams as usize)
-                .position(|item| {
+                .enumerate()
+                .filter_map(|(i, item)| {
                     let ip = item.get_ip(&strings);
-                    let name = item.get_name(&strings);
+                    let name = item.get_name(&strings).unwrap_or_default();
 
-                    ip == upstream || if let Some(name) = name {
-                        name == upstream
+                    if ip.contains(upstream) || name.contains(upstream) {
+                        Some(i)
                     } else {
-                        false
+                        None
                     }
-                });
+                })
+                .collect();
 
-            if let Some(upstream_id) = upstream_id {
+            if !upstream_ids.is_empty() {
                 Ok(Box::new(queries_iter.filter(move |query| {
-                    query.upstream_id as usize == upstream_id
+                    upstream_ids.contains(&(query.upstream_id as usize))
                 })))
             } else {
                 Ok(Box::new(iter::empty()))
@@ -375,19 +377,27 @@ fn filter_domain<'a>(
     ftl_lock: &ShmLockGuard<'a>
 ) -> Result<Box<Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     if let Some(ref domain_filter) = params.domain {
-        // Find the domain. If none can be found, return an empty iterator because no
-        // query can match the domain requested
+        // Find the matching domains. If none are found, return an empty
+        // iterator because no query can match the domain requested
         let counters = ftl_memory.counters(ftl_lock)?;
         let strings = ftl_memory.strings(ftl_lock)?;
         let domains = ftl_memory.domains(ftl_lock)?;
-        let domain_id = domains
+        let domain_ids: HashSet<usize> = domains
             .iter()
             .take(counters.total_domains as usize)
-            .position(|domain| domain.get_domain(&strings) == domain_filter);
+            .enumerate()
+            .filter_map(|(i, domain)| {
+                if domain.get_domain(&strings).contains(domain_filter) {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
+            .collect();
 
-        if let Some(domain_id) = domain_id {
+        if !domain_ids.is_empty() {
             Ok(Box::new(queries_iter.filter(move |query| {
-                query.domain_id as usize == domain_id
+                domain_ids.contains(&(query.domain_id as usize))
             })))
         } else {
             Ok(Box::new(iter::empty()))
@@ -405,28 +415,30 @@ fn filter_client<'a>(
     ftl_lock: &ShmLockGuard<'a>
 ) -> Result<Box<Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     if let Some(ref client_filter) = params.client {
-        // Find the client. If none can be found, return an empty iterator because no
-        // query can match the client requested
+        // Find the matching clients. If none are found, return an empty
+        // iterator because no query can match the client requested
         let counters = ftl_memory.counters(ftl_lock)?;
         let strings = ftl_memory.strings(ftl_lock)?;
         let clients = ftl_memory.clients(ftl_lock)?;
-        let client_id = clients
+        let client_ids: HashSet<usize> = clients
             .iter()
             .take(counters.total_clients as usize)
-            .position(|client| {
+            .enumerate()
+            .filter_map(|(i, client)| {
                 let ip = client.get_ip(&strings);
-                let name = client.get_name(&strings);
+                let name = client.get_name(&strings).unwrap_or_default();
 
-                ip == client_filter || if let Some(name) = name {
-                    name == client_filter
+                if ip.contains(client_filter) || name.contains(client_filter) {
+                    Some(i)
                 } else {
-                    false
+                    None
                 }
-            });
+            })
+            .collect();
 
-        if let Some(client_id) = client_id {
+        if !client_ids.is_empty() {
             Ok(Box::new(queries_iter.filter(move |query| {
-                query.client_id as usize == client_id
+                client_ids.contains(&(query.client_id as usize))
             })))
         } else {
             Ok(Box::new(iter::empty()))
@@ -859,6 +871,26 @@ mod test {
         assert_eq!(filtered_queries, expected_queries);
     }
 
+    /// Only return queries with the specified upstream IP. This test uses
+    /// substring matching.
+    #[test]
+    fn test_filter_upstream_ip_substring() {
+        let queries = test_queries();
+        let expected_queries = vec![&queries[7]];
+        let filtered_queries: Vec<&FtlQuery> = filter_upstream(
+            Box::new(queries.iter()),
+            &HistoryParams {
+                upstream: Some("8.4.".to_owned()),
+                ..HistoryParams::default()
+            },
+            &test_memory(),
+            &ShmLockGuard::Test
+        ).unwrap()
+            .collect();
+
+        assert_eq!(filtered_queries, expected_queries);
+    }
+
     /// Only return queries with the specified upstream name
     #[test]
     fn test_filter_upstream_name() {
@@ -868,6 +900,26 @@ mod test {
             Box::new(queries.iter()),
             &HistoryParams {
                 upstream: Some("google-public-dns-b.google.com".to_owned()),
+                ..HistoryParams::default()
+            },
+            &test_memory(),
+            &ShmLockGuard::Test
+        ).unwrap()
+            .collect();
+
+        assert_eq!(filtered_queries, expected_queries);
+    }
+
+    /// Only return queries with the specified upstream name. This test uses
+    /// substring matching.
+    #[test]
+    fn test_filter_upstream_name_substring() {
+        let queries = test_queries();
+        let expected_queries = vec![&queries[7]];
+        let filtered_queries: Vec<&FtlQuery> = filter_upstream(
+            Box::new(queries.iter()),
+            &HistoryParams {
+                upstream: Some("b.google".to_owned()),
                 ..HistoryParams::default()
             },
             &test_memory(),
@@ -897,6 +949,26 @@ mod test {
         assert_eq!(filtered_queries, expected_queries);
     }
 
+    /// Only return queries of the specified domain. This test uses substring
+    /// matching.
+    #[test]
+    fn test_filter_domain_substring() {
+        let queries = test_queries();
+        let expected_queries = vec![&queries[3]];
+        let filtered_queries: Vec<&FtlQuery> = filter_domain(
+            Box::new(queries.iter()),
+            &HistoryParams {
+                domain: Some("2.c".to_owned()),
+                ..HistoryParams::default()
+            },
+            &test_memory(),
+            &ShmLockGuard::Test
+        ).unwrap()
+            .collect();
+
+        assert_eq!(filtered_queries, expected_queries);
+    }
+
     /// Only return queries from the specified client IP
     #[test]
     fn test_filter_client_ip() {
@@ -916,6 +988,26 @@ mod test {
         assert_eq!(filtered_queries, expected_queries);
     }
 
+    /// Only return queries from the specified client IP. This test uses
+    /// substring matching.
+    #[test]
+    fn test_filter_client_ip_substring() {
+        let queries = test_queries();
+        let expected_queries = vec![&queries[0], &queries[1], &queries[2]];
+        let filtered_queries: Vec<&FtlQuery> = filter_client(
+            Box::new(queries.iter()),
+            &HistoryParams {
+                client: Some(".10".to_owned()),
+                ..HistoryParams::default()
+            },
+            &test_memory(),
+            &ShmLockGuard::Test
+        ).unwrap()
+            .collect();
+
+        assert_eq!(filtered_queries, expected_queries);
+    }
+
     /// Only return queries from the specified client name
     #[test]
     fn test_filter_client_name() {
@@ -925,6 +1017,26 @@ mod test {
             Box::new(queries.iter()),
             &HistoryParams {
                 client: Some("client1".to_owned()),
+                ..HistoryParams::default()
+            },
+            &test_memory(),
+            &ShmLockGuard::Test
+        ).unwrap()
+            .collect();
+
+        assert_eq!(filtered_queries, expected_queries);
+    }
+
+    /// Only return queries from the specified client name. This test uses
+    /// substring matching.
+    #[test]
+    fn test_filter_client_name_substring() {
+        let queries = test_queries();
+        let expected_queries = vec![&queries[0], &queries[1], &queries[2]];
+        let filtered_queries: Vec<&FtlQuery> = filter_client(
+            Box::new(queries.iter()),
+            &HistoryParams {
+                client: Some("t1".to_owned()),
                 ..HistoryParams::default()
             },
             &test_memory(),
