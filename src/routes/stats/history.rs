@@ -98,7 +98,7 @@ impl<'a> FromFormValue<'a> for HistoryCursor {
 /// Get the query history according to the specified parameters
 fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Reply {
     // Check if query details are private
-    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)? >= FtlPrivacyLevel::Maximum {
+    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(env)? >= FtlPrivacyLevel::Maximum {
         // `None::<()>` represents `null` in JSON. It needs the type parameter because
         // it doesn't know what type of Option it is (`Option<T>`)
         return reply_data(json!({
@@ -236,18 +236,14 @@ fn skip_to_cursor<'a>(
     params: &HistoryParams
 ) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(cursor) = params.cursor {
-        Box::new(queries_iter.skip_while(move |query| {
-            if let Some(id) = cursor.id {
-                // Check ID
-                query.id as i32 != id
-            } else if let Some(db_id) = cursor.db_id {
-                // Check database ID
-                query.database_id != db_id
-            } else {
-                // No cursor data, don't skip any queries
-                false
-            }
-        }))
+        if let Some(id) = cursor.id {
+            Box::new(queries_iter.skip_while(move |query| query.id as i32 != id))
+        } else if let Some(db_id) = cursor.db_id {
+            Box::new(queries_iter.skip_while(move |query| query.database_id != db_id))
+        } else {
+            // No cursor data, don't skip any queries
+            queries_iter
+        }
     } else {
         queries_iter
     }
