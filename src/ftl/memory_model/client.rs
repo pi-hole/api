@@ -54,11 +54,7 @@ impl FtlClient {
     /// doesn't exist
     pub fn get_name<'a>(&self, strings: &'a FtlStrings) -> Option<&'a str> {
         if !self.is_name_unknown && self.name_str_id != 0 {
-            Some(
-                strings
-                    .get_str(self.name_str_id as usize)
-                    .unwrap_or_default()
-            )
+            strings.get_str(self.name_str_id as usize)
         } else {
             None
         }
