@@ -124,8 +124,8 @@ impl<'v> FromFormValue<'v> for FtlQueryStatus {
 
 /// The reply types an FTL query can have
 #[repr(u8)]
-#[cfg_attr(test, derive(PartialEq, Debug))]
-#[derive(Copy, Clone)]
+#[cfg_attr(test, derive(Debug))]
+#[derive(Copy, Clone, PartialEq)]
 #[allow(dead_code)]
 pub enum FtlQueryReplyType {
     Unknown,
