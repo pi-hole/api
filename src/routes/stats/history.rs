@@ -12,7 +12,10 @@ use auth::User;
 use base64::{decode, encode};
 use env::Env;
 use failure::ResultExt;
-use ftl::{FtlDnssecType, FtlMemory, FtlQuery, FtlQueryStatus, FtlQueryType, ShmLockGuard};
+use ftl::{
+    FtlDnssecType, FtlMemory, FtlQuery, FtlQueryReplyType, FtlQueryStatus, FtlQueryType,
+    ShmLockGuard
+};
 use rocket::{http::RawStr, request::FromFormValue, State};
 use rocket_contrib::Value;
 use serde_json;
@@ -50,6 +53,7 @@ pub struct HistoryParams {
     status: Option<FtlQueryStatus>,
     blocked: Option<bool>,
     dnssec: Option<FtlDnssecType>,
+    reply: Option<FtlQueryReplyType>,
     limit: Option<usize>
 }
 
@@ -66,6 +70,7 @@ impl Default for HistoryParams {
             status: None,
             blocked: None,
             dnssec: None,
+            reply: None,
             limit: Some(100)
         }
     }
@@ -157,6 +162,7 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
     let queries_iter = filter_status(queries_iter, &params);
     let queries_iter = filter_blocked(queries_iter, &params);
     let queries_iter = filter_dnssec(queries_iter, &params);
+    let queries_iter = filter_reply(queries_iter, &params);
 
     // Get the limit
     let limit = params.limit.unwrap_or(100);
@@ -355,6 +361,18 @@ fn filter_dnssec<'a>(
     }
 }
 
+/// Only show queries of the specified reply type
+fn filter_reply<'a>(
+    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    params: &HistoryParams
+) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+    if let Some(reply) = params.reply {
+        Box::new(queries_iter.filter(move |query| query.reply_type == reply))
+    } else {
+        queries_iter
+    }
+}
+
 /// Only show queries from the specified upstream
 fn filter_upstream<'a>(
     queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
@@ -492,9 +510,9 @@ fn filter_client<'a>(
 mod test {
     use super::{
         filter_blocked, filter_client, filter_dnssec, filter_domain, filter_private_queries,
-        filter_query_type, filter_setup_vars_setting, filter_status, filter_time_from,
-        filter_time_until, filter_upstream, map_query_to_json, skip_to_cursor, HistoryCursor,
-        HistoryParams
+        filter_query_type, filter_reply, filter_setup_vars_setting, filter_status,
+        filter_time_from, filter_time_until, filter_upstream, map_query_to_json, skip_to_cursor,
+        HistoryCursor, HistoryParams
     };
     use env::{Config, Env, PiholeFile};
     use ftl::{
@@ -516,8 +534,7 @@ mod test {
             $client:expr,
             $upstream:expr,
             $timestamp:expr,
-            $private:expr,
-            $dnssec:ident
+            $private:expr
         ) => {
             FtlQuery::new(
                 $id,
@@ -531,7 +548,7 @@ mod test {
                 FtlQueryType::$qtype,
                 FtlQueryStatus::$status,
                 FtlQueryReplyType::IP,
-                FtlDnssecType::$dnssec,
+                FtlDnssecType::Unspecified,
                 true,
                 $private
             )
@@ -553,7 +570,7 @@ mod test {
     }
 
     /// 9 queries. Query 9 is private. Last two are not in the database. Query 1
-    /// has a DNSSEC type of Secure.
+    /// has a DNSSEC type of Secure and a reply type of CNAME.
     ///
     /// | ID | DB | Type |   Status   | Domain | Client | Upstream | Timestamp |
     /// | -- | -- | ---- | ---------- | ------ | ------ | -------- | --------- |
@@ -568,15 +585,30 @@ mod test {
     /// | 9  | 0  | A    | Forward    | 5      | 3      | 0        | 7         |
     fn test_queries() -> Vec<FtlQuery> {
         vec![
-            query!(1, 1, A, Forward, 0, 0, 0, 1, false, Secure),
-            query!(2, 2, AAAA, Forward, 0, 0, 0, 2, false, Unspecified),
-            query!(3, 3, PTR, Forward, 0, 0, 0, 3, false, Unspecified),
-            query!(4, 4, A, Gravity, 1, 1, 0, 3, false, Unspecified),
-            query!(5, 5, AAAA, Cache, 0, 1, 0, 4, false, Unspecified),
-            query!(6, 6, AAAA, Wildcard, 2, 1, 0, 5, false, Unspecified),
-            query!(7, 7, A, Blacklist, 3, 2, 0, 5, false, Unspecified),
-            query!(8, 0, AAAA, ExternalBlock, 4, 2, 1, 6, false, Unspecified),
-            query!(9, 0, A, Forward, 5, 3, 0, 7, true, Unspecified),
+            FtlQuery::new(
+                1,
+                1,
+                1,
+                1,
+                1,
+                0,
+                0,
+                0,
+                FtlQueryType::A,
+                FtlQueryStatus::Forward,
+                FtlQueryReplyType::CNAME,
+                FtlDnssecType::Secure,
+                true,
+                false
+            ),
+            query!(2, 2, AAAA, Forward, 0, 0, 0, 2, false),
+            query!(3, 3, PTR, Forward, 0, 0, 0, 3, false),
+            query!(4, 4, A, Gravity, 1, 1, 0, 3, false),
+            query!(5, 5, AAAA, Cache, 0, 1, 0, 4, false),
+            query!(6, 6, AAAA, Wildcard, 2, 1, 0, 5, false),
+            query!(7, 7, A, Blacklist, 3, 2, 0, 5, false),
+            query!(8, 0, AAAA, ExternalBlock, 4, 2, 1, 6, false),
+            query!(9, 0, A, Forward, 5, 3, 0, 7, true),
         ]
     }
 
@@ -726,7 +758,7 @@ mod test {
                 "domain": "domain1.com",
                 "client": "client1",
                 "dnssec": 1,
-                "reply": 4,
+                "reply": 3,
                 "response_time": 1
             })
         );
@@ -1130,6 +1162,22 @@ mod test {
             Box::new(queries.iter()),
             &HistoryParams {
                 dnssec: Some(FtlDnssecType::Secure),
+                ..HistoryParams::default()
+            }
+        ).collect();
+
+        assert_eq!(filtered_queries, expected_queries);
+    }
+
+    /// Only return queries of the specified reply type
+    #[test]
+    fn test_filter_reply() {
+        let queries = test_queries();
+        let expected_queries = vec![&queries[0]];
+        let filtered_queries: Vec<&FtlQuery> = filter_reply(
+            Box::new(queries.iter()),
+            &HistoryParams {
+                reply: Some(FtlQueryReplyType::CNAME),
                 ..HistoryParams::default()
             }
         ).collect();

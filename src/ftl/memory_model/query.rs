@@ -124,8 +124,8 @@ impl<'v> FromFormValue<'v> for FtlQueryStatus {
 
 /// The reply types an FTL query can have
 #[repr(u8)]
-#[cfg_attr(test, derive(PartialEq, Debug))]
-#[derive(Copy, Clone)]
+#[cfg_attr(test, derive(Debug))]
+#[derive(Copy, Clone, PartialEq)]
 #[allow(dead_code)]
 pub enum FtlQueryReplyType {
     Unknown,
@@ -135,6 +135,23 @@ pub enum FtlQueryReplyType {
     IP,
     DOMAIN,
     RRNAME
+}
+
+impl<'v> FromFormValue<'v> for FtlQueryReplyType {
+    type Error = &'v RawStr;
+
+    fn from_form_value(form_value: &'v RawStr) -> Result<Self, Self::Error> {
+        match form_value.parse::<u8>().map_err(|_| form_value)? {
+            0 => Ok(FtlQueryReplyType::Unknown),
+            1 => Ok(FtlQueryReplyType::NODATA),
+            2 => Ok(FtlQueryReplyType::NXDOMAIN),
+            3 => Ok(FtlQueryReplyType::CNAME),
+            4 => Ok(FtlQueryReplyType::IP),
+            5 => Ok(FtlQueryReplyType::DOMAIN),
+            6 => Ok(FtlQueryReplyType::RRNAME),
+            _ => Err(form_value)
+        }
+    }
 }
 
 /// The DNSSEC reply types an FTL query can have
