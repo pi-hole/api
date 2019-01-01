@@ -10,6 +10,7 @@
 
 use ftl::FtlQueryType;
 use libc;
+use rocket::{http::RawStr, request::FromFormValue};
 
 #[cfg(test)]
 use ftl::memory_model::MAGIC_BYTE;
@@ -76,6 +77,17 @@ impl FtlQuery {
             ad_bit: false
         }
     }
+
+    /// Check if the query was blocked
+    pub fn is_blocked(&self) -> bool {
+        match self.status {
+            FtlQueryStatus::Gravity
+            | FtlQueryStatus::Wildcard
+            | FtlQueryStatus::Blacklist
+            | FtlQueryStatus::ExternalBlock => true,
+            _ => false
+        }
+    }
 }
 
 /// The statuses an FTL query can have
@@ -91,6 +103,23 @@ pub enum FtlQueryStatus {
     Wildcard,
     Blacklist,
     ExternalBlock
+}
+
+impl<'v> FromFormValue<'v> for FtlQueryStatus {
+    type Error = &'v RawStr;
+
+    fn from_form_value(form_value: &'v RawStr) -> Result<Self, Self::Error> {
+        match form_value.parse::<u8>().map_err(|_| form_value)? {
+            0 => Ok(FtlQueryStatus::Unknown),
+            1 => Ok(FtlQueryStatus::Gravity),
+            2 => Ok(FtlQueryStatus::Forward),
+            3 => Ok(FtlQueryStatus::Cache),
+            4 => Ok(FtlQueryStatus::Wildcard),
+            5 => Ok(FtlQueryStatus::Blacklist),
+            6 => Ok(FtlQueryStatus::ExternalBlock),
+            _ => Err(form_value)
+        }
+    }
 }
 
 /// The reply types an FTL query can have
@@ -110,8 +139,8 @@ pub enum FtlQueryReplyType {
 
 /// The DNSSEC reply types an FTL query can have
 #[repr(u8)]
-#[cfg_attr(test, derive(PartialEq, Debug))]
-#[derive(Copy, Clone)]
+#[cfg_attr(test, derive(Debug))]
+#[derive(Copy, Clone, PartialEq)]
 #[allow(dead_code)]
 pub enum FtlDnssecType {
     Unspecified,
@@ -120,4 +149,20 @@ pub enum FtlDnssecType {
     Bogus,
     Abandoned,
     Unknown
+}
+
+impl<'v> FromFormValue<'v> for FtlDnssecType {
+    type Error = &'v RawStr;
+
+    fn from_form_value(form_value: &'v RawStr) -> Result<Self, Self::Error> {
+        match form_value.parse::<u8>().map_err(|_| form_value)? {
+            0 => Ok(FtlDnssecType::Unspecified),
+            1 => Ok(FtlDnssecType::Secure),
+            2 => Ok(FtlDnssecType::Insecure),
+            3 => Ok(FtlDnssecType::Bogus),
+            4 => Ok(FtlDnssecType::Abandoned),
+            5 => Ok(FtlDnssecType::Unknown),
+            _ => Err(form_value)
+        }
+    }
 }

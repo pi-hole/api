@@ -12,7 +12,7 @@ use auth::User;
 use base64::{decode, encode};
 use env::Env;
 use failure::ResultExt;
-use ftl::{FtlMemory, FtlQuery, FtlQueryStatus, FtlQueryType, ShmLockGuard};
+use ftl::{FtlDnssecType, FtlMemory, FtlQuery, FtlQueryStatus, FtlQueryType, ShmLockGuard};
 use rocket::{http::RawStr, request::FromFormValue, State};
 use rocket_contrib::Value;
 use serde_json;
@@ -47,6 +47,9 @@ pub struct HistoryParams {
     client: Option<String>,
     upstream: Option<String>,
     query_type: Option<FtlQueryType>,
+    status: Option<FtlQueryStatus>,
+    blocked: Option<bool>,
+    dnssec: Option<FtlDnssecType>,
     limit: Option<usize>
 }
 
@@ -60,6 +63,9 @@ impl Default for HistoryParams {
             client: None,
             upstream: None,
             query_type: None,
+            status: None,
+            blocked: None,
+            dnssec: None,
             limit: Some(100)
         }
     }
@@ -148,6 +154,9 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
     let queries_iter = filter_upstream(queries_iter, &params, ftl_memory, &lock)?;
     let queries_iter = filter_domain(queries_iter, &params, ftl_memory, &lock)?;
     let queries_iter = filter_client(queries_iter, &params, ftl_memory, &lock)?;
+    let queries_iter = filter_status(queries_iter, &params);
+    let queries_iter = filter_blocked(queries_iter, &params);
+    let queries_iter = filter_dnssec(queries_iter, &params);
 
     // Get the limit
     let limit = params.limit.unwrap_or(100);
@@ -263,17 +272,8 @@ fn filter_setup_vars_setting<'a>(
     env: &Env
 ) -> Result<Box<Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     Ok(match SetupVarsEntry::ApiQueryLogShow.read(env)?.as_str() {
-        "permittedonly" => Box::new(queries_iter.filter(|query| match query.status {
-            FtlQueryStatus::Forward | FtlQueryStatus::Cache => true,
-            _ => false
-        })),
-        "blockedonly" => Box::new(queries_iter.filter(|query| match query.status {
-            FtlQueryStatus::Gravity
-            | FtlQueryStatus::Blacklist
-            | FtlQueryStatus::Wildcard
-            | FtlQueryStatus::ExternalBlock => true,
-            _ => false
-        })),
+        "permittedonly" => Box::new(queries_iter.filter(|query| !query.is_blocked())),
+        "blockedonly" => Box::new(queries_iter.filter(|query| query.is_blocked())),
         "nothing" => Box::new(iter::empty()),
         _ => queries_iter
     })
@@ -310,6 +310,46 @@ fn filter_query_type<'a>(
 ) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(query_type) = params.query_type {
         Box::new(queries_iter.filter(move |query| query.query_type == query_type))
+    } else {
+        queries_iter
+    }
+}
+
+/// Only show queries with the specific status
+fn filter_status<'a>(
+    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    params: &HistoryParams
+) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+    if let Some(status) = params.status {
+        Box::new(queries_iter.filter(move |query| query.status == status))
+    } else {
+        queries_iter
+    }
+}
+
+/// Only show allowed/blocked queries
+fn filter_blocked<'a>(
+    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    params: &HistoryParams
+) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+    if let Some(blocked) = params.blocked {
+        if blocked {
+            Box::new(queries_iter.filter(|query| query.is_blocked()))
+        } else {
+            Box::new(queries_iter.filter(|query| !query.is_blocked()))
+        }
+    } else {
+        queries_iter
+    }
+}
+
+/// Only show queries of the specified DNSSEC type
+fn filter_dnssec<'a>(
+    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    params: &HistoryParams
+) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+    if let Some(dnssec) = params.dnssec {
+        Box::new(queries_iter.filter(move |query| query.dnssec_type == dnssec))
     } else {
         queries_iter
     }
@@ -451,9 +491,10 @@ fn filter_client<'a>(
 #[cfg(test)]
 mod test {
     use super::{
-        filter_client, filter_domain, filter_private_queries, filter_query_type,
-        filter_setup_vars_setting, filter_time_from, filter_time_until, filter_upstream,
-        map_query_to_json, skip_to_cursor, HistoryParams
+        filter_blocked, filter_client, filter_dnssec, filter_domain, filter_private_queries,
+        filter_query_type, filter_setup_vars_setting, filter_status, filter_time_from,
+        filter_time_until, filter_upstream, map_query_to_json, skip_to_cursor, HistoryCursor,
+        HistoryParams
     };
     use env::{Config, Env, PiholeFile};
     use ftl::{
@@ -461,7 +502,6 @@ mod test {
         FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlUpstream, ShmLockGuard
     };
     use rocket_contrib::Value;
-    use routes::stats::history::HistoryCursor;
     use std::collections::HashMap;
     use testing::{TestBuilder, TestEnvBuilder};
 
@@ -476,7 +516,8 @@ mod test {
             $client:expr,
             $upstream:expr,
             $timestamp:expr,
-            $private:expr
+            $private:expr,
+            $dnssec:ident
         ) => {
             FtlQuery::new(
                 $id,
@@ -490,7 +531,7 @@ mod test {
                 FtlQueryType::$qtype,
                 FtlQueryStatus::$status,
                 FtlQueryReplyType::IP,
-                FtlDnssecType::Unspecified,
+                FtlDnssecType::$dnssec,
                 true,
                 $private
             )
@@ -511,7 +552,8 @@ mod test {
         }
     }
 
-    /// 9 queries. Query 9 is private. Last two are not in the database.
+    /// 9 queries. Query 9 is private. Last two are not in the database. Query 1
+    /// has a DNSSEC type of Secure.
     ///
     /// | ID | DB | Type |   Status   | Domain | Client | Upstream | Timestamp |
     /// | -- | -- | ---- | ---------- | ------ | ------ | -------- | --------- |
@@ -526,15 +568,15 @@ mod test {
     /// | 9  | 0  | A    | Forward    | 5      | 3      | 0        | 7         |
     fn test_queries() -> Vec<FtlQuery> {
         vec![
-            query!(1, 1, A, Forward, 0, 0, 0, 1, false),
-            query!(2, 2, AAAA, Forward, 0, 0, 0, 2, false),
-            query!(3, 3, PTR, Forward, 0, 0, 0, 3, false),
-            query!(4, 4, A, Gravity, 1, 1, 0, 3, false),
-            query!(5, 5, AAAA, Cache, 0, 1, 0, 4, false),
-            query!(6, 6, AAAA, Wildcard, 2, 1, 0, 5, false),
-            query!(7, 7, A, Blacklist, 3, 2, 0, 5, false),
-            query!(8, 0, AAAA, ExternalBlock, 4, 2, 1, 6, false),
-            query!(9, 0, A, Forward, 5, 3, 0, 7, true),
+            query!(1, 1, A, Forward, 0, 0, 0, 1, false, Secure),
+            query!(2, 2, AAAA, Forward, 0, 0, 0, 2, false, Unspecified),
+            query!(3, 3, PTR, Forward, 0, 0, 0, 3, false, Unspecified),
+            query!(4, 4, A, Gravity, 1, 1, 0, 3, false, Unspecified),
+            query!(5, 5, AAAA, Cache, 0, 1, 0, 4, false, Unspecified),
+            query!(6, 6, AAAA, Wildcard, 2, 1, 0, 5, false, Unspecified),
+            query!(7, 7, A, Blacklist, 3, 2, 0, 5, false, Unspecified),
+            query!(8, 0, AAAA, ExternalBlock, 4, 2, 1, 6, false, Unspecified),
+            query!(9, 0, A, Forward, 5, 3, 0, 7, true, Unspecified),
         ]
     }
 
@@ -683,7 +725,7 @@ mod test {
                 "status": 2,
                 "domain": "domain1.com",
                 "client": "client1",
-                "dnssec": 0,
+                "dnssec": 1,
                 "reply": 4,
                 "response_time": 1
             })
@@ -1043,6 +1085,54 @@ mod test {
             &ShmLockGuard::Test
         ).unwrap()
             .collect();
+
+        assert_eq!(filtered_queries, expected_queries);
+    }
+
+    /// Only return queries with the specified status
+    #[test]
+    fn test_filter_status() {
+        let queries = test_queries();
+        let expected_queries = vec![&queries[3]];
+        let filtered_queries: Vec<&FtlQuery> = filter_status(
+            Box::new(queries.iter()),
+            &HistoryParams {
+                status: Some(FtlQueryStatus::Gravity),
+                ..HistoryParams::default()
+            }
+        ).collect();
+
+        assert_eq!(filtered_queries, expected_queries);
+    }
+
+    /// Only return allowed/blocked queries
+    #[test]
+    fn test_filter_blocked() {
+        let queries = test_queries();
+        let expected_queries = vec![&queries[3], &queries[5], &queries[6], &queries[7]];
+        let filtered_queries: Vec<&FtlQuery> = filter_blocked(
+            Box::new(queries.iter()),
+            &HistoryParams {
+                blocked: Some(true),
+                ..HistoryParams::default()
+            }
+        ).collect();
+
+        assert_eq!(filtered_queries, expected_queries);
+    }
+
+    /// Only return queries of the specified DNSSEC type
+    #[test]
+    fn test_filter_dnssec() {
+        let queries = test_queries();
+        let expected_queries = vec![&queries[0]];
+        let filtered_queries: Vec<&FtlQuery> = filter_dnssec(
+            Box::new(queries.iter()),
+            &HistoryParams {
+                dnssec: Some(FtlDnssecType::Secure),
+                ..HistoryParams::default()
+            }
+        ).collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
