@@ -247,6 +247,8 @@ mod test {
                  dhcp-leasefile=/etc/pihole/dhcp.leases\n\
                  dhcp-range=192.168.1.50,192.168.1.150,24h\n\
                  dhcp-option=option:router,192.168.1.1\n\
+                 dhcp-name-match=set:wpad-ignore,wpad\n\
+                 dhcp-ignore-names=tag:wpad-ignore\n\
                  dhcp-option=option6:dns-server,[::]\n\
                  dhcp-range=::100,::1ff,constructor:eth0,ra-names,slaac,24h\n\
                  ra-param=*,0,0\n"
