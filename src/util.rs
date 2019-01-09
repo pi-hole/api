@@ -15,7 +15,7 @@ use rocket::{
     response::{self, Responder, Response},
     Outcome, Request
 };
-use rocket_contrib::{Json, Value};
+use rocket_contrib::json::JsonValue;
 use serde::Serialize;
 use shmem;
 use std::{
@@ -24,7 +24,7 @@ use std::{
 };
 
 /// Type alias for the most common return type of the API methods
-pub type Reply = Result<SetStatus<Json<Value>>, Error>;
+pub type Reply = Result<SetStatus<JsonValue>, Error>;
 
 /// The most general reply builder. It takes in data/errors and status to
 /// construct the JSON reply.
@@ -51,7 +51,7 @@ pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
         }
     };
 
-    Ok(SetStatus(Json(json_data), status))
+    Ok(SetStatus(json_data, status))
 }
 
 /// Create a reply from some serializable data. The reply will have a status
@@ -149,7 +149,7 @@ impl Error {
         }
 
         // Print out each cause
-        for (i, cause) in self.causes().skip(1).enumerate() {
+        for (i, cause) in Fail::iter_causes(self).enumerate() {
             eprintln!("Cause #{}: {}", i + 1, cause);
 
             if backtrace_enabled {
@@ -170,7 +170,7 @@ impl Error {
     /// Get extra data about the error from the [`ErrorKind`]
     ///
     /// [`ErrorKind`]: enum.ErrorKind.html
-    fn data(&self) -> Option<Value> {
+    fn data(&self) -> Option<JsonValue> {
         self.inner.get_context().data()
     }
 
@@ -246,7 +246,7 @@ impl ErrorKind {
     }
 
     /// Get extra data about the error, to be used in the JSON error object
-    fn data(&self) -> Option<Value> {
+    fn data(&self) -> Option<JsonValue> {
         match self {
             ErrorKind::FileRead(file) => Some(json!({ "file": file })),
             ErrorKind::FileWrite(file) => Some(json!({ "file": file })),

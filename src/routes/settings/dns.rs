@@ -11,7 +11,7 @@
 use auth::User;
 use env::Env;
 use rocket::State;
-use rocket_contrib::Json;
+use rocket_contrib::json::Json;
 use routes::settings::common::restart_dns;
 use settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry};
 use util::{reply_data, reply_success, Error, ErrorKind, Reply};
@@ -29,7 +29,8 @@ impl DnsSettings {
         self.upstream_dns
             .iter()
             .all(|dns| SetupVarsEntry::PiholeDns(0).is_valid(dns))
-            && self.options.is_valid() && self.conditional_forwarding.is_valid()
+            && self.options.is_valid()
+            && self.conditional_forwarding.is_valid()
     }
 }
 

@@ -144,7 +144,8 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
                 config_file,
                 "interface={}",
                 SetupVarsEntry::PiholeInterface.read(env)?
-            ).context(ErrorKind::DnsmasqConfigWrite)?;
+            )
+            .context(ErrorKind::DnsmasqConfigWrite)?;
         }
     }
 
@@ -158,7 +159,8 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
             ip,
             SetupVarsEntry::ConditionalForwardingReverse.read(env)?,
             ip
-        ).context(ErrorKind::DnsmasqConfigWrite)?;
+        )
+        .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
     Ok(())
@@ -192,7 +194,8 @@ fn write_dhcp(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error>
         SetupVarsEntry::DhcpEnd.read(env)?,
         lease_time,
         SetupVarsEntry::DhcpRouter.read(env)?
-    ).context(ErrorKind::DnsmasqConfigWrite)?;
+    )
+    .context(ErrorKind::DnsmasqConfigWrite)?;
 
     // Additional settings for IPv6
     if SetupVarsEntry::DhcpIpv6.is_true(env)? {
@@ -203,7 +206,8 @@ fn write_dhcp(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error>
              ra-param=*,0,0",
             SetupVarsEntry::PiholeInterface.read(env)?,
             lease_time
-        ).context(ErrorKind::DnsmasqConfigWrite)?;
+        )
+        .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
     Ok(())

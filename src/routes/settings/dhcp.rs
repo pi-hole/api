@@ -11,7 +11,7 @@
 use auth::User;
 use env::Env;
 use rocket::State;
-use rocket_contrib::Json;
+use rocket_contrib::json::Json;
 use routes::settings::common::restart_dns;
 use settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry};
 use util::{reply_data, reply_success, Error, ErrorKind, Reply};

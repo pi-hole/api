@@ -11,8 +11,8 @@
 use auth::User;
 use env::{Env, PiholeFile};
 use ftl::{FtlDomain, FtlMemory};
-use rocket::State;
-use rocket_contrib::Value;
+use rocket::{request::Form, State};
+use rocket_contrib::json::JsonValue;
 use routes::stats::common::{remove_excluded_domains, remove_hidden_domains};
 use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry};
 use std::io::{BufRead, BufReader};
@@ -25,14 +25,14 @@ pub fn top_domains(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>) -
 }
 
 /// Return the top domains with specified parameters
-#[get("/stats/top_domains?<params>")]
+#[get("/stats/top_domains?<params..>")]
 pub fn top_domains_params(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
-    params: TopParams
+    params: Form<TopParams>
 ) -> Reply {
-    get_top_domains(&ftl_memory, &env, params)
+    get_top_domains(&ftl_memory, &env, params.into_inner())
 }
 
 /// Represents the possible GET parameters on `/stats/top_domains` and
@@ -158,7 +158,7 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
     }
 
     // Map the domains into the output format
-    let top_domains: Vec<Value> = domains
+    let top_domains: Vec<JsonValue> = domains
         .iter()
         .map(|domain| {
             let name = domain.get_domain(&strings);

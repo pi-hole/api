@@ -11,8 +11,8 @@
 use auth::User;
 use env::Env;
 use ftl::FtlMemory;
-use rocket::State;
-use rocket_contrib::Value;
+use rocket::{request::Form, State};
+use rocket_contrib::json::JsonValue;
 use routes::stats::common::{remove_excluded_clients, remove_hidden_clients};
 use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel};
 use util::{reply_data, Reply};
@@ -24,14 +24,14 @@ pub fn clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>) -> Re
 }
 
 /// Get the client information with specified parameters
-#[get("/stats/clients?<params>")]
+#[get("/stats/clients?<params..>")]
 pub fn clients_params(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
-    params: ClientParams
+    params: Form<ClientParams>
 ) -> Reply {
-    get_clients(&ftl_memory, &env, params)
+    get_clients(&ftl_memory, &env, params.into_inner())
 }
 
 /// The possible GET parameters for `/stats/clients`
@@ -92,7 +92,7 @@ pub fn get_clients(ftl_memory: &FtlMemory, env: &Env, params: ClientParams) -> R
                     "ip": ip
                 })
             })
-            .collect::<Vec<Value>>()
+            .collect::<Vec<JsonValue>>()
     )
 }
 

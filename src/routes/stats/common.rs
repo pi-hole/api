@@ -143,7 +143,8 @@ mod tests {
             &mut clients,
             &env,
             &ftl_memory.strings(&lock_guard).unwrap()
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(clients, vec![&FtlClient::new(0, 0, 4, None)]);
     }
@@ -171,7 +172,8 @@ mod tests {
             &mut clients,
             &env,
             &ftl_memory.strings(&lock_guard).unwrap()
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(
             clients,

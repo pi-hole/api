@@ -12,7 +12,7 @@ use auth::User;
 use env::Env;
 use ftl::FtlConnectionType;
 use rocket::State;
-use rocket_contrib::Json;
+use rocket_contrib::json::Json;
 use routes::dns::{common::reload_gravity, list::List};
 use util::{reply_success, Reply};
 

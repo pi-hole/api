@@ -23,6 +23,8 @@ use util::{Error, ErrorKind};
 #[cfg(test)]
 use env::PiholeFile;
 #[cfg(test)]
+use rocket::config::LoggingLevel;
+#[cfg(test)]
 use rocket::local::Client;
 #[cfg(test)]
 use std::collections::HashMap;
@@ -31,12 +33,12 @@ use tempfile::NamedTempFile;
 
 const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
 
-#[error(404)]
+#[catch(404)]
 fn not_found() -> Error {
     Error::from(ErrorKind::NotFound)
 }
 
-#[error(401)]
+#[catch(401)]
 fn unauthorized() -> Error {
     Error::from(ErrorKind::Unauthorized)
 }
@@ -52,17 +54,16 @@ pub fn start() -> Result<(), Error> {
             ConfigBuilder::new(Environment::Production)
                 .address(env.config().address())
                 .port(env.config().port() as u16)
-                .log_level(env.config().log_level())
+                .log_level(env.config().log_level()?)
                 .finalize()
-                .unwrap(),
-            // TODO: Add option to turn off logs
-            true
+                .unwrap()
         ),
         FtlConnectionType::Socket,
         FtlMemory::production(),
         env,
         key
-    ).launch();
+    )
+    .launch();
 
     Ok(())
 }
@@ -79,15 +80,16 @@ pub fn test(
     Client::new(setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Development)
+                .log_level(LoggingLevel::Off)
                 .finalize()
-                .unwrap(),
-            false
+                .unwrap()
         ),
         FtlConnectionType::Test(ftl_data),
         ftl_memory,
         Env::Test(toml::from_str("").unwrap(), env_data),
         "test_key".to_owned()
-    )).unwrap()
+    ))
+    .unwrap()
 }
 
 /// General server setup
@@ -160,5 +162,5 @@ fn setup(
             settings::get_network
         ])
         // Add custom error handlers
-        .catch(errors![not_found, unauthorized])
+        .register(catchers![not_found, unauthorized])
 }

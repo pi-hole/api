@@ -11,7 +11,7 @@
 use env::Env;
 use ftl::FtlMemory;
 use rocket::State;
-use rocket_contrib::Value;
+use rocket_contrib::json::JsonValue;
 use settings::{ConfigEntry, FtlConfEntry};
 use std::time::{SystemTime, UNIX_EPOCH};
 use util::{reply_data, Reply};
@@ -32,7 +32,7 @@ pub fn over_time_history(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply
     // Get the max log age FTL setting, to be used when getting overTime data
     let max_log_age = FtlConfEntry::MaxLogAge.read_as::<f64>(&env).unwrap_or(24.0) * 3600.0;
 
-    let over_time_data: Vec<Value> = over_time.iter()
+    let over_time_data: Vec<JsonValue> = over_time.iter()
        .take(counters.over_time_size as usize)
         // Skip the overTime slots without any data, and any slots which are
         // before the max-log-age time.

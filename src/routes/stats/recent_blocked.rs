@@ -11,7 +11,7 @@
 use auth::User;
 use env::Env;
 use ftl::{FtlMemory, FtlQueryStatus};
-use rocket::State;
+use rocket::{request::Form, State};
 use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel};
 use util::{reply_data, Reply};
 
@@ -22,12 +22,12 @@ pub fn recent_blocked(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>
 }
 
 /// Get the `num` most recently blocked domains
-#[get("/stats/recent_blocked?<params>")]
+#[get("/stats/recent_blocked?<params..>")]
 pub fn recent_blocked_params(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
-    params: RecentBlockedParams
+    params: Form<RecentBlockedParams>
 ) -> Reply {
     get_recent_blocked(&ftl_memory, &env, params.num)
 }

@@ -11,8 +11,8 @@
 use auth::User;
 use env::Env;
 use ftl::{FtlClient, FtlMemory};
-use rocket::State;
-use rocket_contrib::Value;
+use rocket::{request::Form, State};
+use rocket_contrib::json::JsonValue;
 use routes::stats::common::{remove_excluded_clients, remove_hidden_clients};
 use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel};
 use util::{reply_data, Reply};
@@ -24,14 +24,14 @@ pub fn top_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>) -
 }
 
 /// Get the top clients with specified parameters
-#[get("/stats/top_clients?<params>")]
+#[get("/stats/top_clients?<params..>")]
 pub fn top_clients_params(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
-    params: TopClientParams
+    params: Form<TopClientParams>
 ) -> Reply {
-    get_top_clients(&ftl_memory, &env, params)
+    get_top_clients(&ftl_memory, &env, params.into_inner())
 }
 
 /// Represents the possible GET parameters on `/stats/top_clients`
@@ -117,7 +117,7 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
     }
 
     // Map the clients into the output format
-    let top_clients: Vec<Value> = clients
+    let top_clients: Vec<JsonValue> = clients
         .into_iter()
         .map(|client| {
             let name = client.get_name(&strings).unwrap_or_default();

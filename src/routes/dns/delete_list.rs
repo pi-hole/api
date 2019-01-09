@@ -76,7 +76,7 @@ mod test {
         write_eom(&mut data);
 
         TestBuilder::new()
-            .endpoint("/admin/api/dns/regexlist/^.*example.com$")
+            .endpoint("/admin/api/dns/regexlist/%5E.%2Aexample.com%24")
             .method(Method::Delete)
             .ftl("recompile-regex", data)
             .file_expect(PiholeFile::Regexlist, "^.*example.com$\n", "")

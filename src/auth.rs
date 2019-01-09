@@ -130,7 +130,7 @@ pub fn logout(user: User, cookies: Cookies) -> Reply {
 #[cfg(test)]
 mod test {
     use rocket::http::{Header, Status};
-    use rocket_contrib::Value;
+    use serde_json::Value;
     use testing::TestBuilder;
 
     #[test]

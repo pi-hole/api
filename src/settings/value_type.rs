@@ -61,7 +61,8 @@ impl ValueType {
                 // Specific reverse domain
                 let reverse_re = Regex::new(
                     r"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}([a-zA-Z0-9\-\.])+$"
-                ).unwrap();
+                )
+                .unwrap();
                 reverse_re.is_match(value)
             }
             ValueType::Decimal => {
@@ -104,7 +105,8 @@ impl ValueType {
 
                 let hostname_re = Regex::new(
                     r"^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*)+(\.([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*))*$"
-                ).unwrap();
+                )
+                .unwrap();
                 hostname_re.is_match(value)
             }
             ValueType::Integer => {

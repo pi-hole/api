@@ -11,7 +11,7 @@
 use auth::User;
 use ftl::{FtlMemory, FtlUpstream};
 use rocket::State;
-use rocket_contrib::Value;
+use rocket_contrib::json::JsonValue;
 use util::{reply_data, Reply};
 
 /// Get the upstreams
@@ -33,7 +33,7 @@ pub fn upstreams(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
     // Sort the upstreams
     ftl_upstreams.sort_by(|a, b| b.query_count.cmp(&a.query_count));
 
-    let mut upstreams: Vec<Value> = Vec::with_capacity(ftl_upstreams.len() + 2);
+    let mut upstreams: Vec<JsonValue> = Vec::with_capacity(ftl_upstreams.len() + 2);
 
     // Add blocklist and cache upstreams
     upstreams.push(json!({

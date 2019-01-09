@@ -69,7 +69,7 @@ fn read_web_version() -> Result<Version, Error> {
 /// The string should be in the format "TAG BRANCH COMMIT".
 fn parse_web_version(version_str: &str) -> Result<Version, Error> {
     // Trim to remove possible newline
-    let version_split: Vec<&str> = version_str.trim_right_matches("\n").split(" ").collect();
+    let version_split: Vec<&str> = version_str.trim_end_matches("\n").split(" ").collect();
 
     if version_split.len() != 3 {
         return Err(Error::from(ErrorKind::Unknown));

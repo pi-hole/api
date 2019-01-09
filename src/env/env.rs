@@ -62,9 +62,10 @@ impl Env {
             Env::Test(_, ref map) => match map.get(&file) {
                 Some(data) => data,
                 None => return tempfile().context(ErrorKind::Unknown).map_err(Error::from)
-            }.reopen()
-                .context(ErrorKind::Unknown)
-                .map_err(Error::from)
+            }
+            .reopen()
+            .context(ErrorKind::Unknown)
+            .map_err(Error::from)
         }
     }
 
@@ -93,8 +94,9 @@ impl Env {
                 let file = match map.get(&file) {
                     Some(data) => data,
                     None => return tempfile().context(ErrorKind::Unknown).map_err(Error::from)
-                }.reopen()
-                    .context(ErrorKind::Unknown)?;
+                }
+                .reopen()
+                .context(ErrorKind::Unknown)?;
 
                 if !append {
                     file.set_len(0).context(ErrorKind::Unknown)?;

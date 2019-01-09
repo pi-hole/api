@@ -11,7 +11,7 @@
 use auth::User;
 use ftl::{FtlMemory, FtlQueryType};
 use rocket::State;
-use rocket_contrib::Value;
+use rocket_contrib::json::JsonValue;
 use util::{reply_data, Reply};
 
 /// Get the query types
@@ -29,7 +29,7 @@ pub fn query_types(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
                     "count": counters.query_type(variant)
                 })
             })
-            .collect::<Vec<Value>>()
+            .collect::<Vec<JsonValue>>()
     )
 }
 

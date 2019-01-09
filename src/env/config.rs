@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 use env::PiholeFile;
-use failure::{Fail, ResultExt};
+use failure::{err_msg, Fail, ResultExt};
 use rocket::config::LoggingLevel;
 use std::{
     fs::File,
@@ -89,14 +89,9 @@ impl Config {
         self.general.port
     }
 
-    pub fn log_level(&self) -> LoggingLevel {
-        match self.general.log_level.as_str() {
-            "critical" => LoggingLevel::Critical,
-            "normal" => LoggingLevel::Normal,
-            "debug" => LoggingLevel::Debug,
-            // Should never happen, since config is validated on startup
-            _ => LoggingLevel::Critical
-        }
+    pub fn log_level(&self) -> Result<LoggingLevel, Error> {
+        LoggingLevel::from_str(&self.general.log_level)
+            .map_err(|e| Error::from(err_msg(e).context(ErrorKind::ConfigParsingError)))
     }
 }
 
@@ -151,8 +146,9 @@ impl Files {
             &self.ftl_config,
             &self.local_versions,
             &self.local_branches
-        ].into_iter()
-            .all(|file| Path::new(file).is_absolute())
+        ]
+        .into_iter()
+        .all(|file| Path::new(file).is_absolute())
     }
 }
 
@@ -198,7 +194,8 @@ impl Default for General {
 
 impl General {
     fn is_valid(&self) -> bool {
-        Ipv4Addr::from_str(&self.address).is_ok() && self.port <= 65535
+        Ipv4Addr::from_str(&self.address).is_ok()
+            && self.port <= 65535
             && match self.log_level.as_str() {
                 "debug" | "normal" | "critical" => true,
                 _ => false

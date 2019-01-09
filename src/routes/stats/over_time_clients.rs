@@ -12,7 +12,7 @@ use auth::User;
 use env::Env;
 use ftl::{FtlClient, FtlMemory};
 use rocket::State;
-use rocket_contrib::Value;
+use rocket_contrib::json::JsonValue;
 use routes::stats::common::{remove_excluded_clients, remove_hidden_clients};
 use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel};
 use std::{
@@ -88,7 +88,7 @@ pub fn over_time_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<E
     // Get the valid over time slots (starting at the max-log-age timestamp).
     // Then, combine with the client data from above to get the final overTime
     // output.
-    let over_time: Vec<Value> = over_time
+    let over_time: Vec<JsonValue> = over_time
         .iter()
         .take(counters.over_time_size as usize)
         .enumerate()
@@ -114,7 +114,7 @@ pub fn over_time_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<E
         .collect();
 
     // Convert clients into the output format
-    let clients: Vec<Value> = clients
+    let clients: Vec<JsonValue> = clients
         .into_iter()
         .map(|client| {
             let name = client.get_name(&strings).unwrap_or_default();

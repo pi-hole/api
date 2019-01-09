@@ -16,8 +16,12 @@ use ftl::{
     FtlDnssecType, FtlMemory, FtlQuery, FtlQueryReplyType, FtlQueryStatus, FtlQueryType,
     ShmLockGuard
 };
-use rocket::{http::RawStr, request::FromFormValue, State};
-use rocket_contrib::Value;
+use rocket::{
+    http::RawStr,
+    request::{Form, FromFormValue},
+    State
+};
+use rocket_contrib::json::JsonValue;
 use serde_json;
 use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry};
 use std::{collections::HashSet, iter};
@@ -30,14 +34,14 @@ pub fn history(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>) -> Re
 }
 
 /// Get the query history according to the specified parameters
-#[get("/stats/history?<params>")]
+#[get("/stats/history?<params..>")]
 pub fn history_params(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
-    params: HistoryParams
+    params: Form<HistoryParams>
 ) -> Reply {
-    get_history(&ftl_memory, &env, params)
+    get_history(&ftl_memory, &env, params.into_inner())
 }
 
 /// Represents the possible GET parameters on `/stats/history`
@@ -193,7 +197,7 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
     });
 
     // Map the queries into the output format
-    let history: Vec<Value> = history
+    let history: Vec<JsonValue> = history
         .into_iter()
         // Only take up to the limit this time, not including the last query,
         // because it was just used to get the cursor
@@ -211,7 +215,7 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
 fn map_query_to_json<'a>(
     ftl_memory: &'a FtlMemory,
     ftl_lock: &ShmLockGuard<'a>
-) -> Result<impl Fn(&FtlQuery) -> Value + 'a, Error> {
+) -> Result<impl Fn(&FtlQuery) -> JsonValue + 'a, Error> {
     let domains = ftl_memory.domains(ftl_lock)?;
     let clients = ftl_memory.clients(ftl_lock)?;
     let strings = ftl_memory.strings(ftl_lock)?;
@@ -519,7 +523,7 @@ mod test {
         FtlClient, FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
         FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlUpstream, ShmLockGuard
     };
-    use rocket_contrib::Value;
+    use rocket_contrib::json::JsonValue;
     use std::collections::HashMap;
     use testing::{TestBuilder, TestEnvBuilder};
 
@@ -685,7 +689,7 @@ mod test {
         // The private query should be ignored
         expected_queries.remove(8);
 
-        let history: Vec<Value> = expected_queries
+        let history: Vec<JsonValue> = expected_queries
             .iter()
             .rev()
             .map(map_query_to_json(&ftl_memory, &ShmLockGuard::Test).unwrap())
@@ -710,7 +714,7 @@ mod test {
         // The private query should be ignored
         expected_queries.remove(8);
 
-        let history: Vec<Value> = expected_queries
+        let history: Vec<JsonValue> = expected_queries
             .iter()
             .rev()
             .take(5)
@@ -778,7 +782,8 @@ mod test {
                 }),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -797,7 +802,8 @@ mod test {
                 }),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -889,7 +895,8 @@ mod test {
                 from: Some(4),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -905,7 +912,8 @@ mod test {
                 until: Some(4),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -921,7 +929,8 @@ mod test {
                 query_type: Some(FtlQueryType::A),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -939,8 +948,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -959,8 +969,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -978,8 +989,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -998,8 +1010,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1017,8 +1030,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1037,8 +1051,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1056,8 +1071,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1076,8 +1092,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1095,8 +1112,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1115,8 +1133,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1132,7 +1151,8 @@ mod test {
                 status: Some(FtlQueryStatus::Gravity),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1148,7 +1168,8 @@ mod test {
                 blocked: Some(true),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1164,7 +1185,8 @@ mod test {
                 dnssec: Some(FtlDnssecType::Secure),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1180,7 +1202,8 @@ mod test {
                 reply: Some(FtlQueryReplyType::CNAME),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
