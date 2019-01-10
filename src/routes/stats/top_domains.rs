@@ -8,15 +8,17 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use env::{Env, PiholeFile};
-use ftl::{FtlDomain, FtlMemory};
-use rocket::State;
-use rocket_contrib::Value;
-use routes::stats::common::{remove_excluded_domains, remove_hidden_domains};
-use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry};
+use crate::{
+    auth::User,
+    env::{Env, PiholeFile},
+    ftl::{FtlDomain, FtlMemory},
+    routes::stats::common::{remove_excluded_domains, remove_hidden_domains},
+    settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
+    util::{reply_data, Reply}
+};
+use rocket::{request::Form, State};
+use rocket_contrib::json::JsonValue;
 use std::io::{BufRead, BufReader};
-use util::{reply_data, Reply};
 
 /// Return the top domains with default parameters
 #[get("/stats/top_domains")]
@@ -25,14 +27,14 @@ pub fn top_domains(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>) -
 }
 
 /// Return the top domains with specified parameters
-#[get("/stats/top_domains?<params>")]
+#[get("/stats/top_domains?<params..>")]
 pub fn top_domains_params(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
-    params: TopParams
+    params: Form<TopParams>
 ) -> Reply {
-    get_top_domains(&ftl_memory, &env, params)
+    get_top_domains(&ftl_memory, &env, params.into_inner())
 }
 
 /// Represents the possible GET parameters on `/stats/top_domains` and
@@ -158,7 +160,7 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
     }
 
     // Map the domains into the output format
-    let top_domains: Vec<Value> = domains
+    let top_domains: Vec<JsonValue> = domains
         .iter()
         .map(|domain| {
             let name = domain.get_domain(&strings);
@@ -177,24 +179,26 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
 
     // Output format changes when getting top blocked domains
     if blocked {
-        return reply_data(json!({
+        reply_data(json!({
             "top_domains": top_domains,
             "blocked_queries": counters.blocked_queries
-        }));
+        }))
     } else {
-        return reply_data(json!({
+        reply_data(json!({
             "top_domains": top_domains,
             "total_queries": counters.total_queries
-        }));
+        }))
     }
 }
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
-    use ftl::{FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch};
+    use crate::{
+        env::PiholeFile,
+        ftl::{FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch},
+        testing::TestBuilder
+    };
     use std::collections::HashMap;
-    use testing::TestBuilder;
 
     /// Four clients, one hidden, one with no queries
     fn test_data() -> FtlMemory {

@@ -8,6 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use crate::util::{reply_success, Error, ErrorKind, Reply};
 use rocket::{
     http::{Cookie, Cookies},
     outcome::IntoOutcome,
@@ -15,7 +16,6 @@ use rocket::{
     Outcome
 };
 use std::sync::atomic::{AtomicUsize, Ordering};
-use util::{reply_success, Error, ErrorKind, Reply};
 
 const USER_ATTR: &str = "user_id";
 const AUTH_HEADER: &str = "X-Pi-hole-Authenticate";
@@ -129,9 +129,9 @@ pub fn logout(user: User, cookies: Cookies) -> Reply {
 
 #[cfg(test)]
 mod test {
+    use crate::testing::TestBuilder;
     use rocket::http::{Header, Status};
-    use rocket_contrib::Value;
-    use testing::TestBuilder;
+    use serde_json::Value;
 
     #[test]
     fn test_authenticated() {

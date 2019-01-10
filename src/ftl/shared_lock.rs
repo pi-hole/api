@@ -8,8 +8,11 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use crate::{
+    ftl::lock_thread::{LockRequest, LockThread, RequestType},
+    util::{Error, ErrorKind}
+};
 use failure::{Fail, ResultExt};
-use ftl::lock_thread::{LockRequest, LockThread, RequestType};
 use nix::errno::Errno;
 use std::{
     sync::{
@@ -18,7 +21,6 @@ use std::{
     },
     thread
 };
-use util::{Error, ErrorKind};
 
 /// A lock for coordinating shared memory access with FTL. It locks a mutex in
 /// shared memory, and while holding the lock it distributes read locks. If it
@@ -111,7 +113,7 @@ impl<'lock> Drop for ShmLockGuard<'lock> {
 
 #[cfg(test)]
 mod test {
-    use ftl::{
+    use crate::ftl::{
         lock_thread::{LockRequest, RequestType},
         ShmLock
     };

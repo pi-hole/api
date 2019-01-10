@@ -8,11 +8,13 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use ftl::{FtlMemory, FtlQueryType};
+use crate::{
+    auth::User,
+    ftl::{FtlMemory, FtlQueryType},
+    util::{reply_data, Reply}
+};
 use rocket::State;
-use rocket_contrib::Value;
-use util::{reply_data, Reply};
+use rocket_contrib::json::JsonValue;
 
 /// Get the query types
 #[get("/stats/query_types")]
@@ -29,15 +31,17 @@ pub fn query_types(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
                     "count": counters.query_type(variant)
                 })
             })
-            .collect::<Vec<Value>>()
+            .collect::<Vec<JsonValue>>()
     )
 }
 
 #[cfg(test)]
 mod test {
-    use ftl::{FtlCounters, FtlMemory};
+    use crate::{
+        ftl::{FtlCounters, FtlMemory},
+        testing::TestBuilder
+    };
     use std::collections::HashMap;
-    use testing::TestBuilder;
 
     fn test_data() -> FtlMemory {
         FtlMemory::Test {

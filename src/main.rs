@@ -8,8 +8,6 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-extern crate pihole_api;
-
 fn main() {
     if let Err(e) = pihole_api::start() {
         e.print_stacktrace();

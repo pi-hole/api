@@ -11,7 +11,7 @@
 use libc;
 
 #[cfg(test)]
-use ftl::memory_model::MAGIC_BYTE;
+use crate::ftl::memory_model::MAGIC_BYTE;
 
 #[repr(C)]
 #[cfg_attr(test, derive(Debug))]

@@ -8,11 +8,13 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::{Env, PiholeFile};
+use crate::{
+    env::{Env, PiholeFile},
+    routes::dns::common::{is_valid_domain, is_valid_regex},
+    util::{Error, ErrorKind}
+};
 use failure::ResultExt;
-use routes::dns::common::{is_valid_domain, is_valid_regex};
 use std::io::{prelude::*, BufReader, BufWriter};
-use util::{Error, ErrorKind};
 
 pub enum List {
     White,
@@ -55,7 +57,7 @@ impl List {
         Ok(BufReader::new(file)
             .lines()
             .filter_map(|line| line.ok())
-            .filter(|line| line.len() != 0)
+            .filter(|line| !line.is_empty())
             .collect())
     }
 
@@ -87,7 +89,7 @@ impl List {
     pub fn try_remove(&self, domain: &str, env: &Env) -> Result<(), Error> {
         match self.remove(domain, env) {
             // Pass through successful results
-            Ok(ok) => Ok(ok),
+            Ok(_) => Ok(()),
             Err(e) => {
                 // Ignore NotFound errors
                 if e.kind() == ErrorKind::NotFound {

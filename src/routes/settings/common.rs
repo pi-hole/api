@@ -8,10 +8,12 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::Env;
+use crate::{
+    env::Env,
+    util::{Error, ErrorKind}
+};
 use failure::ResultExt;
 use std::process::{Command, Stdio};
-use util::{Error, ErrorKind};
 
 /// Restart the DNS server (via `pihole restartdns`)
 pub fn restart_dns(env: &Env) -> Result<(), Error> {

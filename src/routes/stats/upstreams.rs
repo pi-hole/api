@@ -8,11 +8,13 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use ftl::{FtlMemory, FtlUpstream};
+use crate::{
+    auth::User,
+    ftl::{FtlMemory, FtlUpstream},
+    util::{reply_data, Reply}
+};
 use rocket::State;
-use rocket_contrib::Value;
-use util::{reply_data, Reply};
+use rocket_contrib::json::JsonValue;
 
 /// Get the upstreams
 #[get("/stats/upstreams")]
@@ -33,7 +35,7 @@ pub fn upstreams(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
     // Sort the upstreams
     ftl_upstreams.sort_by(|a, b| b.query_count.cmp(&a.query_count));
 
-    let mut upstreams: Vec<Value> = Vec::with_capacity(ftl_upstreams.len() + 2);
+    let mut upstreams: Vec<JsonValue> = Vec::with_capacity(ftl_upstreams.len() + 2);
 
     // Add blocklist and cache upstreams
     upstreams.push(json!({
@@ -68,9 +70,11 @@ pub fn upstreams(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
 
 #[cfg(test)]
 mod test {
-    use ftl::{FtlCounters, FtlMemory, FtlUpstream};
+    use crate::{
+        ftl::{FtlCounters, FtlMemory, FtlUpstream},
+        testing::TestBuilder
+    };
     use std::collections::HashMap;
-    use testing::TestBuilder;
 
     fn test_upstream_data() -> (Vec<FtlUpstream>, HashMap<usize, String>) {
         let mut strings = HashMap::new();

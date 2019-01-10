@@ -8,10 +8,12 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::Env;
+use crate::{
+    env::Env,
+    settings::{ConfigEntry, SetupVarsEntry},
+    util::{reply_data, Reply}
+};
 use rocket::State;
-use settings::{ConfigEntry, SetupVarsEntry};
-use util::{reply_data, Reply};
 
 /// Get the DNS blocking status
 #[get("/dns/status")]
@@ -27,8 +29,7 @@ pub fn status(env: State<Env>) -> Reply {
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
-    use testing::TestBuilder;
+    use crate::{env::PiholeFile, testing::TestBuilder};
 
     #[test]
     fn test_status_enabled() {
