@@ -29,7 +29,7 @@ const SOCKET_LOCATION: &str = "/var/run/pihole/FTL.sock";
 
 /// A wrapper around the FTL socket to easily read in data. It takes a
 /// Box<Read> so that it can be tested with fake data from a Vec<u8>
-pub struct FtlConnection<'test>(Box<Read + 'test>);
+pub struct FtlConnection<'test>(Box<dyn Read + 'test>);
 
 /// A marker for the type of FTL connection to make.
 ///

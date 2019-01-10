@@ -128,7 +128,8 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
     let counters = ftl_memory.counters(&lock)?;
     let queries = ftl_memory.queries(&lock)?;
 
-    // The following code uses a boxed iterator, Box<Iterator<Item = &FtlQuery>>
+    // The following code uses a boxed iterator,
+    // Box<dyn Iterator<Item = &FtlQuery>>
     //
     // When you make an iterator chain, it modifies the type of the iterator.
     // Ex. slice.iter().filter(..).map(..) might look like Map<Filter<Iter<T>>, I>
@@ -253,9 +254,9 @@ fn map_query_to_json<'a>(
 
 /// Skip iteration until the query which corresponds to the cursor.
 fn skip_to_cursor<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(cursor) = params.cursor {
         if let Some(id) = cursor.id {
             Box::new(queries_iter.skip_while(move |query| query.id as i32 != id))
@@ -272,17 +273,17 @@ fn skip_to_cursor<'a>(
 
 /// Filter out private queries
 fn filter_private_queries<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     Box::new(queries_iter.filter(|query| !query.is_private))
 }
 
 /// Apply the `SetupVarsEntry::ApiQueryLogShow` setting (`permittedonly`,
 /// `blockedonly`, etc).
 fn filter_setup_vars_setting<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     env: &Env
-) -> Result<Box<Iterator<Item = &'a FtlQuery> + 'a>, Error> {
+) -> Result<Box<dyn Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     Ok(match SetupVarsEntry::ApiQueryLogShow.read(env)?.as_str() {
         "permittedonly" => Box::new(queries_iter.filter(|query| !query.is_blocked())),
         "blockedonly" => Box::new(queries_iter.filter(|query| query.is_blocked())),
@@ -293,9 +294,9 @@ fn filter_setup_vars_setting<'a>(
 
 /// Filter out queries before the `from` timestamp
 fn filter_time_from<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(from) = params.from {
         Box::new(queries_iter.filter(move |query| query.timestamp as u64 >= from))
     } else {
@@ -305,9 +306,9 @@ fn filter_time_from<'a>(
 
 /// Filter out queries after the `until` timestamp
 fn filter_time_until<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(until) = params.until {
         Box::new(queries_iter.filter(move |query| query.timestamp as u64 <= until))
     } else {
@@ -317,9 +318,9 @@ fn filter_time_until<'a>(
 
 /// Only show queries with the specified query type
 fn filter_query_type<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(query_type) = params.query_type {
         Box::new(queries_iter.filter(move |query| query.query_type == query_type))
     } else {
@@ -329,9 +330,9 @@ fn filter_query_type<'a>(
 
 /// Only show queries with the specific status
 fn filter_status<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(status) = params.status {
         Box::new(queries_iter.filter(move |query| query.status == status))
     } else {
@@ -341,9 +342,9 @@ fn filter_status<'a>(
 
 /// Only show allowed/blocked queries
 fn filter_blocked<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(blocked) = params.blocked {
         if blocked {
             Box::new(queries_iter.filter(|query| query.is_blocked()))
@@ -357,9 +358,9 @@ fn filter_blocked<'a>(
 
 /// Only show queries of the specified DNSSEC type
 fn filter_dnssec<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(dnssec) = params.dnssec {
         Box::new(queries_iter.filter(move |query| query.dnssec_type == dnssec))
     } else {
@@ -369,9 +370,9 @@ fn filter_dnssec<'a>(
 
 /// Only show queries of the specified reply type
 fn filter_reply<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(reply) = params.reply {
         Box::new(queries_iter.filter(move |query| query.reply_type == reply))
     } else {
@@ -381,11 +382,11 @@ fn filter_reply<'a>(
 
 /// Only show queries from the specified upstream
 fn filter_upstream<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams,
     ftl_memory: &FtlMemory,
     ftl_lock: &ShmLockGuard<'a>
-) -> Result<Box<Iterator<Item = &'a FtlQuery> + 'a>, Error> {
+) -> Result<Box<dyn Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     if let Some(ref upstream) = params.upstream {
         if upstream == "blocklist" {
             Ok(Box::new(queries_iter.filter(|query| match query.status {
@@ -435,11 +436,11 @@ fn filter_upstream<'a>(
 
 /// Only show queries of the specified domain
 fn filter_domain<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams,
     ftl_memory: &FtlMemory,
     ftl_lock: &ShmLockGuard<'a>
-) -> Result<Box<Iterator<Item = &'a FtlQuery> + 'a>, Error> {
+) -> Result<Box<dyn Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     if let Some(ref domain_filter) = params.domain {
         // Find the matching domains. If none are found, return an empty
         // iterator because no query can match the domain requested
@@ -473,11 +474,11 @@ fn filter_domain<'a>(
 
 /// Only show queries of the specified client
 fn filter_client<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams,
     ftl_memory: &FtlMemory,
     ftl_lock: &ShmLockGuard<'a>
-) -> Result<Box<Iterator<Item = &'a FtlQuery> + 'a>, Error> {
+) -> Result<Box<dyn Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     if let Some(ref client_filter) = params.client {
         // Find the matching clients. If none are found, return an empty
         // iterator because no query can match the client requested
