@@ -8,12 +8,14 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use env::Env;
-use ftl::FtlConnectionType;
+use crate::{
+    auth::User,
+    env::Env,
+    ftl::FtlConnectionType,
+    routes::dns::{common::reload_gravity, list::List},
+    util::{reply_success, Reply}
+};
 use rocket::State;
-use routes::dns::{common::reload_gravity, list::List};
-use util::{reply_success, Reply};
 
 /// Delete a domain from the whitelist
 #[delete("/dns/whitelist/<domain>")]
@@ -46,9 +48,11 @@ pub fn delete_regexlist(
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
+    use crate::{
+        env::PiholeFile,
+        testing::{write_eom, TestBuilder}
+    };
     use rocket::http::Method;
-    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_delete_whitelist() {

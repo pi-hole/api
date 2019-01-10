@@ -8,18 +8,20 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use env::Env;
-use ftl::{FtlClient, FtlMemory};
+use crate::{
+    auth::User,
+    env::Env,
+    ftl::{FtlClient, FtlMemory},
+    routes::stats::common::{remove_excluded_clients, remove_hidden_clients},
+    settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
+    util::{reply_data, Reply}
+};
 use rocket::State;
 use rocket_contrib::json::JsonValue;
-use routes::stats::common::{remove_excluded_clients, remove_hidden_clients};
-use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel};
 use std::{
     collections::HashMap,
     time::{SystemTime, UNIX_EPOCH}
 };
-use util::{reply_data, Reply};
 
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
@@ -135,10 +137,12 @@ pub fn over_time_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<E
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
-    use ftl::{FtlClient, FtlCounters, FtlMemory, FtlOverTime};
+    use crate::{
+        env::PiholeFile,
+        ftl::{FtlClient, FtlCounters, FtlMemory, FtlOverTime},
+        testing::TestBuilder
+    };
     use std::collections::HashMap;
-    use testing::TestBuilder;
 
     /// There are 6 clients, two inactive, one hidden, and two with names.
     /// There are 3 overTime slots, with corresponding client overTime data

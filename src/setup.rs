@@ -8,20 +8,19 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::{self, AuthData};
-use env::{Config, Env};
-use ftl::{FtlConnectionType, FtlMemory};
-use rocket::{
-    self,
-    config::{ConfigBuilder, Environment}
+use crate::{
+    auth::{self, AuthData},
+    env::{Config, Env},
+    ftl::{FtlConnectionType, FtlMemory},
+    routes::{dns, settings, stats, version, web},
+    settings::{ConfigEntry, SetupVarsEntry},
+    util::{Error, ErrorKind}
 };
+use rocket::config::{ConfigBuilder, Environment};
 use rocket_cors::Cors;
-use routes::{dns, settings, stats, version, web};
-use settings::{ConfigEntry, SetupVarsEntry};
-use util::{Error, ErrorKind};
 
 #[cfg(test)]
-use env::PiholeFile;
+use crate::env::PiholeFile;
 #[cfg(test)]
 use rocket::config::LoggingLevel;
 #[cfg(test)]

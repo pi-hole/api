@@ -8,11 +8,13 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::Env;
-use ftl::{FtlMemory, FtlQueryType};
+use crate::{
+    env::Env,
+    ftl::{FtlMemory, FtlQueryType},
+    settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
+    util::{reply_data, Reply}
+};
 use rocket::State;
-use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry};
-use util::{reply_data, Reply};
 
 /// Get the summary data
 #[get("/stats/summary")]
@@ -91,10 +93,12 @@ pub fn get_summary(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
-    use ftl::{FtlClient, FtlCounters, FtlMemory};
+    use crate::{
+        env::PiholeFile,
+        ftl::{FtlClient, FtlCounters, FtlMemory},
+        testing::TestBuilder
+    };
     use std::collections::HashMap;
-    use testing::TestBuilder;
 
     /// There are 6 clients, two inactive, one hidden, and two with names.
     fn test_data() -> FtlMemory {

@@ -8,7 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::PiholeFile;
+use crate::{
+    env::PiholeFile,
+    util::{Error, ErrorKind}
+};
 use failure::{err_msg, Fail, ResultExt};
 use rocket::config::LoggingLevel;
 use std::{
@@ -19,7 +22,6 @@ use std::{
     str::FromStr
 };
 use toml;
-use util::{Error, ErrorKind};
 
 /// The API config options
 #[derive(Deserialize, Default)]

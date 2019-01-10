@@ -8,10 +8,12 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::Env;
+use crate::{
+    env::Env,
+    routes::dns::list::List,
+    util::{reply_data, Reply}
+};
 use rocket::State;
-use routes::dns::list::List;
-use util::{reply_data, Reply};
 
 /// Get the Whitelist domains
 #[get("/dns/whitelist")]
@@ -33,8 +35,7 @@ pub fn get_regexlist(env: State<Env>) -> Reply {
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
-    use testing::TestBuilder;
+    use crate::{env::PiholeFile, testing::TestBuilder};
 
     #[test]
     fn test_get_whitelist() {

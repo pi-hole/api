@@ -8,15 +8,17 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use env::{Env, PiholeFile};
-use ftl::{FtlDomain, FtlMemory};
+use crate::{
+    auth::User,
+    env::{Env, PiholeFile},
+    ftl::{FtlDomain, FtlMemory},
+    routes::stats::common::{remove_excluded_domains, remove_hidden_domains},
+    settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
+    util::{reply_data, Reply}
+};
 use rocket::{request::Form, State};
 use rocket_contrib::json::JsonValue;
-use routes::stats::common::{remove_excluded_domains, remove_hidden_domains};
-use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry};
 use std::io::{BufRead, BufReader};
-use util::{reply_data, Reply};
 
 /// Return the top domains with default parameters
 #[get("/stats/top_domains")]
@@ -191,10 +193,12 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
-    use ftl::{FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch};
+    use crate::{
+        env::PiholeFile,
+        ftl::{FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch},
+        testing::TestBuilder
+    };
     use std::collections::HashMap;
-    use testing::TestBuilder;
 
     /// Four clients, one hidden, one with no queries
     fn test_data() -> FtlMemory {

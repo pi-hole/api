@@ -8,15 +8,17 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::{Env, PiholeFile};
+use crate::{
+    env::{Env, PiholeFile},
+    settings::value_type::ValueType,
+    util::{Error, ErrorKind}
+};
 use failure::{Fail, ResultExt};
-use settings::value_type::ValueType;
 use std::{
     borrow::Cow,
     io::{self, prelude::*, BufReader, BufWriter},
     str::FromStr
 };
-use util::{Error, ErrorKind};
 
 /// Common functions for a configuration entry
 pub trait ConfigEntry {
@@ -404,8 +406,10 @@ impl ConfigEntry for FtlConfEntry {
 #[cfg(test)]
 mod tests {
     use super::{ConfigEntry, SetupVarsEntry};
-    use env::{Config, Env, PiholeFile};
-    use testing::TestEnvBuilder;
+    use crate::{
+        env::{Config, Env, PiholeFile},
+        testing::TestEnvBuilder
+    };
 
     /// Test to make sure when writing a setting, a similar setting does not
     /// get deleted. Example: Adding PIHOLE_DNS_1 should not delete

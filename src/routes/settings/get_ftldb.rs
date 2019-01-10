@@ -8,10 +8,12 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use ftl::FtlConnectionType;
+use crate::{
+    auth::User,
+    ftl::FtlConnectionType,
+    util::{reply_data, Reply}
+};
 use rocket::State;
-use util::{reply_data, Reply};
 
 /// Read db stats from FTL
 #[get("/settings/ftldb")]
@@ -34,8 +36,8 @@ pub fn get_ftldb(ftl: State<FtlConnectionType>, _auth: User) -> Reply {
 
 #[cfg(test)]
 mod test {
+    use crate::testing::{write_eom, TestBuilder};
     use rmp::encode;
-    use testing::{write_eom, TestBuilder};
 
     /// Basic test for reported values
     #[test]

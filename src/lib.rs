@@ -10,31 +10,16 @@
 
 #![feature(proc_macro_hygiene, decl_macro)]
 
-extern crate base64;
-extern crate regex;
-extern crate rmp;
 #[macro_use]
 extern crate rocket;
-extern crate rocket_cors;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_json;
 #[macro_use]
 extern crate rocket_contrib;
 #[macro_use]
 extern crate rust_embed;
-extern crate failure;
-extern crate failure_derive;
-extern crate get_if_addrs;
-extern crate hostname;
-extern crate libc;
-extern crate nix;
-extern crate shmem;
-extern crate tempfile;
-extern crate toml;
 
-pub use setup::start;
+pub use crate::setup::start;
 
 mod auth;
 mod env;

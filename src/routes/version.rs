@@ -8,13 +8,15 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::{Env, PiholeFile};
+use crate::{
+    env::{Env, PiholeFile},
+    ftl::FtlConnectionType,
+    routes::web::WebAssets,
+    util::{reply_data, Error, ErrorKind, Reply}
+};
 use failure::ResultExt;
-use ftl::FtlConnectionType;
 use rocket::State;
-use routes::web::WebAssets;
 use std::{io::Read, str};
-use util::{reply_data, Error, ErrorKind, Reply};
 
 /// Get the versions of all Pi-hole systems
 #[get("/version")]
@@ -140,13 +142,15 @@ struct Version {
 #[cfg(test)]
 mod tests {
     use super::{parse_git_version, parse_web_version, read_ftl_version, Version};
-    use env::{Config, Env, PiholeFile};
-    use ftl::FtlConnectionType;
+    use crate::{
+        env::{Config, Env, PiholeFile},
+        ftl::FtlConnectionType,
+        routes::version::read_core_version,
+        testing::{write_eom, TestEnvBuilder},
+        util::ErrorKind
+    };
     use rmp::encode;
-    use routes::version::read_core_version;
     use std::collections::HashMap;
-    use testing::{write_eom, TestEnvBuilder};
-    use util::ErrorKind;
 
     #[test]
     fn test_read_ftl_version_dev() {

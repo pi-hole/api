@@ -8,14 +8,16 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::{Env, PiholeFile};
+use crate::{
+    env::{Env, PiholeFile},
+    settings::{ConfigEntry, SetupVarsEntry},
+    util::{Error, ErrorKind}
+};
 use failure::ResultExt;
-use settings::{ConfigEntry, SetupVarsEntry};
 use std::{
     fs::File,
     io::{BufWriter, Write}
 };
-use util::{Error, ErrorKind};
 
 const DNSMASQ_HEADER: &str = "\
 ################################################################
@@ -219,13 +221,15 @@ mod tests {
         open_config, write_dhcp, write_dns_options, write_header, write_lists, write_servers,
         DNSMASQ_HEADER
     };
-    use env::{Config, Env, PiholeFile};
+    use crate::{
+        env::{Config, Env, PiholeFile},
+        testing::TestEnvBuilder,
+        util::Error
+    };
     use std::{
         fs::File,
         io::{BufWriter, Write}
     };
-    use testing::TestEnvBuilder;
-    use util::Error;
 
     /// Generalized test for dnsmasq config generation. This sets up SetupVars
     /// with the initial data, runs `test_fn`, then verifies that the

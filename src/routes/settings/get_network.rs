@@ -8,12 +8,14 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use env::Env;
+use crate::{
+    auth::User,
+    env::Env,
+    settings::{ConfigEntry, SetupVarsEntry},
+    util::{reply_data, Reply}
+};
 use hostname::get_hostname;
 use rocket::State;
-use settings::{ConfigEntry, SetupVarsEntry};
-use util::{reply_data, Reply};
 
 /// Get Pi-hole local network information
 #[get("/settings/network")]
@@ -33,9 +35,8 @@ pub fn get_network(env: State<Env>, _auth: User) -> Reply {
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
+    use crate::{env::PiholeFile, testing::TestBuilder};
     use hostname::get_hostname;
-    use testing::TestBuilder;
 
     /// Basic test for reported settings
     #[test]

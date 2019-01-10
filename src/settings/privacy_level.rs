@@ -8,8 +8,8 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use crate::util::{Error, ErrorKind};
 use std::str::FromStr;
-use util::{Error, ErrorKind};
 
 /// The privacy levels used by FTL
 #[derive(PartialOrd, PartialEq)]

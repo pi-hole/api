@@ -8,12 +8,12 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use ftl::FtlQueryType;
+use crate::ftl::FtlQueryType;
 use libc;
 use rocket::{http::RawStr, request::FromFormValue};
 
 #[cfg(test)]
-use ftl::memory_model::MAGIC_BYTE;
+use crate::ftl::memory_model::MAGIC_BYTE;
 
 /// The query struct stored in shared memory
 #[repr(C)]

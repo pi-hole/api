@@ -8,6 +8,7 @@ repository = "https://github.com/pi-hole/api"
 readme = "README.md"
 license = "EUPL-1.2"
 publish = false
+edition = "2018"
 
 [profile.release]
 lto = true

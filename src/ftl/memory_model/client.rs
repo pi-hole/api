@@ -8,11 +8,11 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use ftl::memory_model::strings::FtlStrings;
+use crate::ftl::memory_model::strings::FtlStrings;
 use libc;
 
 #[cfg(test)]
-use ftl::memory_model::MAGIC_BYTE;
+use crate::ftl::memory_model::MAGIC_BYTE;
 
 /// The client struct stored in shared memory.
 #[repr(C)]

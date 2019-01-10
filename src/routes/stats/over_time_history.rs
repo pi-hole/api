@@ -8,13 +8,15 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::Env;
-use ftl::FtlMemory;
+use crate::{
+    env::Env,
+    ftl::FtlMemory,
+    settings::{ConfigEntry, FtlConfEntry},
+    util::{reply_data, Reply}
+};
 use rocket::State;
 use rocket_contrib::json::JsonValue;
-use settings::{ConfigEntry, FtlConfEntry};
 use std::time::{SystemTime, UNIX_EPOCH};
-use util::{reply_data, Reply};
 
 /// Get the query history over time (separated into blocked and not blocked)
 #[get("/stats/overTime/history")]
@@ -54,10 +56,12 @@ pub fn over_time_history(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
-    use ftl::{FtlCounters, FtlMemory, FtlOverTime};
+    use crate::{
+        env::PiholeFile,
+        ftl::{FtlCounters, FtlMemory, FtlOverTime},
+        testing::TestBuilder
+    };
     use std::collections::HashMap;
-    use testing::TestBuilder;
 
     /// Data for testing over_time_history
     fn test_data() -> FtlMemory {

@@ -8,12 +8,12 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-extern crate serde_json;
-
-use env::PiholeFile;
-use ftl::{FtlCounters, FtlMemory};
+use crate::{
+    env::PiholeFile,
+    ftl::{FtlCounters, FtlMemory},
+    setup
+};
 use rocket::http::{ContentType, Header, Method, Status};
-use setup;
 use std::{
     collections::HashMap,
     fs::File,

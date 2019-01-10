@@ -8,12 +8,14 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use env::Env;
-use ftl::{FtlMemory, FtlQueryStatus};
+use crate::{
+    auth::User,
+    env::Env,
+    ftl::{FtlMemory, FtlQueryStatus},
+    settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
+    util::{reply_data, Reply}
+};
 use rocket::{request::Form, State};
-use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel};
-use util::{reply_data, Reply};
 
 /// Get the most recent blocked domain
 #[get("/stats/recent_blocked")]
@@ -77,12 +79,14 @@ pub fn get_recent_blocked(ftl_memory: &FtlMemory, env: &Env, num: usize) -> Repl
 
 #[cfg(test)]
 mod test {
-    use ftl::{
-        FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
-        FtlQueryStatus, FtlQueryType, FtlRegexMatch
+    use crate::{
+        ftl::{
+            FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
+            FtlQueryStatus, FtlQueryType, FtlRegexMatch
+        },
+        testing::TestBuilder
     };
     use std::collections::HashMap;
-    use testing::TestBuilder;
 
     /// Shorthand for making `FtlQuery` structs
     macro_rules! query {

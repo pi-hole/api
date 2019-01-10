@@ -8,14 +8,16 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use env::Env;
-use ftl::FtlMemory;
+use crate::{
+    auth::User,
+    env::Env,
+    ftl::FtlMemory,
+    routes::stats::common::{remove_excluded_clients, remove_hidden_clients},
+    settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
+    util::{reply_data, Reply}
+};
 use rocket::{request::Form, State};
 use rocket_contrib::json::JsonValue;
-use routes::stats::common::{remove_excluded_clients, remove_hidden_clients};
-use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel};
-use util::{reply_data, Reply};
 
 /// Get the client information with default parameters
 #[get("/stats/clients")]
@@ -98,10 +100,12 @@ pub fn get_clients(ftl_memory: &FtlMemory, env: &Env, params: ClientParams) -> R
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
-    use ftl::{FtlClient, FtlCounters, FtlMemory};
+    use crate::{
+        env::PiholeFile,
+        ftl::{FtlClient, FtlCounters, FtlMemory},
+        testing::TestBuilder
+    };
     use std::collections::HashMap;
-    use testing::TestBuilder;
 
     /// There are 6 clients, two inactive, one hidden, and two with names.
     fn test_data() -> FtlMemory {

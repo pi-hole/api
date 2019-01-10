@@ -8,14 +8,18 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use base64::{decode, encode};
-use env::Env;
-use failure::ResultExt;
-use ftl::{
-    FtlDnssecType, FtlMemory, FtlQuery, FtlQueryReplyType, FtlQueryStatus, FtlQueryType,
-    ShmLockGuard
+use crate::{
+    auth::User,
+    env::Env,
+    ftl::{
+        FtlDnssecType, FtlMemory, FtlQuery, FtlQueryReplyType, FtlQueryStatus, FtlQueryType,
+        ShmLockGuard
+    },
+    settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
+    util::{reply_data, Error, ErrorKind, Reply}
 };
+use base64::{decode, encode};
+use failure::ResultExt;
 use rocket::{
     http::RawStr,
     request::{Form, FromFormValue},
@@ -23,9 +27,7 @@ use rocket::{
 };
 use rocket_contrib::json::JsonValue;
 use serde_json;
-use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry};
 use std::{collections::HashSet, iter};
-use util::{reply_data, Error, ErrorKind, Reply};
 
 /// Get the entire query history (as stored in FTL)
 #[get("/stats/history")]
@@ -518,14 +520,17 @@ mod test {
         filter_time_from, filter_time_until, filter_upstream, map_query_to_json, skip_to_cursor,
         HistoryCursor, HistoryParams
     };
-    use env::{Config, Env, PiholeFile};
-    use ftl::{
-        FtlClient, FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
-        FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlUpstream, ShmLockGuard
+    use crate::{
+        env::{Config, Env, PiholeFile},
+        ftl::{
+            FtlClient, FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery,
+            FtlQueryReplyType, FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlUpstream,
+            ShmLockGuard
+        },
+        testing::{TestBuilder, TestEnvBuilder}
     };
     use rocket_contrib::json::JsonValue;
     use std::collections::HashMap;
-    use testing::{TestBuilder, TestEnvBuilder};
 
     /// Shorthand for making `FtlQuery` structs
     macro_rules! query {

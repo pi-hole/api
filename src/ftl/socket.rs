@@ -8,6 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use crate::util::{Error, ErrorKind};
 use failure::{Fail, ResultExt};
 use rmp::{
     decode::{self, DecodeStringError, ValueReadError},
@@ -17,7 +18,6 @@ use std::{
     io::{prelude::*, BufReader},
     os::unix::net::UnixStream
 };
-use util::{Error, ErrorKind};
 
 #[cfg(test)]
 use std::collections::HashMap;

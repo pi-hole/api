@@ -8,14 +8,16 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use ftl::{
-    FtlClient, FtlCounters, FtlDomain, FtlOverTime, FtlQuery, FtlStrings, FtlUpstream, ShmLock,
-    ShmLockGuard
+use crate::{
+    ftl::{
+        FtlClient, FtlCounters, FtlDomain, FtlOverTime, FtlQuery, FtlStrings, FtlUpstream, ShmLock,
+        ShmLockGuard
+    },
+    util::Error
 };
 use libc;
 use shmem::{Array, Map, Object};
 use std::{marker::PhantomData, ops::Deref};
-use util::Error;
 
 #[cfg(test)]
 use std::collections::HashMap;

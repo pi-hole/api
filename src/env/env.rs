@@ -8,14 +8,16 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::{Config, PiholeFile};
+use crate::{
+    env::{Config, PiholeFile},
+    util::{Error, ErrorKind}
+};
 use failure::ResultExt;
 use std::{
     fs::{File, OpenOptions},
     os::unix::fs::OpenOptionsExt,
     path::Path
 };
-use util::{Error, ErrorKind};
 
 #[cfg(test)]
 use std::collections::HashMap;

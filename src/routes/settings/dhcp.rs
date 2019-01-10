@@ -8,13 +8,15 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use env::Env;
+use crate::{
+    auth::User,
+    env::Env,
+    routes::settings::common::restart_dns,
+    settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry},
+    util::{reply_data, reply_success, Error, ErrorKind, Reply}
+};
 use rocket::State;
 use rocket_contrib::json::Json;
-use routes::settings::common::restart_dns;
-use settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry};
-use util::{reply_data, reply_success, Error, ErrorKind, Reply};
 
 #[derive(Serialize, Deserialize)]
 pub struct DhcpSettings {
@@ -87,10 +89,8 @@ pub fn put_dhcp(env: State<Env>, _auth: User, data: Json<DhcpSettings>) -> Reply
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
+    use crate::{env::PiholeFile, routes::settings::dhcp::DhcpSettings, testing::TestBuilder};
     use rocket::http::Method;
-    use routes::settings::dhcp::DhcpSettings;
-    use testing::TestBuilder;
 
     /// Verify that having active DHCP and missing settings is invalid
     #[test]
