@@ -8,11 +8,13 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::Env;
-use ftl::{FtlMemory, FtlQueryType};
+use crate::{
+    env::Env,
+    ftl::{FtlMemory, FtlQueryType},
+    settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
+    util::{reply_data, Reply}
+};
 use rocket::State;
-use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry};
-use util::{reply_data, Reply};
 
 /// Get the summary data
 #[get("/stats/summary")]
@@ -23,7 +25,7 @@ pub fn get_summary(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
     let percent_blocked = if counters.total_queries == 0 {
         0.0
     } else {
-        (counters.blocked_queries * 100) as f64 / counters.total_queries as f64
+        f64::from(counters.blocked_queries * 100) / f64::from(counters.total_queries)
     };
 
     let (total_clients, active_clients) = {
@@ -91,10 +93,12 @@ pub fn get_summary(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
-    use ftl::{FtlClient, FtlCounters, FtlMemory};
+    use crate::{
+        env::PiholeFile,
+        ftl::{FtlClient, FtlCounters, FtlMemory},
+        testing::TestBuilder
+    };
     use std::collections::HashMap;
-    use testing::TestBuilder;
 
     /// There are 6 clients, two inactive, one hidden, and two with names.
     fn test_data() -> FtlMemory {
@@ -160,7 +164,7 @@ mod test {
                     "TXT": 0
                 },
                 "blocked_queries": 2,
-                "percent_blocked": 28.571428571428573,
+                "percent_blocked": 28.571_428_571_428_573,
                 "unique_domains": 6,
                 "forwarded_queries": 3,
                 "cached_queries": 2,
@@ -197,7 +201,7 @@ mod test {
                     "TXT": 0
                 },
                 "blocked_queries": 2,
-                "percent_blocked": 28.571428571428573,
+                "percent_blocked": 28.571_428_571_428_573,
                 "unique_domains": 6,
                 "forwarded_queries": 3,
                 "cached_queries": 2,

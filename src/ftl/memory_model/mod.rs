@@ -13,7 +13,7 @@ use libc;
 
 /// Used by FTL to check memory integrity in various structs
 #[cfg(test)]
-const MAGIC_BYTE: libc::c_uchar = 0x57;
+pub const MAGIC_BYTE: libc::c_uchar = 0x57;
 
 mod client;
 mod counters;

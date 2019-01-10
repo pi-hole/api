@@ -8,14 +8,16 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::{Env, PiholeFile};
+use crate::{
+    env::{Env, PiholeFile},
+    settings::{ConfigEntry, SetupVarsEntry},
+    util::{Error, ErrorKind}
+};
 use failure::ResultExt;
-use settings::{ConfigEntry, SetupVarsEntry};
 use std::{
     fs::File,
     io::{BufWriter, Write}
 };
-use util::{Error, ErrorKind};
 
 const DNSMASQ_HEADER: &str = "\
 ################################################################
@@ -144,7 +146,8 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
                 config_file,
                 "interface={}",
                 SetupVarsEntry::PiholeInterface.read(env)?
-            ).context(ErrorKind::DnsmasqConfigWrite)?;
+            )
+            .context(ErrorKind::DnsmasqConfigWrite)?;
         }
     }
 
@@ -158,7 +161,8 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
             ip,
             SetupVarsEntry::ConditionalForwardingReverse.read(env)?,
             ip
-        ).context(ErrorKind::DnsmasqConfigWrite)?;
+        )
+        .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
     Ok(())
@@ -192,7 +196,8 @@ fn write_dhcp(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error>
         SetupVarsEntry::DhcpEnd.read(env)?,
         lease_time,
         SetupVarsEntry::DhcpRouter.read(env)?
-    ).context(ErrorKind::DnsmasqConfigWrite)?;
+    )
+    .context(ErrorKind::DnsmasqConfigWrite)?;
 
     // Additional settings for IPv6
     if SetupVarsEntry::DhcpIpv6.is_true(env)? {
@@ -203,7 +208,8 @@ fn write_dhcp(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error>
              ra-param=*,0,0",
             SetupVarsEntry::PiholeInterface.read(env)?,
             lease_time
-        ).context(ErrorKind::DnsmasqConfigWrite)?;
+        )
+        .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
     Ok(())
@@ -215,13 +221,15 @@ mod tests {
         open_config, write_dhcp, write_dns_options, write_header, write_lists, write_servers,
         DNSMASQ_HEADER
     };
-    use env::{Config, Env, PiholeFile};
+    use crate::{
+        env::{Config, Env, PiholeFile},
+        testing::TestEnvBuilder,
+        util::Error
+    };
     use std::{
         fs::File,
         io::{BufWriter, Write}
     };
-    use testing::TestEnvBuilder;
-    use util::Error;
 
     /// Generalized test for dnsmasq config generation. This sets up SetupVars
     /// with the initial data, runs `test_fn`, then verifies that the

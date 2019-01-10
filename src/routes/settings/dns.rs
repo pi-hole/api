@@ -8,13 +8,15 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use env::Env;
+use crate::{
+    auth::User,
+    env::Env,
+    routes::settings::common::restart_dns,
+    settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry},
+    util::{reply_data, reply_success, Error, ErrorKind, Reply}
+};
 use rocket::State;
-use rocket_contrib::Json;
-use routes::settings::common::restart_dns;
-use settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry};
-use util::{reply_data, reply_success, Error, ErrorKind, Reply};
+use rocket_contrib::json::Json;
 
 #[derive(Serialize, Deserialize)]
 pub struct DnsSettings {
@@ -29,7 +31,8 @@ impl DnsSettings {
         self.upstream_dns
             .iter()
             .all(|dns| SetupVarsEntry::PiholeDns(0).is_valid(dns))
-            && self.options.is_valid() && self.conditional_forwarding.is_valid()
+            && self.options.is_valid()
+            && self.conditional_forwarding.is_valid()
     }
 }
 
@@ -137,7 +140,7 @@ pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
         let address_segments: Vec<&str> = settings
             .conditional_forwarding
             .router_ip
-            .split(".")
+            .split('.')
             .take(3)
             .collect();
         let reverse_address = format!(
@@ -165,9 +168,8 @@ pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
+    use crate::{env::PiholeFile, testing::TestBuilder};
     use rocket::http::Method;
-    use testing::TestBuilder;
 
     /// Basic test for reported settings
     #[test]

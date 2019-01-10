@@ -8,6 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use crate::util::{Error, ErrorKind};
 use failure::{Fail, ResultExt};
 use rmp::{
     decode::{self, DecodeStringError, ValueReadError},
@@ -17,7 +18,6 @@ use std::{
     io::{prelude::*, BufReader},
     os::unix::net::UnixStream
 };
-use util::{Error, ErrorKind};
 
 #[cfg(test)]
 use std::collections::HashMap;
@@ -25,11 +25,11 @@ use std::collections::HashMap;
 use std::io::Cursor;
 
 /// The location of the FTL socket
-const SOCKET_LOCATION: &'static str = "/var/run/pihole/FTL.sock";
+const SOCKET_LOCATION: &str = "/var/run/pihole/FTL.sock";
 
 /// A wrapper around the FTL socket to easily read in data. It takes a
 /// Box<Read> so that it can be tested with fake data from a Vec<u8>
-pub struct FtlConnection<'test>(Box<Read + 'test>);
+pub struct FtlConnection<'test>(Box<dyn Read + 'test>);
 
 /// A marker for the type of FTL connection to make.
 ///

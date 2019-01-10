@@ -8,11 +8,13 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use env::Env;
+use crate::{
+    auth::User,
+    env::Env,
+    settings::{ConfigEntry, FtlConfEntry},
+    util::{reply_data, Reply}
+};
 use rocket::State;
-use settings::{ConfigEntry, FtlConfEntry};
-use util::{reply_data, Reply};
 
 /// Read FTL's settings
 #[get("/settings/ftl")]
@@ -53,8 +55,7 @@ pub fn get_ftl(env: State<Env>, _auth: User) -> Reply {
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
-    use testing::TestBuilder;
+    use crate::{env::PiholeFile, testing::TestBuilder};
 
     /// Test that correct settings are reported from populated file
     #[test]

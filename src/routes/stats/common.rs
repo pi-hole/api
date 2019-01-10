@@ -8,10 +8,12 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::Env;
-use ftl::{FtlClient, FtlDomain, FtlStrings};
-use settings::{ConfigEntry, SetupVarsEntry};
-use util::Error;
+use crate::{
+    env::Env,
+    ftl::{FtlClient, FtlDomain, FtlStrings},
+    settings::{ConfigEntry, SetupVarsEntry},
+    util::Error
+};
 
 /// Remove clients from the `clients` vector if they show up in
 /// [`SetupVarsEntry::ApiExcludeClients`].
@@ -25,7 +27,7 @@ pub fn remove_excluded_clients(
 ) -> Result<(), Error> {
     let excluded_clients = SetupVarsEntry::ApiExcludeClients.read(env)?.to_lowercase();
     let excluded_clients: Vec<&str> = excluded_clients
-        .split(",")
+        .split(',')
         .filter(|s| !s.is_empty())
         .collect();
 
@@ -54,7 +56,7 @@ pub fn remove_excluded_domains(
 ) -> Result<(), Error> {
     let excluded_domains = SetupVarsEntry::ApiExcludeDomains.read(env)?.to_lowercase();
     let excluded_domains: Vec<&str> = excluded_domains
-        .split(",")
+        .split(',')
         .filter(|s| !s.is_empty())
         .collect();
 
@@ -84,10 +86,12 @@ mod tests {
         remove_excluded_clients, remove_excluded_domains, remove_hidden_clients,
         remove_hidden_domains
     };
-    use env::{Config, Env, PiholeFile};
-    use ftl::{FtlClient, FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch, ShmLockGuard};
+    use crate::{
+        env::{Config, Env, PiholeFile},
+        ftl::{FtlClient, FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch, ShmLockGuard},
+        testing::TestEnvBuilder
+    };
     use std::collections::HashMap;
-    use testing::TestEnvBuilder;
 
     /// There are 4 clients, one hidden
     fn test_data() -> FtlMemory {
@@ -143,7 +147,8 @@ mod tests {
             &mut clients,
             &env,
             &ftl_memory.strings(&lock_guard).unwrap()
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(clients, vec![&FtlClient::new(0, 0, 4, None)]);
     }
@@ -171,7 +176,8 @@ mod tests {
             &mut clients,
             &env,
             &ftl_memory.strings(&lock_guard).unwrap()
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(
             clients,

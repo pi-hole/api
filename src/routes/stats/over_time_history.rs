@@ -8,13 +8,15 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::Env;
-use ftl::FtlMemory;
+use crate::{
+    env::Env,
+    ftl::FtlMemory,
+    settings::{ConfigEntry, FtlConfEntry},
+    util::{reply_data, Reply}
+};
 use rocket::State;
-use rocket_contrib::Value;
-use settings::{ConfigEntry, FtlConfEntry};
+use rocket_contrib::json::JsonValue;
 use std::time::{SystemTime, UNIX_EPOCH};
-use util::{reply_data, Reply};
 
 /// Get the query history over time (separated into blocked and not blocked)
 #[get("/stats/overTime/history")]
@@ -32,7 +34,7 @@ pub fn over_time_history(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply
     // Get the max log age FTL setting, to be used when getting overTime data
     let max_log_age = FtlConfEntry::MaxLogAge.read_as::<f64>(&env).unwrap_or(24.0) * 3600.0;
 
-    let over_time_data: Vec<Value> = over_time.iter()
+    let over_time_data: Vec<JsonValue> = over_time.iter()
        .take(counters.over_time_size as usize)
         // Skip the overTime slots without any data, and any slots which are
         // before the max-log-age time.
@@ -54,10 +56,12 @@ pub fn over_time_history(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
-    use ftl::{FtlCounters, FtlMemory, FtlOverTime};
+    use crate::{
+        env::PiholeFile,
+        ftl::{FtlCounters, FtlMemory, FtlOverTime},
+        testing::TestBuilder
+    };
     use std::collections::HashMap;
-    use testing::TestBuilder;
 
     /// Data for testing over_time_history
     fn test_data() -> FtlMemory {

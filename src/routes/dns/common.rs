@@ -8,18 +8,21 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::Env;
+use crate::{
+    env::Env,
+    routes::dns::list::List,
+    util::{Error, ErrorKind}
+};
 use failure::ResultExt;
 use regex::Regex;
-use routes::dns::list::List;
 use std::process::{Command, Stdio};
-use util::{Error, ErrorKind};
 
 /// Check if a domain is valid
 pub fn is_valid_domain(domain: &str) -> bool {
     let valid_chars_regex = Regex::new(
         "^((-|_)*[a-z0-9]((-|_)*[a-z0-9])*(-|_)*)(\\.(-|_)*([a-z0-9]((-|_)*[a-z0-9])*))*$"
-    ).unwrap();
+    )
+    .unwrap();
     let total_length_regex = Regex::new("^.{1,253}$").unwrap();
     let label_length_regex = Regex::new("^[^\\.]{1,63}(\\.[^\\.]{1,63})*$").unwrap();
 

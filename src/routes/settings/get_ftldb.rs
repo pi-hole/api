@@ -8,10 +8,12 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use ftl::FtlConnectionType;
+use crate::{
+    auth::User,
+    ftl::FtlConnectionType,
+    util::{reply_data, Reply}
+};
 use rocket::State;
-use util::{reply_data, Reply};
 
 /// Read db stats from FTL
 #[get("/settings/ftldb")]
@@ -34,14 +36,14 @@ pub fn get_ftldb(ftl: State<FtlConnectionType>, _auth: User) -> Reply {
 
 #[cfg(test)]
 mod test {
+    use crate::testing::{write_eom, TestBuilder};
     use rmp::encode;
-    use testing::{write_eom, TestBuilder};
 
     /// Basic test for reported values
     #[test]
     fn test_get_ftldb() {
         let mut data = Vec::new();
-        encode::write_i32(&mut data, 1048576).unwrap();
+        encode::write_i32(&mut data, 1_048_576).unwrap();
         encode::write_i64(&mut data, 32768).unwrap();
         encode::write_str(&mut data, "3.0.1").unwrap();
         write_eom(&mut data);
@@ -50,7 +52,7 @@ mod test {
             .endpoint("/admin/api/settings/ftldb")
             .ftl("dbstats", data)
             .expect_json(json!({
-                "queries": 1048576,
+                "queries": 1_048_576,
                 "filesize": 32768,
                 "sqlite_version": "3.0.1"
             }))

@@ -8,13 +8,15 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::{Env, PiholeFile};
+use crate::{
+    env::{Env, PiholeFile},
+    ftl::FtlConnectionType,
+    routes::web::WebAssets,
+    util::{reply_data, Error, ErrorKind, Reply}
+};
 use failure::ResultExt;
-use ftl::FtlConnectionType;
 use rocket::State;
-use routes::web::WebAssets;
 use std::{io::Read, str};
-use util::{reply_data, Error, ErrorKind, Reply};
 
 /// Get the versions of all Pi-hole systems
 #[get("/version")]
@@ -69,7 +71,7 @@ fn read_web_version() -> Result<Version, Error> {
 /// The string should be in the format "TAG BRANCH COMMIT".
 fn parse_web_version(version_str: &str) -> Result<Version, Error> {
     // Trim to remove possible newline
-    let version_split: Vec<&str> = version_str.trim_right_matches("\n").split(" ").collect();
+    let version_split: Vec<&str> = version_str.trim_end_matches('\n').split(' ').collect();
 
     if version_split.len() != 3 {
         return Err(Error::from(ErrorKind::Unknown));
@@ -99,8 +101,8 @@ fn read_core_version(env: &Env) -> Result<Version, Error> {
         ))?;
 
     // These files are structured as "CORE WEB FTL", but we only want Core's data
-    let git_version = local_versions.split(" ").next().unwrap_or_default();
-    let core_branch = local_branches.split(" ").next().unwrap_or_default();
+    let git_version = local_versions.split(' ').next().unwrap_or_default();
+    let core_branch = local_branches.split(' ').next().unwrap_or_default();
 
     // Parse the version data
     parse_git_version(git_version, core_branch)
@@ -110,7 +112,7 @@ fn read_core_version(env: &Env) -> Result<Version, Error> {
 /// `PiholeFile::LocalVersions`). The string is in the form
 /// "TAG-NUMBER-COMMIT", though it could also have "-dirty" at the end.
 fn parse_git_version(git_version: &str, branch: &str) -> Result<Version, Error> {
-    let split: Vec<&str> = git_version.split("-").collect();
+    let split: Vec<&str> = git_version.split('-').collect();
 
     // Could include "-dirty", which would make the length equal 4
     if split.len() < 3 {
@@ -140,13 +142,15 @@ struct Version {
 #[cfg(test)]
 mod tests {
     use super::{parse_git_version, parse_web_version, read_ftl_version, Version};
-    use env::{Config, Env, PiholeFile};
-    use ftl::FtlConnectionType;
+    use crate::{
+        env::{Config, Env, PiholeFile},
+        ftl::FtlConnectionType,
+        routes::version::read_core_version,
+        testing::{write_eom, TestEnvBuilder},
+        util::ErrorKind
+    };
     use rmp::encode;
-    use routes::version::read_core_version;
     use std::collections::HashMap;
-    use testing::{write_eom, TestEnvBuilder};
-    use util::ErrorKind;
 
     #[test]
     fn test_read_ftl_version_dev() {

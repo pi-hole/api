@@ -8,20 +8,26 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use base64::{decode, encode};
-use env::Env;
-use failure::ResultExt;
-use ftl::{
-    FtlDnssecType, FtlMemory, FtlQuery, FtlQueryReplyType, FtlQueryStatus, FtlQueryType,
-    ShmLockGuard
+use crate::{
+    auth::User,
+    env::Env,
+    ftl::{
+        FtlDnssecType, FtlMemory, FtlQuery, FtlQueryReplyType, FtlQueryStatus, FtlQueryType,
+        ShmLockGuard
+    },
+    settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
+    util::{reply_data, Error, ErrorKind, Reply}
 };
-use rocket::{http::RawStr, request::FromFormValue, State};
-use rocket_contrib::Value;
+use base64::{decode, encode};
+use failure::ResultExt;
+use rocket::{
+    http::RawStr,
+    request::{Form, FromFormValue},
+    State
+};
+use rocket_contrib::json::JsonValue;
 use serde_json;
-use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry};
 use std::{collections::HashSet, iter};
-use util::{reply_data, Error, ErrorKind, Reply};
 
 /// Get the entire query history (as stored in FTL)
 #[get("/stats/history")]
@@ -30,14 +36,14 @@ pub fn history(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>) -> Re
 }
 
 /// Get the query history according to the specified parameters
-#[get("/stats/history?<params>")]
+#[get("/stats/history?<params..>")]
 pub fn history_params(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
-    params: HistoryParams
+    params: Form<HistoryParams>
 ) -> Reply {
-    get_history(&ftl_memory, &env, params)
+    get_history(&ftl_memory, &env, params.into_inner())
 }
 
 /// Represents the possible GET parameters on `/stats/history`
@@ -122,7 +128,8 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
     let counters = ftl_memory.counters(&lock)?;
     let queries = ftl_memory.queries(&lock)?;
 
-    // The following code uses a boxed iterator, Box<Iterator<Item = &FtlQuery>>
+    // The following code uses a boxed iterator,
+    // Box<dyn Iterator<Item = &FtlQuery>>
     //
     // When you make an iterator chain, it modifies the type of the iterator.
     // Ex. slice.iter().filter(..).map(..) might look like Map<Filter<Iter<T>>, I>
@@ -193,7 +200,7 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
     });
 
     // Map the queries into the output format
-    let history: Vec<Value> = history
+    let history: Vec<JsonValue> = history
         .into_iter()
         // Only take up to the limit this time, not including the last query,
         // because it was just used to get the cursor
@@ -211,7 +218,7 @@ fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Repl
 fn map_query_to_json<'a>(
     ftl_memory: &'a FtlMemory,
     ftl_lock: &ShmLockGuard<'a>
-) -> Result<impl Fn(&FtlQuery) -> Value + 'a, Error> {
+) -> Result<impl Fn(&FtlQuery) -> JsonValue + 'a, Error> {
     let domains = ftl_memory.domains(ftl_lock)?;
     let clients = ftl_memory.clients(ftl_lock)?;
     let strings = ftl_memory.strings(ftl_lock)?;
@@ -247,9 +254,9 @@ fn map_query_to_json<'a>(
 
 /// Skip iteration until the query which corresponds to the cursor.
 fn skip_to_cursor<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(cursor) = params.cursor {
         if let Some(id) = cursor.id {
             Box::new(queries_iter.skip_while(move |query| query.id as i32 != id))
@@ -266,17 +273,17 @@ fn skip_to_cursor<'a>(
 
 /// Filter out private queries
 fn filter_private_queries<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     Box::new(queries_iter.filter(|query| !query.is_private))
 }
 
 /// Apply the `SetupVarsEntry::ApiQueryLogShow` setting (`permittedonly`,
 /// `blockedonly`, etc).
 fn filter_setup_vars_setting<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     env: &Env
-) -> Result<Box<Iterator<Item = &'a FtlQuery> + 'a>, Error> {
+) -> Result<Box<dyn Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     Ok(match SetupVarsEntry::ApiQueryLogShow.read(env)?.as_str() {
         "permittedonly" => Box::new(queries_iter.filter(|query| !query.is_blocked())),
         "blockedonly" => Box::new(queries_iter.filter(|query| query.is_blocked())),
@@ -287,9 +294,9 @@ fn filter_setup_vars_setting<'a>(
 
 /// Filter out queries before the `from` timestamp
 fn filter_time_from<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(from) = params.from {
         Box::new(queries_iter.filter(move |query| query.timestamp as u64 >= from))
     } else {
@@ -299,9 +306,9 @@ fn filter_time_from<'a>(
 
 /// Filter out queries after the `until` timestamp
 fn filter_time_until<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(until) = params.until {
         Box::new(queries_iter.filter(move |query| query.timestamp as u64 <= until))
     } else {
@@ -311,9 +318,9 @@ fn filter_time_until<'a>(
 
 /// Only show queries with the specified query type
 fn filter_query_type<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(query_type) = params.query_type {
         Box::new(queries_iter.filter(move |query| query.query_type == query_type))
     } else {
@@ -323,9 +330,9 @@ fn filter_query_type<'a>(
 
 /// Only show queries with the specific status
 fn filter_status<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(status) = params.status {
         Box::new(queries_iter.filter(move |query| query.status == status))
     } else {
@@ -335,9 +342,9 @@ fn filter_status<'a>(
 
 /// Only show allowed/blocked queries
 fn filter_blocked<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(blocked) = params.blocked {
         if blocked {
             Box::new(queries_iter.filter(|query| query.is_blocked()))
@@ -351,9 +358,9 @@ fn filter_blocked<'a>(
 
 /// Only show queries of the specified DNSSEC type
 fn filter_dnssec<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(dnssec) = params.dnssec {
         Box::new(queries_iter.filter(move |query| query.dnssec_type == dnssec))
     } else {
@@ -363,9 +370,9 @@ fn filter_dnssec<'a>(
 
 /// Only show queries of the specified reply type
 fn filter_reply<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams
-) -> Box<Iterator<Item = &'a FtlQuery> + 'a> {
+) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(reply) = params.reply {
         Box::new(queries_iter.filter(move |query| query.reply_type == reply))
     } else {
@@ -375,11 +382,11 @@ fn filter_reply<'a>(
 
 /// Only show queries from the specified upstream
 fn filter_upstream<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams,
     ftl_memory: &FtlMemory,
     ftl_lock: &ShmLockGuard<'a>
-) -> Result<Box<Iterator<Item = &'a FtlQuery> + 'a>, Error> {
+) -> Result<Box<dyn Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     if let Some(ref upstream) = params.upstream {
         if upstream == "blocklist" {
             Ok(Box::new(queries_iter.filter(|query| match query.status {
@@ -429,11 +436,11 @@ fn filter_upstream<'a>(
 
 /// Only show queries of the specified domain
 fn filter_domain<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams,
     ftl_memory: &FtlMemory,
     ftl_lock: &ShmLockGuard<'a>
-) -> Result<Box<Iterator<Item = &'a FtlQuery> + 'a>, Error> {
+) -> Result<Box<dyn Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     if let Some(ref domain_filter) = params.domain {
         // Find the matching domains. If none are found, return an empty
         // iterator because no query can match the domain requested
@@ -467,11 +474,11 @@ fn filter_domain<'a>(
 
 /// Only show queries of the specified client
 fn filter_client<'a>(
-    queries_iter: Box<Iterator<Item = &'a FtlQuery> + 'a>,
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams,
     ftl_memory: &FtlMemory,
     ftl_lock: &ShmLockGuard<'a>
-) -> Result<Box<Iterator<Item = &'a FtlQuery> + 'a>, Error> {
+) -> Result<Box<dyn Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     if let Some(ref client_filter) = params.client {
         // Find the matching clients. If none are found, return an empty
         // iterator because no query can match the client requested
@@ -514,14 +521,17 @@ mod test {
         filter_time_from, filter_time_until, filter_upstream, map_query_to_json, skip_to_cursor,
         HistoryCursor, HistoryParams
     };
-    use env::{Config, Env, PiholeFile};
-    use ftl::{
-        FtlClient, FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
-        FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlUpstream, ShmLockGuard
+    use crate::{
+        env::{Config, Env, PiholeFile},
+        ftl::{
+            FtlClient, FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery,
+            FtlQueryReplyType, FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlUpstream,
+            ShmLockGuard, MAGIC_BYTE
+        },
+        testing::{TestBuilder, TestEnvBuilder}
     };
-    use rocket_contrib::Value;
+    use rocket_contrib::json::JsonValue;
     use std::collections::HashMap;
-    use testing::{TestBuilder, TestEnvBuilder};
 
     /// Shorthand for making `FtlQuery` structs
     macro_rules! query {
@@ -536,22 +546,24 @@ mod test {
             $timestamp:expr,
             $private:expr
         ) => {
-            FtlQuery::new(
-                $id,
-                $database,
-                $timestamp,
-                1,
-                1,
-                $domain,
-                $client,
-                $upstream,
-                FtlQueryType::$qtype,
-                FtlQueryStatus::$status,
-                FtlQueryReplyType::IP,
-                FtlDnssecType::Unspecified,
-                true,
-                $private
-            )
+            FtlQuery {
+                magic: MAGIC_BYTE,
+                id: $id,
+                database_id: $database,
+                timestamp: $timestamp,
+                time_index: 1,
+                response_time: 1,
+                domain_id: $domain,
+                client_id: $client,
+                upstream_id: $upstream,
+                query_type: FtlQueryType::$qtype,
+                status: FtlQueryStatus::$status,
+                reply_type: FtlQueryReplyType::IP,
+                dnssec_type: FtlDnssecType::Unspecified,
+                is_complete: true,
+                is_private: $private,
+                ad_bit: false
+            }
         };
     }
 
@@ -585,22 +597,24 @@ mod test {
     /// | 9  | 0  | A    | Forward    | 5      | 3      | 0        | 7         |
     fn test_queries() -> Vec<FtlQuery> {
         vec![
-            FtlQuery::new(
-                1,
-                1,
-                1,
-                1,
-                1,
-                0,
-                0,
-                0,
-                FtlQueryType::A,
-                FtlQueryStatus::Forward,
-                FtlQueryReplyType::CNAME,
-                FtlDnssecType::Secure,
-                true,
-                false
-            ),
+            FtlQuery {
+                magic: MAGIC_BYTE,
+                id: 1,
+                database_id: 1,
+                timestamp: 1,
+                time_index: 1,
+                response_time: 1,
+                domain_id: 0,
+                client_id: 0,
+                upstream_id: 0,
+                query_type: FtlQueryType::A,
+                status: FtlQueryStatus::Forward,
+                reply_type: FtlQueryReplyType::CNAME,
+                dnssec_type: FtlDnssecType::Secure,
+                is_complete: true,
+                is_private: false,
+                ad_bit: false
+            },
             query!(2, 2, AAAA, Forward, 0, 0, 0, 2, false),
             query!(3, 3, PTR, Forward, 0, 0, 0, 3, false),
             query!(4, 4, A, Gravity, 1, 1, 0, 3, false),
@@ -685,7 +699,7 @@ mod test {
         // The private query should be ignored
         expected_queries.remove(8);
 
-        let history: Vec<Value> = expected_queries
+        let history: Vec<JsonValue> = expected_queries
             .iter()
             .rev()
             .map(map_query_to_json(&ftl_memory, &ShmLockGuard::Test).unwrap())
@@ -710,7 +724,7 @@ mod test {
         // The private query should be ignored
         expected_queries.remove(8);
 
-        let history: Vec<Value> = expected_queries
+        let history: Vec<JsonValue> = expected_queries
             .iter()
             .rev()
             .take(5)
@@ -778,7 +792,8 @@ mod test {
                 }),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -797,7 +812,8 @@ mod test {
                 }),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -889,7 +905,8 @@ mod test {
                 from: Some(4),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -905,7 +922,8 @@ mod test {
                 until: Some(4),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -921,7 +939,8 @@ mod test {
                 query_type: Some(FtlQueryType::A),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -939,8 +958,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -959,8 +979,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -978,8 +999,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -998,8 +1020,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1017,8 +1040,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1037,8 +1061,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1056,8 +1081,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1076,8 +1102,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1095,8 +1122,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1115,8 +1143,9 @@ mod test {
             },
             &test_memory(),
             &ShmLockGuard::Test
-        ).unwrap()
-            .collect();
+        )
+        .unwrap()
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1132,7 +1161,8 @@ mod test {
                 status: Some(FtlQueryStatus::Gravity),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1148,7 +1178,8 @@ mod test {
                 blocked: Some(true),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1164,7 +1195,8 @@ mod test {
                 dnssec: Some(FtlDnssecType::Secure),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }
@@ -1180,7 +1212,8 @@ mod test {
                 reply: Some(FtlQueryReplyType::CNAME),
                 ..HistoryParams::default()
             }
-        ).collect();
+        )
+        .collect();
 
         assert_eq!(filtered_queries, expected_queries);
     }

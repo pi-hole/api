@@ -8,14 +8,16 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::{Config, PiholeFile};
+use crate::{
+    env::{Config, PiholeFile},
+    util::{Error, ErrorKind}
+};
 use failure::ResultExt;
 use std::{
     fs::{File, OpenOptions},
     os::unix::fs::OpenOptionsExt,
     path::Path
 };
-use util::{Error, ErrorKind};
 
 #[cfg(test)]
 use std::collections::HashMap;
@@ -62,9 +64,10 @@ impl Env {
             Env::Test(_, ref map) => match map.get(&file) {
                 Some(data) => data,
                 None => return tempfile().context(ErrorKind::Unknown).map_err(Error::from)
-            }.reopen()
-                .context(ErrorKind::Unknown)
-                .map_err(Error::from)
+            }
+            .reopen()
+            .context(ErrorKind::Unknown)
+            .map_err(Error::from)
         }
     }
 
@@ -93,8 +96,9 @@ impl Env {
                 let file = match map.get(&file) {
                     Some(data) => data,
                     None => return tempfile().context(ErrorKind::Unknown).map_err(Error::from)
-                }.reopen()
-                    .context(ErrorKind::Unknown)?;
+                }
+                .reopen()
+                .context(ErrorKind::Unknown)?;
 
                 if !append {
                     file.set_len(0).context(ErrorKind::Unknown)?;

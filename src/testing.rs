@@ -8,12 +8,12 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-extern crate serde_json;
-
-use env::PiholeFile;
-use ftl::{FtlCounters, FtlMemory};
+use crate::{
+    env::PiholeFile,
+    ftl::{FtlCounters, FtlMemory},
+    setup
+};
 use rocket::http::{ContentType, Header, Method, Status};
-use setup;
 use std::{
     collections::HashMap,
     fs::File,
@@ -170,7 +170,8 @@ impl TestBuilder {
             expected_json: json!({
                 "data": [],
                 "errors": []
-            }),
+            })
+            .into(),
             expected_status: Status::Ok
         }
     }
@@ -195,8 +196,8 @@ impl TestBuilder {
         self
     }
 
-    pub fn body(mut self, body: serde_json::Value) -> Self {
-        self.body_data = Some(body);
+    pub fn body<T: Into<serde_json::Value>>(mut self, body: T) -> Self {
+        self.body_data = Some(body.into());
         self
     }
 
@@ -227,8 +228,8 @@ impl TestBuilder {
         self
     }
 
-    pub fn expect_json(mut self, expected_json: serde_json::Value) -> Self {
-        self.expected_json = expected_json;
+    pub fn expect_json<T: Into<serde_json::Value>>(mut self, expected_json: T) -> Self {
+        self.expected_json = expected_json.into();
         self
     }
 

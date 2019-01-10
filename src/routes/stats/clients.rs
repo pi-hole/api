@@ -8,14 +8,16 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use env::Env;
-use ftl::FtlMemory;
-use rocket::State;
-use rocket_contrib::Value;
-use routes::stats::common::{remove_excluded_clients, remove_hidden_clients};
-use settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel};
-use util::{reply_data, Reply};
+use crate::{
+    auth::User,
+    env::Env,
+    ftl::FtlMemory,
+    routes::stats::common::{remove_excluded_clients, remove_hidden_clients},
+    settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
+    util::{reply_data, Reply}
+};
+use rocket::{request::Form, State};
+use rocket_contrib::json::JsonValue;
 
 /// Get the client information with default parameters
 #[get("/stats/clients")]
@@ -24,14 +26,14 @@ pub fn clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>) -> Re
 }
 
 /// Get the client information with specified parameters
-#[get("/stats/clients?<params>")]
+#[get("/stats/clients?<params..>")]
 pub fn clients_params(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
-    params: ClientParams
+    params: Form<ClientParams>
 ) -> Reply {
-    get_clients(&ftl_memory, &env, params)
+    get_clients(&ftl_memory, &env, params.into_inner())
 }
 
 /// The possible GET parameters for `/stats/clients`
@@ -92,16 +94,18 @@ pub fn get_clients(ftl_memory: &FtlMemory, env: &Env, params: ClientParams) -> R
                     "ip": ip
                 })
             })
-            .collect::<Vec<Value>>()
+            .collect::<Vec<JsonValue>>()
     )
 }
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
-    use ftl::{FtlClient, FtlCounters, FtlMemory};
+    use crate::{
+        env::PiholeFile,
+        ftl::{FtlClient, FtlCounters, FtlMemory},
+        testing::TestBuilder
+    };
     use std::collections::HashMap;
-    use testing::TestBuilder;
 
     /// There are 6 clients, two inactive, one hidden, and two with names.
     fn test_data() -> FtlMemory {

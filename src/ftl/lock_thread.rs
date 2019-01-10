@@ -8,7 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use ftl::memory_model::FtlLock;
+use crate::{ftl::memory_model::FtlLock, util::Error};
 use libc::{self, pthread_mutex_lock, pthread_mutex_unlock};
 use shmem::{Map, Object};
 use std::{
@@ -17,7 +17,6 @@ use std::{
     thread,
     time::Duration
 };
-use util::Error;
 
 /// The filename of the shared memory, used to connect to the shared memory
 /// lock.
@@ -160,7 +159,7 @@ impl LockThread {
         let mut ftl_wait_count = 0;
         while shm_lock.ftl_waiting_for_lock {
             // Sleep for 1 millisecond
-            thread::sleep(Duration::new(0, 1000000));
+            thread::sleep(Duration::new(0, 1_000_000));
             ftl_wait_count += 1;
 
             // If FTL is taking longer than ten seconds to take the lock, assume
@@ -176,7 +175,7 @@ impl LockThread {
 
 #[cfg(test)]
 mod test {
-    use ftl::{lock_thread::LockThread, memory_model::FtlLock};
+    use crate::ftl::{lock_thread::LockThread, memory_model::FtlLock};
     use libc::{
         pthread_mutex_destroy, pthread_mutex_lock, pthread_mutex_t, pthread_mutex_trylock,
         pthread_mutex_unlock, EBUSY, PTHREAD_MUTEX_INITIALIZER
