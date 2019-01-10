@@ -25,7 +25,7 @@ pub fn get_summary(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
     let percent_blocked = if counters.total_queries == 0 {
         0.0
     } else {
-        (counters.blocked_queries * 100) as f64 / counters.total_queries as f64
+        f64::from(counters.blocked_queries * 100) / f64::from(counters.total_queries)
     };
 
     let (total_clients, active_clients) = {
@@ -164,7 +164,7 @@ mod test {
                     "TXT": 0
                 },
                 "blocked_queries": 2,
-                "percent_blocked": 28.571428571428573,
+                "percent_blocked": 28.571_428_571_428_573,
                 "unique_domains": 6,
                 "forwarded_queries": 3,
                 "cached_queries": 2,
@@ -201,7 +201,7 @@ mod test {
                     "TXT": 0
                 },
                 "blocked_queries": 2,
-                "percent_blocked": 28.571428571428573,
+                "percent_blocked": 28.571_428_571_428_573,
                 "unique_domains": 6,
                 "forwarded_queries": 3,
                 "cached_queries": 2,

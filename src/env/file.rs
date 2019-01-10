@@ -24,8 +24,8 @@ pub enum PiholeFile {
 
 impl PiholeFile {
     /// Get the default location of the file
-    pub fn default_location(&self) -> &'static str {
-        match *self {
+    pub fn default_location(self) -> &'static str {
+        match self {
             PiholeFile::DnsmasqConfig => "/etc/dnsmasq.d/pihole.conf",
             PiholeFile::Whitelist => "/etc/pihole/whitelist.txt",
             PiholeFile::Blacklist => "/etc/pihole/blacklist.txt",

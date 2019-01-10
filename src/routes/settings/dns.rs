@@ -140,7 +140,7 @@ pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
         let address_segments: Vec<&str> = settings
             .conditional_forwarding
             .router_ip
-            .split(".")
+            .split('.')
             .take(3)
             .collect();
         let reverse_address = format!(

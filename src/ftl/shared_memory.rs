@@ -35,6 +35,7 @@ const FTL_SHM_COUNTERS: &str = "/FTL-counters";
 ///
 /// - Production mode connects to the real FTL shared memory.
 /// - Test mode uses the associated test data to mock FTL's shared memory.
+#[allow(clippy::large_enum_variant)]
 pub enum FtlMemory {
     Production {
         lock: ShmLock

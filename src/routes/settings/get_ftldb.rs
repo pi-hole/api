@@ -43,7 +43,7 @@ mod test {
     #[test]
     fn test_get_ftldb() {
         let mut data = Vec::new();
-        encode::write_i32(&mut data, 1048576).unwrap();
+        encode::write_i32(&mut data, 1_048_576).unwrap();
         encode::write_i64(&mut data, 32768).unwrap();
         encode::write_str(&mut data, "3.0.1").unwrap();
         write_eom(&mut data);
@@ -52,7 +52,7 @@ mod test {
             .endpoint("/admin/api/settings/ftldb")
             .ftl("dbstats", data)
             .expect_json(json!({
-                "queries": 1048576,
+                "queries": 1_048_576,
                 "filesize": 32768,
                 "sqlite_version": "3.0.1"
             }))

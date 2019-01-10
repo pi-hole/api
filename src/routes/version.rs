@@ -71,7 +71,7 @@ fn read_web_version() -> Result<Version, Error> {
 /// The string should be in the format "TAG BRANCH COMMIT".
 fn parse_web_version(version_str: &str) -> Result<Version, Error> {
     // Trim to remove possible newline
-    let version_split: Vec<&str> = version_str.trim_end_matches("\n").split(" ").collect();
+    let version_split: Vec<&str> = version_str.trim_end_matches('\n').split(' ').collect();
 
     if version_split.len() != 3 {
         return Err(Error::from(ErrorKind::Unknown));
@@ -101,8 +101,8 @@ fn read_core_version(env: &Env) -> Result<Version, Error> {
         ))?;
 
     // These files are structured as "CORE WEB FTL", but we only want Core's data
-    let git_version = local_versions.split(" ").next().unwrap_or_default();
-    let core_branch = local_branches.split(" ").next().unwrap_or_default();
+    let git_version = local_versions.split(' ').next().unwrap_or_default();
+    let core_branch = local_branches.split(' ').next().unwrap_or_default();
 
     // Parse the version data
     parse_git_version(git_version, core_branch)
@@ -112,7 +112,7 @@ fn read_core_version(env: &Env) -> Result<Version, Error> {
 /// `PiholeFile::LocalVersions`). The string is in the form
 /// "TAG-NUMBER-COMMIT", though it could also have "-dirty" at the end.
 fn parse_git_version(git_version: &str, branch: &str) -> Result<Version, Error> {
-    let split: Vec<&str> = git_version.split("-").collect();
+    let split: Vec<&str> = git_version.split('-').collect();
 
     // Could include "-dirty", which would make the length equal 4
     if split.len() < 3 {

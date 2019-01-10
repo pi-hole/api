@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 mod config;
-mod env;
+mod env_impl;
 mod file;
 
-pub use self::{config::Config, env::Env, file::PiholeFile};
+pub use self::{config::Config, env_impl::Env, file::PiholeFile};

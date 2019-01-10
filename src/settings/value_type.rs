@@ -26,6 +26,7 @@ pub enum ValueType {
     ConditionalForwardingReverse,
     Decimal,
     Domain,
+    #[allow(dead_code)]
     Filename,
     Hostname,
     Integer,
@@ -48,7 +49,7 @@ impl ValueType {
     /// e.g. 0.1.2.3 is a valid IPV4, but may not be a valid upstream DNS
     pub fn is_valid(&self, value: &str) -> bool {
         match *self {
-            ValueType::Array(value_types) => value.split(",").all(|value| {
+            ValueType::Array(value_types) => value.split(',').all(|value| {
                 value_types
                     .iter()
                     .any(|value_type| value_type.is_valid(value))
@@ -84,7 +85,7 @@ impl ValueType {
             }
             ValueType::Filename => {
                 Path::new(value).file_name().is_some()
-                    && !value.ends_with("/")
+                    && !value.ends_with('/')
                     && !value.ends_with("/.")
             }
             ValueType::Hostname => {
@@ -94,12 +95,12 @@ impl ValueType {
                 }
 
                 // The segments/labels of a hostname must not exceed 63 characters each
-                if value.split(".").any(|label| label.len() > 63) {
+                if value.split('.').any(|label| label.len() > 63) {
                     return false;
                 }
 
                 // A hostname can not be all numbers and periods
-                if value.split(".").all(|label| label.parse::<usize>().is_ok()) {
+                if value.split('.').all(|label| label.parse::<usize>().is_ok()) {
                     return false;
                 }
 
@@ -134,13 +135,13 @@ impl ValueType {
                     return true;
                 }
 
-                if !value.contains(":") {
+                if !value.contains(':') {
                     return false;
                 }
 
                 // Check if port is specified
-                let (ip, port) = value.split_at(value.rfind(":").unwrap());
-                if let Some(port) = port.replace(":", "").parse::<usize>().ok() {
+                let (ip, port) = value.split_at(value.rfind(':').unwrap());
+                if let Ok(port) = port.replace(":", "").parse::<usize>() {
                     is_ipv4_valid(ip) && port <= 65535
                 } else {
                     false
@@ -149,11 +150,11 @@ impl ValueType {
             ValueType::Ipv4Mask => {
                 // Valid, in allowable range, and with mask
                 // (4 octets, with mask)
-                if !value.contains("/") {
+                if !value.contains('/') {
                     return false;
                 }
 
-                let (ip, mask) = value.split_at(value.rfind("/").unwrap());
+                let (ip, mask) = value.split_at(value.rfind('/').unwrap());
                 ValueType::Integer.is_valid(&mask.replace("/", "")) && is_ipv4_valid(ip)
             }
             ValueType::Ipv6 => {
@@ -168,11 +169,11 @@ impl ValueType {
             ValueType::Path => {
                 // Test if a path and filename have been specified
                 let path = Path::new(value);
-                path.file_name().is_some() && path.is_absolute() && !value.ends_with("/")
+                path.file_name().is_some() && path.is_absolute() && !value.ends_with('/')
             }
             ValueType::PortNumber => {
                 // Number from 0 to 65535
-                if let Some(port) = value.parse::<usize>().ok() {
+                if let Ok(port) = value.parse::<usize>() {
                     port <= 65535
                 } else {
                     false
@@ -204,7 +205,7 @@ fn is_ipv4_valid(value: &str) -> bool {
                 && !ipv4.is_multicast()
                 && !ipv4.is_unspecified()
         }
-        Err(_) => return false
+        Err(_) => false
     }
 }
 

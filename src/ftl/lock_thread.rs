@@ -159,7 +159,7 @@ impl LockThread {
         let mut ftl_wait_count = 0;
         while shm_lock.ftl_waiting_for_lock {
             // Sleep for 1 millisecond
-            thread::sleep(Duration::new(0, 1000000));
+            thread::sleep(Duration::new(0, 1_000_000));
             ftl_wait_count += 1;
 
             // If FTL is taking longer than ten seconds to take the lock, assume

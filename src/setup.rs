@@ -30,7 +30,7 @@ use std::collections::HashMap;
 #[cfg(test)]
 use tempfile::NamedTempFile;
 
-const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
+const CONFIG_LOCATION: &str = "/etc/pihole/API.toml";
 
 #[catch(404)]
 fn not_found() -> Error {

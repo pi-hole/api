@@ -27,7 +27,7 @@ pub fn remove_excluded_clients(
 ) -> Result<(), Error> {
     let excluded_clients = SetupVarsEntry::ApiExcludeClients.read(env)?.to_lowercase();
     let excluded_clients: Vec<&str> = excluded_clients
-        .split(",")
+        .split(',')
         .filter(|s| !s.is_empty())
         .collect();
 
@@ -56,7 +56,7 @@ pub fn remove_excluded_domains(
 ) -> Result<(), Error> {
     let excluded_domains = SetupVarsEntry::ApiExcludeDomains.read(env)?.to_lowercase();
     let excluded_domains: Vec<&str> = excluded_domains
-        .split(",")
+        .split(',')
         .filter(|s| !s.is_empty())
         .collect();
 

@@ -57,7 +57,7 @@ impl List {
         Ok(BufReader::new(file)
             .lines()
             .filter_map(|line| line.ok())
-            .filter(|line| line.len() != 0)
+            .filter(|line| !line.is_empty())
             .collect())
     }
 
@@ -89,7 +89,7 @@ impl List {
     pub fn try_remove(&self, domain: &str, env: &Env) -> Result<(), Error> {
         match self.remove(domain, env) {
             // Pass through successful results
-            Ok(ok) => Ok(ok),
+            Ok(_) => Ok(()),
             Err(e) => {
                 // Ignore NotFound errors
                 if e.kind() == ErrorKind::NotFound {

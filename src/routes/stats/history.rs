@@ -525,7 +525,7 @@ mod test {
         ftl::{
             FtlClient, FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery,
             FtlQueryReplyType, FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlUpstream,
-            ShmLockGuard
+            ShmLockGuard, MAGIC_BYTE
         },
         testing::{TestBuilder, TestEnvBuilder}
     };
@@ -545,22 +545,24 @@ mod test {
             $timestamp:expr,
             $private:expr
         ) => {
-            FtlQuery::new(
-                $id,
-                $database,
-                $timestamp,
-                1,
-                1,
-                $domain,
-                $client,
-                $upstream,
-                FtlQueryType::$qtype,
-                FtlQueryStatus::$status,
-                FtlQueryReplyType::IP,
-                FtlDnssecType::Unspecified,
-                true,
-                $private
-            )
+            FtlQuery {
+                magic: MAGIC_BYTE,
+                id: $id,
+                database_id: $database,
+                timestamp: $timestamp,
+                time_index: 1,
+                response_time: 1,
+                domain_id: $domain,
+                client_id: $client,
+                upstream_id: $upstream,
+                query_type: FtlQueryType::$qtype,
+                status: FtlQueryStatus::$status,
+                reply_type: FtlQueryReplyType::IP,
+                dnssec_type: FtlDnssecType::Unspecified,
+                is_complete: true,
+                is_private: $private,
+                ad_bit: false
+            }
         };
     }
 
@@ -594,22 +596,24 @@ mod test {
     /// | 9  | 0  | A    | Forward    | 5      | 3      | 0        | 7         |
     fn test_queries() -> Vec<FtlQuery> {
         vec![
-            FtlQuery::new(
-                1,
-                1,
-                1,
-                1,
-                1,
-                0,
-                0,
-                0,
-                FtlQueryType::A,
-                FtlQueryStatus::Forward,
-                FtlQueryReplyType::CNAME,
-                FtlDnssecType::Secure,
-                true,
-                false
-            ),
+            FtlQuery {
+                magic: MAGIC_BYTE,
+                id: 1,
+                database_id: 1,
+                timestamp: 1,
+                time_index: 1,
+                response_time: 1,
+                domain_id: 0,
+                client_id: 0,
+                upstream_id: 0,
+                query_type: FtlQueryType::A,
+                status: FtlQueryStatus::Forward,
+                reply_type: FtlQueryReplyType::CNAME,
+                dnssec_type: FtlDnssecType::Secure,
+                is_complete: true,
+                is_private: false,
+                ad_bit: false
+            },
             query!(2, 2, AAAA, Forward, 0, 0, 0, 2, false),
             query!(3, 3, PTR, Forward, 0, 0, 0, 3, false),
             query!(4, 4, A, Gravity, 1, 1, 0, 3, false),

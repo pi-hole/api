@@ -70,7 +70,7 @@ pub trait ConfigEntry {
                 continue;
             }
 
-            let mut split = line.split("=");
+            let mut split = line.split('=');
 
             // Check if we found the key by checking if the line starts with `entry=`
             if split.next().map_or(false, |section| section == key) {

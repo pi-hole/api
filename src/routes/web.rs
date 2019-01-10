@@ -17,8 +17,8 @@ pub struct WebAssets;
 
 /// Get a file from the embedded web assets
 fn get_file<'r>(filename: &str) -> Option<Response<'r>> {
-    let content_type = if filename.contains(".") {
-        match ContentType::from_extension(filename.rsplit(".").next().unwrap()) {
+    let content_type = if filename.contains('.') {
+        match ContentType::from_extension(filename.rsplit('.').next().unwrap()) {
             Some(value) => value,
             None => return None
         }

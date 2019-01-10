@@ -21,15 +21,15 @@ use rocket::State;
 #[get("/settings/network")]
 pub fn get_network(env: State<Env>, _auth: User) -> Reply {
     let ipv4_full = SetupVarsEntry::Ipv4Address.read(&env)?;
-    let ipv4_address: Vec<&str> = ipv4_full.split("/").collect();
+    let ipv4_address: Vec<&str> = ipv4_full.split('/').collect();
     let ipv6_full = SetupVarsEntry::Ipv6Address.read(&env)?;
-    let ipv6_address: Vec<&str> = ipv6_full.split("/").collect();
+    let ipv6_address: Vec<&str> = ipv6_full.split('/').collect();
 
     reply_data(json!({
         "interface": SetupVarsEntry::PiholeInterface.read(&env)?,
         "ipv4_address": ipv4_address[0],
         "ipv6_address": ipv6_address[0],
-        "hostname": get_hostname().unwrap_or("unknown".to_owned())
+        "hostname": get_hostname().unwrap_or_else(|| "unknown".to_owned())
     }))
 }
 
@@ -41,7 +41,7 @@ mod test {
     /// Basic test for reported settings
     #[test]
     fn test_get_network() {
-        let current_host = get_hostname().unwrap_or("unknown".to_owned());
+        let current_host = get_hostname().unwrap_or_else(|| "unknown".to_owned());
 
         TestBuilder::new()
             .endpoint("/admin/api/settings/network")
@@ -63,7 +63,7 @@ mod test {
     /// Test for common configuration of ipv4 only (no ipv6)
     #[test]
     fn test_get_network_ipv4only() {
-        let current_host = get_hostname().unwrap_or("unknown".to_owned());
+        let current_host = get_hostname().unwrap_or_else(|| "unknown".to_owned());
 
         TestBuilder::new()
             .endpoint("/admin/api/settings/network")

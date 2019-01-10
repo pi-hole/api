@@ -149,7 +149,7 @@ impl Files {
             &self.local_versions,
             &self.local_branches
         ]
-        .into_iter()
+        .iter()
         .all(|file| Path::new(file).is_absolute())
     }
 }

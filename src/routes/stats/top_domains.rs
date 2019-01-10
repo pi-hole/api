@@ -179,15 +179,15 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
 
     // Output format changes when getting top blocked domains
     if blocked {
-        return reply_data(json!({
+        reply_data(json!({
             "top_domains": top_domains,
             "blocked_queries": counters.blocked_queries
-        }));
+        }))
     } else {
-        return reply_data(json!({
+        reply_data(json!({
             "top_domains": top_domains,
             "total_queries": counters.total_queries
-        }));
+        }))
     }
 }
 

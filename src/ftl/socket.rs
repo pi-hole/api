@@ -25,7 +25,7 @@ use std::collections::HashMap;
 use std::io::Cursor;
 
 /// The location of the FTL socket
-const SOCKET_LOCATION: &'static str = "/var/run/pihole/FTL.sock";
+const SOCKET_LOCATION: &str = "/var/run/pihole/FTL.sock";
 
 /// A wrapper around the FTL socket to easily read in data. It takes a
 /// Box<Read> so that it can be tested with fake data from a Vec<u8>

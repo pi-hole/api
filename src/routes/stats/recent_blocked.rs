@@ -82,7 +82,7 @@ mod test {
     use crate::{
         ftl::{
             FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
-            FtlQueryStatus, FtlQueryType, FtlRegexMatch
+            FtlQueryStatus, FtlQueryType, FtlRegexMatch, MAGIC_BYTE
         },
         testing::TestBuilder
     };
@@ -91,22 +91,24 @@ mod test {
     /// Shorthand for making `FtlQuery` structs
     macro_rules! query {
         ($id:expr, $status:ident, $domain:expr) => {
-            FtlQuery::new(
-                $id,
-                0,
-                1,
-                1,
-                1,
-                $domain,
-                0,
-                0,
-                FtlQueryType::A,
-                FtlQueryStatus::$status,
-                FtlQueryReplyType::IP,
-                FtlDnssecType::Unspecified,
-                true,
-                false
-            )
+            FtlQuery {
+                magic: MAGIC_BYTE,
+                id: $id,
+                database_id: 0,
+                timestamp: 1,
+                time_index: 1,
+                response_time: 1,
+                domain_id: $domain,
+                client_id: 0,
+                upstream_id: 0,
+                query_type: FtlQueryType::A,
+                status: FtlQueryStatus::$status,
+                reply_type: FtlQueryReplyType::IP,
+                dnssec_type: FtlDnssecType::Unspecified,
+                is_complete: true,
+                is_private: false,
+                ad_bit: false
+            }
         };
     }
 
