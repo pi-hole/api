@@ -24,7 +24,9 @@ pub struct FtlClient {
     pub blocked_count: libc::c_int,
     ip_str_id: libc::c_ulonglong,
     name_str_id: libc::c_ulonglong,
-    is_name_unknown: bool
+    is_name_unknown: bool,
+    last_query_time: libc::time_t,
+    arp_query_count: libc::c_uint
 }
 
 impl FtlClient {
@@ -41,7 +43,9 @@ impl FtlClient {
             blocked_count: blocked_count as libc::c_int,
             ip_str_id: ip_str_id as libc::c_ulonglong,
             name_str_id: name_str_id.unwrap_or_default() as libc::c_ulonglong,
-            is_name_unknown: name_str_id.is_none()
+            is_name_unknown: name_str_id.is_none(),
+            last_query_time: 0,
+            arp_query_count: 0
         }
     }
 
@@ -70,7 +74,9 @@ impl Default for FtlClient {
             blocked_count: 0,
             ip_str_id: 0,
             name_str_id: 0,
-            is_name_unknown: true
+            is_name_unknown: true,
+            last_query_time: 0,
+            arp_query_count: 0
         }
     }
 }
