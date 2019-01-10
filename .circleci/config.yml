@@ -45,7 +45,7 @@ version: 2
     - run:
         name: "Code Lint Check"
         command: |
-          [[ "$CIRCLE_JOB" != "x86_64" ]] || cargo clippy --all-targets --all-features -- -D warnings
+          [[ "$CIRCLE_JOB" != "x86_64" ]] || cargo clippy --release --all-targets --all-features -- -D warnings
     - run:
         name: "Build"
         command: |
