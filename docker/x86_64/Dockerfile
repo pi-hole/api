@@ -4,7 +4,7 @@ FROM debian:stretch
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates gcc libc-dev git && \
     rm -rf /var/lib/apt/lists/* && \
-    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2018-06-20 && \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2019-01-09 && \
     export PATH="/root/.cargo/bin:$PATH"
 
 ENV PATH="/root/.cargo/bin:$PATH"

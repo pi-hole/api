@@ -5,7 +5,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates git \
         gcc libc-dev gcc-aarch64-linux-gnu libc-dev-arm64-cross && \
     rm -rf /var/lib/apt/lists/* && \
-    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2018-06-20 && \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2019-01-09 && \
     export PATH="/root/.cargo/bin:$PATH" && \
     rustup target add aarch64-unknown-linux-gnu
 
