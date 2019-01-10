@@ -9,10 +9,7 @@ RUN apt-get update && \
     export PATH="/root/.cargo/bin:$PATH" && \
     rustup target add arm-unknown-linux-gnueabi
 
-ENV PATH="/root/.cargo/bin:$PATH"
-
-RUN rustup component add rustfmt-preview
-
-ENV TARGET_CC=arm-linux-gnueabi-gcc \
+ENV PATH="/root/.cargo/bin:$PATH" \
+    TARGET_CC=arm-linux-gnueabi-gcc \
     CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABI_LINKER=arm-linux-gnueabi-gcc \
     CC_arm_unknown_linux_gnueabi=arm-linux-gnueabi-gcc

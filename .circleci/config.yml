@@ -39,8 +39,13 @@ version: 2
           mkdir web
           tar -xzf web.tar.gz -C web
     - run:
-        name: "Code Style Lint"
-        command: cargo fmt -- --check
+        name: "Code Style Check"
+        command: |
+          [[ "$CIRCLE_JOB" != "x86_64" ]] || cargo fmt -- --check
+    - run:
+        name: "Code Lint Check"
+        command: |
+          [[ "$CIRCLE_JOB" != "x86_64" ]] || cargo clippy --all-targets --all-features -- -D warnings
     - run:
         name: "Build"
         command: |

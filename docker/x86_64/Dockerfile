@@ -9,4 +9,4 @@ RUN apt-get update && \
 
 ENV PATH="/root/.cargo/bin:$PATH"
 
-RUN rustup component add rustfmt-preview
+RUN rustup component add rustfmt clippy
