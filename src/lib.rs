@@ -11,6 +11,8 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
 #[macro_use]
+extern crate diesel;
+#[macro_use]
 extern crate rocket;
 #[macro_use]
 extern crate serde_derive;
@@ -22,6 +24,7 @@ extern crate rust_embed;
 pub use crate::setup::start;
 
 mod auth;
+mod databases;
 mod env;
 mod ftl;
 mod routes;

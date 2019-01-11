@@ -132,7 +132,9 @@ pub enum ErrorKind {
     #[fail(display = "Failed to read from shared memory")]
     SharedMemoryRead,
     #[fail(display = "Failed to lock shared memory")]
-    SharedMemoryLock
+    SharedMemoryLock,
+    #[fail(display = "Error while interacting with the FTL database")]
+    FtlDatabase
 }
 
 impl Error {
@@ -216,32 +218,34 @@ impl ErrorKind {
             ErrorKind::DnsmasqConfigWrite => "dnsmasq_config_write",
             ErrorKind::SharedMemoryOpen(_) => "shared_memory_open",
             ErrorKind::SharedMemoryRead => "shared_memory_read",
-            ErrorKind::SharedMemoryLock => "shared_memory_lock"
+            ErrorKind::SharedMemoryLock => "shared_memory_lock",
+            ErrorKind::FtlDatabase => "ftl_database"
         }
     }
 
     /// Get the error HTTP status. This will be used when calling `reply_error`
     pub fn status(&self) -> Status {
         match self {
-            ErrorKind::Unknown => Status::InternalServerError,
-            ErrorKind::GravityError => Status::InternalServerError,
-            ErrorKind::FtlConnectionFail => Status::InternalServerError,
-            ErrorKind::FtlReadError => Status::InternalServerError,
-            ErrorKind::FtlEomError => Status::InternalServerError,
             ErrorKind::NotFound => Status::NotFound,
             ErrorKind::AlreadyExists => Status::Conflict,
-            ErrorKind::InvalidDomain => Status::BadRequest,
-            ErrorKind::BadRequest => Status::BadRequest,
+            ErrorKind::InvalidDomain | ErrorKind::BadRequest | ErrorKind::InvalidSettingValue => {
+                Status::BadRequest
+            }
             ErrorKind::Unauthorized => Status::Unauthorized,
-            ErrorKind::FileRead(_) => Status::InternalServerError,
-            ErrorKind::FileWrite(_) => Status::InternalServerError,
-            ErrorKind::ConfigParsingError => Status::InternalServerError,
-            ErrorKind::InvalidSettingValue => Status::BadRequest,
-            ErrorKind::RestartDnsError => Status::InternalServerError,
-            ErrorKind::DnsmasqConfigWrite => Status::InternalServerError,
-            ErrorKind::SharedMemoryOpen(_) => Status::InternalServerError,
-            ErrorKind::SharedMemoryRead => Status::InternalServerError,
-            ErrorKind::SharedMemoryLock => Status::InternalServerError
+            ErrorKind::Unknown
+            | ErrorKind::GravityError
+            | ErrorKind::FtlConnectionFail
+            | ErrorKind::FtlReadError
+            | ErrorKind::FtlEomError
+            | ErrorKind::FileRead(_)
+            | ErrorKind::FileWrite(_)
+            | ErrorKind::ConfigParsingError
+            | ErrorKind::RestartDnsError
+            | ErrorKind::DnsmasqConfigWrite
+            | ErrorKind::SharedMemoryOpen(_)
+            | ErrorKind::SharedMemoryRead
+            | ErrorKind::SharedMemoryLock
+            | ErrorKind::FtlDatabase => Status::InternalServerError
         }
     }
 

@@ -10,6 +10,7 @@
 
 use crate::{
     auth::{self, AuthData},
+    databases::{ftl::FtlDatabase, load_databases},
     env::{Config, Env},
     ftl::{FtlConnectionType, FtlMemory},
     routes::{dns, settings, stats, version, web},
@@ -20,11 +21,9 @@ use rocket::config::{ConfigBuilder, Environment};
 use rocket_cors::Cors;
 
 #[cfg(test)]
-use crate::env::PiholeFile;
+use crate::{databases::load_test_databases, env::PiholeFile};
 #[cfg(test)]
-use rocket::config::LoggingLevel;
-#[cfg(test)]
-use rocket::local::Client;
+use rocket::{config::LoggingLevel, local::Client};
 #[cfg(test)]
 use std::collections::HashMap;
 #[cfg(test)]
@@ -54,13 +53,15 @@ pub fn start() -> Result<(), Error> {
                 .address(env.config().address())
                 .port(env.config().port() as u16)
                 .log_level(env.config().log_level()?)
+                .extra("databases", load_databases(&env)?)
                 .finalize()
                 .unwrap()
         ),
         FtlConnectionType::Socket,
         FtlMemory::production(),
         env,
-        key
+        key,
+        true
     )
     .launch();
 
@@ -72,7 +73,8 @@ pub fn start() -> Result<(), Error> {
 pub fn test(
     ftl_data: HashMap<String, Vec<u8>>,
     ftl_memory: FtlMemory,
-    env_data: HashMap<PiholeFile, NamedTempFile>
+    env_data: HashMap<PiholeFile, NamedTempFile>,
+    needs_database: bool
 ) -> Client {
     use toml;
 
@@ -80,13 +82,15 @@ pub fn test(
         rocket::custom(
             ConfigBuilder::new(Environment::Development)
                 .log_level(LoggingLevel::Off)
+                .extra("databases", load_test_databases())
                 .finalize()
                 .unwrap()
         ),
         FtlConnectionType::Test(ftl_data),
         ftl_memory,
         Env::Test(toml::from_str("").unwrap(), env_data),
-        "test_key".to_owned()
+        "test_key".to_owned(),
+        needs_database
     ))
     .unwrap()
 }
@@ -97,7 +101,8 @@ fn setup(
     ftl_socket: FtlConnectionType,
     ftl_memory: FtlMemory,
     env: Env,
-    api_key: String
+    api_key: String,
+    needs_database: bool
 ) -> rocket::Rocket {
     // Set up CORS
     let cors = Cors {
@@ -105,10 +110,19 @@ fn setup(
         ..Cors::default()
     };
 
+    // Attach the databases if required
+    let server = if needs_database {
+        server.attach(FtlDatabase::fairing())
+    } else {
+        server
+    };
+
     // Set up the server
     server
         // Attach CORS handler
         .attach(cors)
+        // Add custom error handlers
+        .register(catchers![not_found, unauthorized])
         // Manage the FTL socket configuration
         .manage(ftl_socket)
         // Manage the FTL shared memory configuration
@@ -160,6 +174,4 @@ fn setup(
             settings::get_ftl,
             settings::get_network
         ])
-        // Add custom error handlers
-        .register(catchers![not_found, unauthorized])
 }
