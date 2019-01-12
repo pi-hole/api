@@ -85,7 +85,7 @@ pub fn test_queries() -> Vec<FtlQuery> {
             magic: MAGIC_BYTE,
             id: 1,
             database_id: 95,
-            timestamp: 263581,
+            timestamp: 263_581,
             time_index: 1,
             response_time: 1,
             domain_id: 0,
@@ -99,14 +99,14 @@ pub fn test_queries() -> Vec<FtlQuery> {
             is_private: false,
             ad_bit: false
         },
-        query!(2, 96, AAAA, Forward, 0, 0, 0, 263582, false),
-        query!(3, 97, PTR, Forward, 0, 0, 0, 263583, false),
-        query!(4, 98, A, Gravity, 1, 1, 0, 263583, false),
-        query!(5, 99, AAAA, Cache, 0, 1, 0, 263584, false),
-        query!(6, 100, AAAA, Wildcard, 2, 1, 0, 263585, false),
-        query!(7, 101, A, Blacklist, 3, 2, 0, 263585, false),
-        query!(8, 0, AAAA, ExternalBlock, 4, 2, 1, 263586, false),
-        query!(9, 0, A, Forward, 5, 3, 0, 263587, true),
+        query!(2, 96, AAAA, Forward, 0, 0, 0, 263_582, false),
+        query!(3, 97, PTR, Forward, 0, 0, 0, 263_583, false),
+        query!(4, 98, A, Gravity, 1, 1, 0, 263_583, false),
+        query!(5, 99, AAAA, Cache, 0, 1, 0, 263_584, false),
+        query!(6, 100, AAAA, Wildcard, 2, 1, 0, 263_585, false),
+        query!(7, 101, A, Blacklist, 3, 2, 0, 263_585, false),
+        query!(8, 0, AAAA, ExternalBlock, 4, 2, 1, 263_586, false),
+        query!(9, 0, A, Forward, 5, 3, 0, 263_587, true),
     ]
 }
 

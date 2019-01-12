@@ -71,7 +71,7 @@ mod test {
         assert_eq!(
             mapped_query,
             json!({
-                "timestamp": 263581,
+                "timestamp": 263_581,
                 "type": 1,
                 "status": 2,
                 "domain": "domain1.com",

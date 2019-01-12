@@ -9,6 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 #![feature(proc_macro_hygiene, decl_macro)]
+#![allow(clippy::cast_lossless)]
 
 #[macro_use]
 extern crate diesel;

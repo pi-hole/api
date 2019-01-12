@@ -129,7 +129,7 @@ pub fn get_history(
         // with the next query instead of the last one we found
         .map(|query| query.database_id - 1)
         // If no queries were found, then use the cursor's database ID
-        .or(params.cursor.map(|cursor| cursor.db_id).unwrap_or(None));
+        .or_else(|| params.cursor.map(|cursor| cursor.db_id).unwrap_or(None));
 
     // Map the queries into the output format
     let history: Vec<JsonValue> = history
@@ -284,7 +284,7 @@ mod test {
             .expect_json(json!({
                 "history": [
                     {
-                        "timestamp": 177180,
+                        "timestamp": 177_180,
                         "type": 6,
                         "status": 2,
                         "domain": "4.4.8.8.in-addr.arpa",
@@ -294,7 +294,7 @@ mod test {
                         "response_time": 0
                     },
                     {
-                        "timestamp": 177180,
+                        "timestamp": 177_180,
                         "type": 6,
                         "status": 3,
                         "domain": "1.1.1.10.in-addr.arpa",
