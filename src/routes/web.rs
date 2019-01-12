@@ -12,7 +12,7 @@ use rocket::{
     http::ContentType,
     response::{Redirect, Response}
 };
-use std::{io::Cursor, path::PathBuf};
+use std::{borrow::Cow, io::Cursor, path::PathBuf};
 
 #[derive(RustEmbed)]
 #[folder = "web/"]
@@ -20,7 +20,8 @@ pub struct WebAssets;
 
 /// Get a file from the embedded web assets
 fn get_file<'r>(filename: &str) -> Option<Response<'r>> {
-    let content_type = if filename.contains('.') {
+    let has_extension = filename.contains('.');
+    let content_type = if has_extension {
         match ContentType::from_extension(filename.rsplit('.').next().unwrap()) {
             Some(value) => value,
             None => return None
@@ -30,16 +31,26 @@ fn get_file<'r>(filename: &str) -> Option<Response<'r>> {
     };
 
     WebAssets::get(filename).map_or_else(
-        || None,
-        |data| {
-            Some(
-                Response::build()
-                    .header(content_type)
-                    .sized_body(Cursor::new(data))
-                    .finalize()
-            )
-        }
+        // If the file was not found, and there is no extension on the filename,
+        // fall back to the web interface index.html
+        || {
+            if !has_extension {
+                WebAssets::get("index.html").map(|data| build_response(data, ContentType::HTML))
+            } else {
+                None
+            }
+        },
+        // The file was found, so build the response
+        |data| Some(build_response(data, content_type))
     )
+}
+
+/// Build a `Response` from raw data and its content type
+fn build_response<'r>(data: Cow<'static, [u8]>, content_type: ContentType) -> Response<'r> {
+    Response::build()
+        .header(content_type)
+        .sized_body(Cursor::new(data))
+        .finalize()
 }
 
 /// Redirect root requests to the web interface. This allows http://pi.hole to
