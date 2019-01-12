@@ -70,7 +70,7 @@ mod test {
             &HistoryParams {
                 cursor: Some(HistoryCursor {
                     id: None,
-                    db_id: Some(5)
+                    db_id: Some(99)
                 }),
                 ..HistoryParams::default()
             }

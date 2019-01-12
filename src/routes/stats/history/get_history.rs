@@ -184,7 +184,7 @@ mod test {
             .ftl_memory(ftl_memory)
             .expect_json(json!({
                 "history": history,
-                "cursor": "eyJpZCI6bnVsbCwiZGJfaWQiOjN9"
+                "cursor": "eyJpZCI6bnVsbCwiZGJfaWQiOjk3fQ=="
             }))
             .test();
     }
