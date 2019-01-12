@@ -29,13 +29,16 @@ pub fn load_databases(env: &Env) -> Result<HashMap<&str, HashMap<&str, Value>>, 
     Ok(databases)
 }
 
+#[cfg(test)]
+pub const TEST_DATABASE_PATH: &str = "test/FTL.db";
+
 /// Load test database URLs into the Rocket config format
 #[cfg(test)]
 pub fn load_test_databases() -> HashMap<&'static str, HashMap<&'static str, Value>> {
     let mut databases = HashMap::new();
     let mut ftl_database = HashMap::new();
 
-    ftl_database.insert("url", Value::from("test/FTL.db"));
+    ftl_database.insert("url", Value::from(TEST_DATABASE_PATH));
     databases.insert("ftl_database", ftl_database);
 
     databases

@@ -48,7 +48,7 @@ pub fn history_params(
 }
 
 /// Represents the possible GET parameters on `/stats/history`
-#[derive(FromForm, Clone)]
+#[derive(FromForm)]
 pub struct HistoryParams {
     pub cursor: Option<HistoryCursor>,
     pub from: Option<u64>,
@@ -84,6 +84,7 @@ impl Default for HistoryParams {
 }
 
 /// The cursor object used for history pagination
+#[cfg_attr(test, derive(PartialEq, Debug))]
 #[derive(Copy, Clone, Serialize, Deserialize)]
 pub struct HistoryCursor {
     pub id: Option<i32>,

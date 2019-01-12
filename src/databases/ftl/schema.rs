@@ -45,7 +45,8 @@ table! {
         status -> Integer,
         domain -> Text,
         client -> Text,
-        forward -> Nullable<Text>,
+        #[sql_name = "forward"]
+        upstream -> Nullable<Text>,
     }
 }
 
