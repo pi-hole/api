@@ -64,20 +64,28 @@ pub enum FtlQueryStatus {
     ExternalBlock
 }
 
+impl FtlQueryStatus {
+    /// Get the query status from its ordinal value
+    pub fn from_number(num: isize) -> Option<Self> {
+        match num {
+            0 => Some(FtlQueryStatus::Unknown),
+            1 => Some(FtlQueryStatus::Gravity),
+            2 => Some(FtlQueryStatus::Forward),
+            3 => Some(FtlQueryStatus::Cache),
+            4 => Some(FtlQueryStatus::Wildcard),
+            5 => Some(FtlQueryStatus::Blacklist),
+            6 => Some(FtlQueryStatus::ExternalBlock),
+            _ => None
+        }
+    }
+}
+
 impl<'v> FromFormValue<'v> for FtlQueryStatus {
     type Error = &'v RawStr;
 
     fn from_form_value(form_value: &'v RawStr) -> Result<Self, Self::Error> {
-        match form_value.parse::<u8>().map_err(|_| form_value)? {
-            0 => Ok(FtlQueryStatus::Unknown),
-            1 => Ok(FtlQueryStatus::Gravity),
-            2 => Ok(FtlQueryStatus::Forward),
-            3 => Ok(FtlQueryStatus::Cache),
-            4 => Ok(FtlQueryStatus::Wildcard),
-            5 => Ok(FtlQueryStatus::Blacklist),
-            6 => Ok(FtlQueryStatus::ExternalBlock),
-            _ => Err(form_value)
-        }
+        let num = form_value.parse::<u8>().map_err(|_| form_value)?;
+        Self::from_number(num as isize).ok_or(form_value)
     }
 }
 
@@ -95,20 +103,28 @@ pub enum FtlQueryReplyType {
     RRNAME
 }
 
+impl FtlQueryReplyType {
+    /// Get the query reply type from its ordinal value
+    pub fn from_number(num: isize) -> Option<Self> {
+        match num {
+            0 => Some(FtlQueryReplyType::Unknown),
+            1 => Some(FtlQueryReplyType::NODATA),
+            2 => Some(FtlQueryReplyType::NXDOMAIN),
+            3 => Some(FtlQueryReplyType::CNAME),
+            4 => Some(FtlQueryReplyType::IP),
+            5 => Some(FtlQueryReplyType::DOMAIN),
+            6 => Some(FtlQueryReplyType::RRNAME),
+            _ => None
+        }
+    }
+}
+
 impl<'v> FromFormValue<'v> for FtlQueryReplyType {
     type Error = &'v RawStr;
 
     fn from_form_value(form_value: &'v RawStr) -> Result<Self, Self::Error> {
-        match form_value.parse::<u8>().map_err(|_| form_value)? {
-            0 => Ok(FtlQueryReplyType::Unknown),
-            1 => Ok(FtlQueryReplyType::NODATA),
-            2 => Ok(FtlQueryReplyType::NXDOMAIN),
-            3 => Ok(FtlQueryReplyType::CNAME),
-            4 => Ok(FtlQueryReplyType::IP),
-            5 => Ok(FtlQueryReplyType::DOMAIN),
-            6 => Ok(FtlQueryReplyType::RRNAME),
-            _ => Err(form_value)
-        }
+        let num = form_value.parse::<u8>().map_err(|_| form_value)?;
+        Self::from_number(num as isize).ok_or(form_value)
     }
 }
 
@@ -125,18 +141,26 @@ pub enum FtlDnssecType {
     Unknown
 }
 
+impl FtlDnssecType {
+    /// Get the DNSSEC type from its ordinal value
+    pub fn from_number(num: isize) -> Option<Self> {
+        match num {
+            0 => Some(FtlDnssecType::Unspecified),
+            1 => Some(FtlDnssecType::Secure),
+            2 => Some(FtlDnssecType::Insecure),
+            3 => Some(FtlDnssecType::Bogus),
+            4 => Some(FtlDnssecType::Abandoned),
+            5 => Some(FtlDnssecType::Unknown),
+            _ => None
+        }
+    }
+}
+
 impl<'v> FromFormValue<'v> for FtlDnssecType {
     type Error = &'v RawStr;
 
     fn from_form_value(form_value: &'v RawStr) -> Result<Self, Self::Error> {
-        match form_value.parse::<u8>().map_err(|_| form_value)? {
-            0 => Ok(FtlDnssecType::Unspecified),
-            1 => Ok(FtlDnssecType::Secure),
-            2 => Ok(FtlDnssecType::Insecure),
-            3 => Ok(FtlDnssecType::Bogus),
-            4 => Ok(FtlDnssecType::Abandoned),
-            5 => Ok(FtlDnssecType::Unknown),
-            _ => Err(form_value)
-        }
+        let num = form_value.parse::<u8>().map_err(|_| form_value)?;
+        Self::from_number(num as isize).ok_or(form_value)
     }
 }

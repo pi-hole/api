@@ -50,7 +50,7 @@ mod test {
         let filtered_queries: Vec<&FtlQuery> = filter_time_from(
             Box::new(queries.iter()),
             &HistoryParams {
-                from: Some(177184),
+                from: Some(263584),
                 ..HistoryParams::default()
             }
         )
@@ -67,7 +67,7 @@ mod test {
         let filtered_queries: Vec<&FtlQuery> = filter_time_until(
             Box::new(queries.iter()),
             &HistoryParams {
-                until: Some(177184),
+                until: Some(263584),
                 ..HistoryParams::default()
             }
         )

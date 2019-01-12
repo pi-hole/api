@@ -65,16 +65,8 @@ impl<'v> FromFormValue<'v> for FtlQueryType {
     type Error = &'v RawStr;
 
     fn from_form_value(form_value: &'v RawStr) -> Result<Self, Self::Error> {
-        match form_value.parse::<u8>().map_err(|_| form_value)? {
-            1 => Ok(FtlQueryType::A),
-            2 => Ok(FtlQueryType::AAAA),
-            3 => Ok(FtlQueryType::ANY),
-            4 => Ok(FtlQueryType::SRV),
-            5 => Ok(FtlQueryType::SOA),
-            6 => Ok(FtlQueryType::PTR),
-            7 => Ok(FtlQueryType::TXT),
-            _ => Err(form_value)
-        }
+        let num = form_value.parse::<u8>().map_err(|_| form_value)?;
+        Self::from_number(num as isize).ok_or(form_value)
     }
 }
 
@@ -91,5 +83,19 @@ impl FtlQueryType {
             FtlQueryType::PTR,
             FtlQueryType::TXT
         ]
+    }
+
+    /// Get the query type from its ordinal value
+    pub fn from_number(num: isize) -> Option<Self> {
+        match num {
+            1 => Some(FtlQueryType::A),
+            2 => Some(FtlQueryType::AAAA),
+            3 => Some(FtlQueryType::ANY),
+            4 => Some(FtlQueryType::SRV),
+            5 => Some(FtlQueryType::SOA),
+            6 => Some(FtlQueryType::PTR),
+            7 => Some(FtlQueryType::TXT),
+            _ => None
+        }
     }
 }

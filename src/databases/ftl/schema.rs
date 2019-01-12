@@ -41,7 +41,7 @@ table! {
         id -> Nullable<Integer>,
         timestamp -> Integer,
         #[sql_name = "type"]
-        type_ -> Integer,
+        query_type -> Integer,
         status -> Integer,
         domain -> Text,
         client -> Text,

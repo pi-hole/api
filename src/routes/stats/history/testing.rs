@@ -64,27 +64,28 @@ pub fn test_memory() -> FtlMemory {
 
 /// 9 queries. Query 9 is private. Last two are not in the database. Query 1
 /// has a DNSSEC type of Secure and a reply type of CNAME. The database
-/// timestamps end at 177180, so the in memory queries start at 177181. The
-/// database ids end at 94, so the in memory database IDs start at 95.
+/// timestamps end at 177180, so the in memory queries start at 263581
+/// (24 hours after). The database ids end at 94, so the in memory database IDs
+/// start at 95.
 ///
 /// | ID |  DB | Type |   Status   | Domain | Client | Upstream | Timestamp |
 /// | -- | --- | ---- | ---------- | ------ | ------ | -------- | --------- |
-/// | 1  |  95 | A    | Forward    | 0      | 0      | 0        | 177181    |
-/// | 2  |  96 | AAAA | Forward    | 0      | 0      | 0        | 177182    |
-/// | 3  |  97 | PTR  | Forward    | 0      | 0      | 0        | 177183    |
-/// | 4  |  98 | A    | Gravity    | 1      | 1      | 0        | 177183    |
-/// | 5  |  99 | AAAA | Cache      | 0      | 1      | 0        | 177184    |
-/// | 6  | 100 | AAAA | Wildcard   | 2      | 1      | 0        | 177185    |
-/// | 7  | 101 | A    | Blacklist  | 3      | 2      | 0        | 177185    |
-/// | 8  |   0 | AAAA | ExternalB. | 4      | 2      | 1        | 177186    |
-/// | 9  |   0 | A    | Forward    | 5      | 3      | 0        | 177187    |
+/// | 1  |  95 | A    | Forward    | 0      | 0      | 0        | 263581    |
+/// | 2  |  96 | AAAA | Forward    | 0      | 0      | 0        | 263582    |
+/// | 3  |  97 | PTR  | Forward    | 0      | 0      | 0        | 263583    |
+/// | 4  |  98 | A    | Gravity    | 1      | 1      | 0        | 263583    |
+/// | 5  |  99 | AAAA | Cache      | 0      | 1      | 0        | 263584    |
+/// | 6  | 100 | AAAA | Wildcard   | 2      | 1      | 0        | 263585    |
+/// | 7  | 101 | A    | Blacklist  | 3      | 2      | 0        | 263585    |
+/// | 8  |   0 | AAAA | ExternalB. | 4      | 2      | 1        | 263586    |
+/// | 9  |   0 | A    | Forward    | 5      | 3      | 0        | 263587    |
 pub fn test_queries() -> Vec<FtlQuery> {
     vec![
         FtlQuery {
             magic: MAGIC_BYTE,
             id: 1,
             database_id: 95,
-            timestamp: 177181,
+            timestamp: 263581,
             time_index: 1,
             response_time: 1,
             domain_id: 0,
@@ -98,14 +99,14 @@ pub fn test_queries() -> Vec<FtlQuery> {
             is_private: false,
             ad_bit: false
         },
-        query!(2, 96, AAAA, Forward, 0, 0, 0, 177182, false),
-        query!(3, 97, PTR, Forward, 0, 0, 0, 177183, false),
-        query!(4, 98, A, Gravity, 1, 1, 0, 177183, false),
-        query!(5, 99, AAAA, Cache, 0, 1, 0, 177184, false),
-        query!(6, 100, AAAA, Wildcard, 2, 1, 0, 177185, false),
-        query!(7, 101, A, Blacklist, 3, 2, 0, 177185, false),
-        query!(8, 0, AAAA, ExternalBlock, 4, 2, 1, 177186, false),
-        query!(9, 0, A, Forward, 5, 3, 0, 177187, true),
+        query!(2, 96, AAAA, Forward, 0, 0, 0, 263582, false),
+        query!(3, 97, PTR, Forward, 0, 0, 0, 263583, false),
+        query!(4, 98, A, Gravity, 1, 1, 0, 263583, false),
+        query!(5, 99, AAAA, Cache, 0, 1, 0, 263584, false),
+        query!(6, 100, AAAA, Wildcard, 2, 1, 0, 263585, false),
+        query!(7, 101, A, Blacklist, 3, 2, 0, 263585, false),
+        query!(8, 0, AAAA, ExternalBlock, 4, 2, 1, 263586, false),
+        query!(9, 0, A, Forward, 5, 3, 0, 263587, true),
     ]
 }
 
