@@ -9,7 +9,10 @@
 // Please see LICENSE file for your rights under this license.
 
 #![feature(proc_macro_hygiene, decl_macro)]
+#![allow(clippy::cast_lossless)]
 
+#[macro_use]
+extern crate diesel;
 #[macro_use]
 extern crate rocket;
 #[macro_use]
@@ -22,6 +25,7 @@ extern crate rust_embed;
 pub use crate::setup::start;
 
 mod auth;
+mod databases;
 mod env;
 mod ftl;
 mod routes;

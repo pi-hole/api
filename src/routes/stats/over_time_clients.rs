@@ -81,7 +81,7 @@ pub fn over_time_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<E
     // Get the current timestamp, to be used when getting overTime data
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .expect("Time web backwards")
+        .expect("Current time is older than epoch")
         .as_secs() as f64;
 
     // Get the max log age FTL setting, to be used when getting overTime data

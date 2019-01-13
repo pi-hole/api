@@ -147,7 +147,8 @@ impl Files {
             &self.setup_vars,
             &self.ftl_config,
             &self.local_versions,
-            &self.local_branches
+            &self.local_branches,
+            &self.audit_log
         ]
         .iter()
         .all(|file| Path::new(file).is_absolute())

@@ -10,6 +10,7 @@
 
 use crate::{
     auth::User,
+    databases::ftl::FtlDatabase,
     env::Env,
     ftl::{FtlDnssecType, FtlMemory, FtlQueryReplyType, FtlQueryStatus, FtlQueryType},
     routes::stats::history::get_history::get_history,
@@ -25,8 +26,13 @@ use rocket::{
 
 /// Get the entire query history (as stored in FTL)
 #[get("/stats/history")]
-pub fn history(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
-    get_history(&ftl_memory, &env, HistoryParams::default())
+pub fn history(
+    _auth: User,
+    ftl_memory: State<FtlMemory>,
+    env: State<Env>,
+    db: FtlDatabase
+) -> Reply {
+    get_history(&ftl_memory, &env, HistoryParams::default(), &db)
 }
 
 /// Get the query history according to the specified parameters
@@ -35,9 +41,10 @@ pub fn history_params(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
-    params: Form<HistoryParams>
+    params: Form<HistoryParams>,
+    db: FtlDatabase
 ) -> Reply {
-    get_history(&ftl_memory, &env, params.into_inner())
+    get_history(&ftl_memory, &env, params.into_inner(), &db)
 }
 
 /// Represents the possible GET parameters on `/stats/history`
@@ -77,6 +84,7 @@ impl Default for HistoryParams {
 }
 
 /// The cursor object used for history pagination
+#[cfg_attr(test, derive(PartialEq, Debug))]
 #[derive(Copy, Clone, Serialize, Deserialize)]
 pub struct HistoryCursor {
     pub id: Option<i32>,

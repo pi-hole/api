@@ -3,19 +3,12 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// History Endpoints
+// FTL Database Support
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-mod database;
-mod endpoints;
-mod filters;
-mod get_history;
-mod map_query_to_json;
-mod skip_to_cursor;
+mod model;
+mod schema;
 
-#[cfg(test)]
-mod testing;
-
-pub use self::endpoints::*;
+pub use self::{model::*, schema::*};

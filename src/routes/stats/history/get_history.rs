@@ -15,15 +15,24 @@ use super::{
     skip_to_cursor::skip_to_cursor
 };
 use crate::{
+    databases::ftl::FtlDatabase,
     env::Env,
     ftl::{FtlMemory, FtlQuery},
+    routes::stats::history::database::load_queries_from_database,
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::{reply_data, Reply}
 };
+use diesel::sqlite::SqliteConnection;
 use rocket_contrib::json::JsonValue;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Get the query history according to the specified parameters
-pub fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> Reply {
+pub fn get_history(
+    ftl_memory: &FtlMemory,
+    env: &Env,
+    params: HistoryParams,
+    db: &FtlDatabase
+) -> Reply {
     // Check if query details are private
     if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(env)? >= FtlPrivacyLevel::Maximum {
         // `None::<()>` represents `null` in JSON. It needs the type parameter because
@@ -92,7 +101,7 @@ pub fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> 
     // If no such query exists, the cursor will be None (null in JSON).
     // The cursor is a JSON object with either the DB ID of the query if it is
     // non-zero, or the normal ID. Example: { id: 1, db_id: null }
-    let next_cursor = history.get(limit).map(|query: &&FtlQuery| {
+    let mut next_cursor = history.get(limit).map(|query: &&FtlQuery| {
         let db_id = if query.database_id != 0 {
             Some(query.database_id)
         } else {
@@ -109,19 +118,78 @@ pub fn get_history(ftl_memory: &FtlMemory, env: &Env, params: HistoryParams) -> 
         cursor.as_base64().unwrap()
     });
 
+    // Get the last database ID of the in-memory queries we found, or if we
+    // didn't find any in-memory queries, get the database ID in the cursor.
+    // This is done in case we have to query the database to get more queries.
+    // If no ID is found, then the search will start with the most recent
+    // queries in the database.
+    let last_db_id = history
+        .last()
+        // Subtract one from the database ID so that the database search starts
+        // with the next query instead of the last one we found
+        .map(|query| query.database_id - 1)
+        // If no queries were found, then use the cursor's database ID
+        .or_else(|| params.cursor.map(|cursor| cursor.db_id).unwrap_or(None));
+
     // Map the queries into the output format
     let history: Vec<JsonValue> = history
-        .into_iter()
-        // Only take up to the limit this time, not including the last query,
-        // because it was just used to get the cursor
-        .take(limit)
-        .map(map_query_to_json(ftl_memory, &lock)?)
-        .collect();
+            .into_iter()
+            // Only take up to the limit this time, not including the last query,
+            // because it was just used to get the cursor
+            .take(limit)
+            .map(map_query_to_json(ftl_memory, &lock)?)
+            .collect();
+
+    // If there are not enough queries to reach the limit (next cursor is null),
+    // there is a specified timestamp, and the timespan is not entirely within
+    // the last 24 hours, then search the database for more queries.
+    let history = if next_cursor.is_none()
+        && (params.from.is_some() || params.until.is_some())
+        && !is_within_24_hours(params.from, params.until)
+    {
+        // Load queries from the database
+        let (db_queries, cursor) =
+            load_queries_from_database(db as &SqliteConnection, last_db_id, &params, limit)?;
+
+        // Map the queries into JSON
+        let db_queries = db_queries.into_iter().map(Into::into);
+
+        // Update the cursor
+        next_cursor = cursor.map(|cursor| cursor.as_base64().unwrap());
+
+        // Extend history with the database queries
+        history.into_iter().chain(db_queries).collect()
+    } else {
+        history
+    };
 
     reply_data(json!({
         "cursor": next_cursor,
         "history": history
     }))
+}
+
+/// Check if the timespan is completely within the last 24 hours
+fn is_within_24_hours(from: Option<u64>, until: Option<u64>) -> bool {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Current time is older than epoch")
+        .as_secs();
+    let yesterday = now - 60 * 60 * 24;
+
+    match (from, until) {
+        (Some(from), Some(until)) => until >= from && from > yesterday,
+        (Some(from), None) => from > yesterday,
+        (None, Some(_)) => {
+            // With an unbounded from, any query older than the until time could
+            // be used
+            false
+        }
+        (None, None) => {
+            // No bounds on the query time
+            false
+        }
+    }
 }
 
 #[cfg(test)]
@@ -156,6 +224,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/history")
             .ftl_memory(ftl_memory)
+            .need_database(true)
             .expect_json(json!({
                 "history": history,
                 "cursor": None::<()>
@@ -182,9 +251,10 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/history?limit=5")
             .ftl_memory(ftl_memory)
+            .need_database(true)
             .expect_json(json!({
                 "history": history,
-                "cursor": "eyJpZCI6bnVsbCwiZGJfaWQiOjN9"
+                "cursor": "eyJpZCI6bnVsbCwiZGJfaWQiOjk3fQ=="
             }))
             .test();
     }
@@ -196,8 +266,44 @@ mod test {
             .endpoint("/admin/api/stats/history")
             .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=3")
             .ftl_memory(test_memory())
+            .need_database(true)
             .expect_json(json!({
                 "history": [],
+                "cursor": None::<()>
+            }))
+            .test();
+    }
+
+    /// Load queries from the database
+    #[test]
+    fn database() {
+        TestBuilder::new()
+            .endpoint("/admin/api/stats/history?from=177180&until=177181")
+            .ftl_memory(test_memory())
+            .need_database(true)
+            .expect_json(json!({
+                "history": [
+                    {
+                        "timestamp": 177_180,
+                        "type": 6,
+                        "status": 2,
+                        "domain": "4.4.8.8.in-addr.arpa",
+                        "client": "127.0.0.1",
+                        "dnssec": 5,
+                        "reply": 0,
+                        "response_time": 0
+                    },
+                    {
+                        "timestamp": 177_180,
+                        "type": 6,
+                        "status": 3,
+                        "domain": "1.1.1.10.in-addr.arpa",
+                        "client": "127.0.0.1",
+                        "dnssec": 5,
+                        "reply": 0,
+                        "response_time": 0
+                    }
+                ],
                 "cursor": None::<()>
             }))
             .test();

@@ -144,7 +144,8 @@ pub struct TestBuilder {
     ftl_memory: FtlMemory,
     test_config_builder: TestEnvBuilder,
     expected_json: serde_json::Value,
-    expected_status: Status
+    expected_status: Status,
+    needs_database: bool
 }
 
 impl TestBuilder {
@@ -172,7 +173,8 @@ impl TestBuilder {
                 "errors": []
             })
             .into(),
-            expected_status: Status::Ok
+            expected_status: Status::Ok,
+            needs_database: false
         }
     }
 
@@ -238,13 +240,23 @@ impl TestBuilder {
         self
     }
 
+    pub fn need_database(mut self, need_database: bool) -> Self {
+        self.needs_database = need_database;
+        self
+    }
+
     pub fn test(self) {
         // Save the files for verification
         let test_files = self.test_config_builder.get_test_files();
 
         // Start the test client
         let env_data = self.test_config_builder.build();
-        let client = setup::test(self.ftl_data, self.ftl_memory, env_data);
+        let client = setup::test(
+            self.ftl_data,
+            self.ftl_memory,
+            env_data,
+            self.needs_database
+        );
 
         // Create the request
         let mut request = client.req(self.method, self.endpoint);
