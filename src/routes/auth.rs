@@ -42,9 +42,14 @@ impl User {
 
         if auth_data.key_matches(input_key) {
             let user = auth_data.create_user();
-            request
-                .cookies()
-                .add_private(Cookie::new(USER_ATTR, user.id.to_string()));
+
+            // Set a new encrypted cookie with the user's ID
+            request.cookies().add_private(
+                Cookie::build(USER_ATTR, user.id.to_string())
+                    // Allow the web interface to read the cookie
+                    .http_only(false)
+                    .finish()
+            );
 
             Outcome::Success(user)
         } else {
