@@ -138,8 +138,9 @@ mod test {
     use rocket::http::{Header, Status};
     use serde_json::Value;
 
+    /// Providing the correct authentication should authorize the request
     #[test]
-    fn test_authenticated() {
+    fn authenticated() {
         TestBuilder::new()
             .endpoint("/admin/api/auth")
             .should_auth(true)
@@ -149,8 +150,9 @@ mod test {
             .test()
     }
 
+    /// Providing no authorization should not authorize the request
     #[test]
-    fn test_unauthenticated() {
+    fn unauthenticated() {
         TestBuilder::new()
             .endpoint("/admin/api/auth")
             .should_auth(false)
@@ -165,8 +167,9 @@ mod test {
             .test()
     }
 
+    /// Providing incorrect authorization should not authorize the request
     #[test]
-    fn test_wrong_password() {
+    fn wrong_password() {
         TestBuilder::new()
             .endpoint("/admin/api/auth")
             .should_auth(false)
