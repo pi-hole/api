@@ -9,8 +9,8 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    auth::User,
     ftl::{FtlMemory, FtlQueryType},
+    routes::auth::User,
     util::{reply_data, Reply}
 };
 use rocket::State;

@@ -9,9 +9,9 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    auth::User,
     env::Env,
     ftl::{FtlMemory, FtlQueryStatus},
+    routes::auth::User,
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::{reply_data, Reply}
 };

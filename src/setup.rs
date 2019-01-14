@@ -9,11 +9,13 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    auth::{self, AuthData},
     databases::{ftl::FtlDatabase, load_databases},
     env::{Config, Env},
     ftl::{FtlConnectionType, FtlMemory},
-    routes::{dns, settings, stats, version, web},
+    routes::{
+        auth::{self, AuthData},
+        dns, settings, stats, version, web
+    },
     settings::{ConfigEntry, SetupVarsEntry},
     util::{Error, ErrorKind}
 };

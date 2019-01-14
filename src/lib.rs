@@ -24,7 +24,6 @@ extern crate rust_embed;
 
 pub use crate::setup::start;
 
-mod auth;
 mod databases;
 mod env;
 mod ftl;

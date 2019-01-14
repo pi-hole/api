@@ -9,10 +9,12 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    auth::User,
     env::{Env, PiholeFile},
     ftl::{FtlDomain, FtlMemory},
-    routes::stats::common::{remove_excluded_domains, remove_hidden_domains},
+    routes::{
+        auth::User,
+        stats::common::{remove_excluded_domains, remove_hidden_domains}
+    },
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
     util::{reply_data, Reply}
 };

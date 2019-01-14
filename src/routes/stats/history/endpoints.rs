@@ -9,11 +9,10 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    auth::User,
     databases::ftl::FtlDatabase,
     env::Env,
     ftl::{FtlDnssecType, FtlMemory, FtlQueryReplyType, FtlQueryStatus, FtlQueryType},
-    routes::stats::history::get_history::get_history,
+    routes::{auth::User, stats::history::get_history::get_history},
     util::{Error, ErrorKind, Reply}
 };
 use base64::{decode, encode};

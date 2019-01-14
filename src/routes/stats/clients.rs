@@ -9,10 +9,12 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    auth::User,
     env::Env,
     ftl::FtlMemory,
-    routes::stats::common::{remove_excluded_clients, remove_hidden_clients},
+    routes::{
+        auth::User,
+        stats::common::{remove_excluded_clients, remove_hidden_clients}
+    },
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::{reply_data, Reply}
 };
