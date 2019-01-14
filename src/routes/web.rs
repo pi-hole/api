@@ -8,7 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use rocket::{http::ContentType, response::Response};
+use rocket::{
+    http::ContentType,
+    response::{Redirect, Response}
+};
 use std::{io::Cursor, path::PathBuf};
 
 #[derive(RustEmbed)]
@@ -37,6 +40,13 @@ fn get_file<'r>(filename: &str) -> Option<Response<'r>> {
             )
         }
     )
+}
+
+/// Redirect root requests to the web interface. This allows http://pi.hole to
+/// redirect to http://pi.hole/admin
+#[get("/")]
+pub fn web_interface_redirect() -> Redirect {
+    Redirect::to(uri!(web_interface_index))
 }
 
 /// Return the index page of the web interface

@@ -133,6 +133,7 @@ fn setup(
         .manage(AuthData::new(api_key))
         // Mount the web interface
         .mount("/", routes![
+            web::web_interface_redirect,
             web::web_interface_index,
             web::web_interface
         ])
