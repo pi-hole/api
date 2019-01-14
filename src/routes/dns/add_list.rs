@@ -9,10 +9,12 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    auth::User,
     env::Env,
     ftl::FtlConnectionType,
-    routes::dns::{common::reload_gravity, list::List},
+    routes::{
+        auth::User,
+        dns::{common::reload_gravity, list::List}
+    },
     util::{reply_success, Reply}
 };
 use rocket::State;

@@ -9,8 +9,8 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    auth::User,
     env::Env,
+    routes::auth::User,
     settings::{ConfigEntry, SetupVarsEntry},
     util::{reply_data, Reply}
 };

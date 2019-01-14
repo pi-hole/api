@@ -9,9 +9,8 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    auth::User,
     env::Env,
-    routes::settings::common::restart_dns,
+    routes::{auth::User, settings::common::restart_dns},
     settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry},
     util::{reply_data, reply_success, Error, ErrorKind, Reply}
 };
