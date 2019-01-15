@@ -119,6 +119,9 @@ fn setup(
         server
     };
 
+    // Create a scheduler for scheduling work (ex. disable for 10 minutes)
+    let scheduler = task_scheduler::Scheduler::new();
+
     // Set up the server
     server
         // Attach CORS handler
@@ -133,6 +136,8 @@ fn setup(
         .manage(env)
         // Manage the API key
         .manage(AuthData::new(api_key))
+        // Manage the scheduler
+        .manage(scheduler)
         // Mount the web interface
         .mount("/", routes![
             web::web_interface_redirect,
@@ -163,6 +168,7 @@ fn setup(
             dns::get_blacklist,
             dns::get_regexlist,
             dns::status,
+            dns::change_status,
             dns::add_whitelist,
             dns::add_blacklist,
             dns::add_regexlist,

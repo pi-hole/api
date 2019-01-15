@@ -121,6 +121,8 @@ pub enum ErrorKind {
     InvalidSettingValue,
     #[fail(display = "Failed to restart the DNS server")]
     RestartDnsError,
+    #[fail(display = "Failed to reload the DNS server")]
+    ReloadDnsError,
     #[fail(display = "Error generating the dnsmasq config")]
     DnsmasqConfigWrite,
     /// `shmem::Error` does not implement `std::error::Error`, so we can not use
@@ -215,6 +217,7 @@ impl ErrorKind {
             ErrorKind::ConfigParsingError => "config_parsing_error",
             ErrorKind::InvalidSettingValue => "invalid_setting_value",
             ErrorKind::RestartDnsError => "restart_dns_error",
+            ErrorKind::ReloadDnsError => "reload_dns_error",
             ErrorKind::DnsmasqConfigWrite => "dnsmasq_config_write",
             ErrorKind::SharedMemoryOpen(_) => "shared_memory_open",
             ErrorKind::SharedMemoryRead => "shared_memory_read",
@@ -241,6 +244,7 @@ impl ErrorKind {
             | ErrorKind::FileWrite(_)
             | ErrorKind::ConfigParsingError
             | ErrorKind::RestartDnsError
+            | ErrorKind::ReloadDnsError
             | ErrorKind::DnsmasqConfigWrite
             | ErrorKind::SharedMemoryOpen(_)
             | ErrorKind::SharedMemoryRead

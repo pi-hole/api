@@ -19,7 +19,11 @@ pub enum PiholeFile {
     FtlConfig,
     LocalVersions,
     LocalBranches,
-    AuditLog
+    AuditLog,
+    Gravity,
+    GravityBackup,
+    BlackList,
+    BlackListBackup
 }
 
 impl PiholeFile {
@@ -34,7 +38,11 @@ impl PiholeFile {
             PiholeFile::FtlConfig => "/etc/pihole/pihole-FTL.conf",
             PiholeFile::LocalVersions => "/etc/pihole/localversions",
             PiholeFile::LocalBranches => "/etc/pihole/localbranches",
-            PiholeFile::AuditLog => "/etc/pihole/auditlog.list"
+            PiholeFile::AuditLog => "/etc/pihole/auditlog.list",
+            PiholeFile::Gravity => "/etc/pihole/gravity.list",
+            PiholeFile::GravityBackup => "/etc/pihole/gravity.list.bck",
+            PiholeFile::BlackList => "/etc/pihole/black.list",
+            PiholeFile::BlackListBackup => "/etc/pihole/black.list.bck"
         }
     }
 }
