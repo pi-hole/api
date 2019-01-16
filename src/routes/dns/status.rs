@@ -40,7 +40,7 @@ pub fn change_status(
 ) -> Reply {
     match (data.action.as_str(), data.time) {
         ("enable", None) => enable(&env)?,
-        ("disable", time) => disable(&env, time, &scheduler)?,
+        ("disable", time) => disable(&env, time, Some(&scheduler))?,
         _ => return reply_error(ErrorKind::BadRequest)
     }
 
@@ -71,7 +71,7 @@ fn enable(env: &Env) -> Result<(), Error> {
 
 /// Disable blocking. If the time is `None`, then disable permanently.
 /// Otherwise, re-enable after the specified number of seconds.
-fn disable(env: &Env, time: Option<usize>, scheduler: &Scheduler) -> Result<(), Error> {
+fn disable(env: &Env, time: Option<usize>, scheduler: Option<&Scheduler>) -> Result<(), Error> {
     // Can't disable blocking when it's already disabled
     if !SetupVarsEntry::BlockingEnabled.is_true(&env)? {
         return Err(Error::from(ErrorKind::BadRequest));
@@ -101,15 +101,23 @@ fn disable(env: &Env, time: Option<usize>, scheduler: &Scheduler) -> Result<(), 
     // Env::Test is not available (crashes due to unimplemented!()), and we
     // don't want to be scheduling work which runs after the tests.
     if !env.is_test() {
+        // The scheduler should always be given when not in a test
+        assert!(
+            scheduler.is_some(),
+            "Scheduler must be supplied when not testing"
+        );
+
         // Check if we should re-enable after a specified timeout
         if let Some(time) = time {
             // Make a copy of the Env to move to the scheduler thread
             let env_copy = env.clone();
 
             // Re-enable blocking after the timeout
-            scheduler.after_duration(Duration::from_secs(time as u64), move || {
-                enable(&env_copy).unwrap()
-            });
+            scheduler
+                .unwrap()
+                .after_duration(Duration::from_secs(time as u64), move || {
+                    enable(&env_copy).unwrap()
+                });
         }
     }
 
@@ -129,10 +137,17 @@ pub struct ChangeStatus {
 
 #[cfg(test)]
 mod test {
-    use crate::{env::PiholeFile, testing::TestBuilder};
+    use super::{disable, enable};
+    use crate::{
+        env::{Config, Env, PiholeFile},
+        testing::{TestBuilder, TestEnvBuilder},
+        util::ErrorKind
+    };
+    use rocket::http::Method;
 
+    /// Return enabled status if blocking is enabled
     #[test]
-    fn test_status_enabled() {
+    fn read_enabled() {
         TestBuilder::new()
             .endpoint("/admin/api/dns/status")
             .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=true")
@@ -140,8 +155,9 @@ mod test {
             .test();
     }
 
+    /// Return disabled status if blocking is disabled
     #[test]
-    fn test_status_disabled() {
+    fn read_disabled() {
         TestBuilder::new()
             .endpoint("/admin/api/dns/status")
             .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=false")
@@ -149,12 +165,85 @@ mod test {
             .test();
     }
 
+    /// Return enabled status if blocking status is unknown
     #[test]
-    fn test_status_default() {
+    fn read_default() {
         TestBuilder::new()
             .endpoint("/admin/api/dns/status")
             .file(PiholeFile::SetupVars, "")
             .expect_json(json!({ "status": "enabled" }))
             .test();
+    }
+
+    /// Enable blocking if it's disabled
+    #[test]
+    fn action_enable() {
+        TestBuilder::new()
+            .endpoint("/admin/api/dns/status")
+            .method(Method::Post)
+            .body(json!({ "action": "enable" }))
+            .file_expect(
+                PiholeFile::SetupVars,
+                "BLOCKING_ENABLED=false\n",
+                "BLOCKING_ENABLED=true\n"
+            )
+            .file_expect(PiholeFile::Gravity, "", "127.0.0.1 localhost")
+            .file_expect(PiholeFile::GravityBackup, "127.0.0.1 localhost", "")
+            .file_expect(PiholeFile::BlackList, "", "ad.domain")
+            .file_expect(PiholeFile::BlackListBackup, "ad.domain", "")
+            .expect_json(json!({ "status": "success" }))
+            .test();
+    }
+
+    /// Return an error if blocking is enabled and we try to enable it again
+    #[test]
+    fn action_enable_error() {
+        let env = Env::Test(
+            Config::default(),
+            TestEnvBuilder::new()
+                .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=true")
+                .build()
+        );
+
+        assert_eq!(
+            enable(&env).map_err(|e| e.kind()),
+            Err(ErrorKind::BadRequest)
+        );
+    }
+
+    /// Disable blocking if it's enabled
+    #[test]
+    fn action_disable() {
+        TestBuilder::new()
+            .endpoint("/admin/api/dns/status")
+            .method(Method::Post)
+            .body(json!({ "action": "disable" }))
+            .file_expect(
+                PiholeFile::SetupVars,
+                "BLOCKING_ENABLED=true\n",
+                "BLOCKING_ENABLED=false\n"
+            )
+            .file_expect(PiholeFile::Gravity, "127.0.0.1 localhost", "")
+            .file_expect(PiholeFile::GravityBackup, "", "127.0.0.1 localhost")
+            .file_expect(PiholeFile::BlackList, "ad.domain", "")
+            .file_expect(PiholeFile::BlackListBackup, "", "ad.domain")
+            .expect_json(json!({ "status": "success" }))
+            .test();
+    }
+
+    /// Return an error if blocking is disabled and we try to disable it again
+    #[test]
+    fn action_disable_error() {
+        let env = Env::Test(
+            Config::default(),
+            TestEnvBuilder::new()
+                .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=false")
+                .build()
+        );
+
+        assert_eq!(
+            disable(&env, None, None).map_err(|e| e.kind()),
+            Err(ErrorKind::BadRequest)
+        );
     }
 }
