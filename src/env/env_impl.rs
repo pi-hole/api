@@ -80,7 +80,7 @@ impl Env {
                     .reopen()
                     .context(ErrorKind::Unknown)
                     .map_err(Error::from),
-                None => return tempfile().context(ErrorKind::Unknown).map_err(Error::from)
+                None => tempfile().context(ErrorKind::Unknown).map_err(Error::from)
             }
         }
     }
