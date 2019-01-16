@@ -14,13 +14,15 @@ use crate::{
 };
 use failure::ResultExt;
 use std::{
-    fs::{File, OpenOptions},
+    fs::{self, File, OpenOptions},
     os::unix::fs::OpenOptionsExt,
     path::Path
 };
 
 #[cfg(test)]
 use std::collections::HashMap;
+#[cfg(test)]
+use std::io::{Read, Write};
 #[cfg(test)]
 use tempfile::{tempfile, NamedTempFile};
 
@@ -32,20 +34,32 @@ pub enum Env {
     Test(Config, HashMap<PiholeFile, NamedTempFile>)
 }
 
+impl Clone for Env {
+    fn clone(&self) -> Self {
+        match self {
+            Env::Production(config) => Env::Production(config.clone()),
+            // There is no good way to copy NamedTempFiles, and we shouldn't be
+            // doing that during a test anyways
+            #[cfg(test)]
+            Env::Test(_, _) => unimplemented!()
+        }
+    }
+}
+
 impl Env {
     /// Get the API config that was loaded
     pub fn config(&self) -> &Config {
-        match *self {
-            Env::Production(ref config) => config,
+        match self {
+            Env::Production(config) => config,
             #[cfg(test)]
-            Env::Test(ref config, _) => config
+            Env::Test(config, _) => config
         }
     }
 
     /// Get the location of a file
     pub fn file_location(&self, file: PiholeFile) -> &str {
-        match *self {
-            Env::Production(ref config_options) => config_options.file_location(file),
+        match self {
+            Env::Production(config) => config.file_location(file),
             #[cfg(test)]
             Env::Test(_, _) => file.default_location()
         }
@@ -53,7 +67,7 @@ impl Env {
 
     /// Open a file for reading
     pub fn read_file(&self, file: PiholeFile) -> Result<File, Error> {
-        match *self {
+        match self {
             Env::Production(_) => {
                 let file_location = self.file_location(file);
                 File::open(file_location)
@@ -61,20 +75,20 @@ impl Env {
                     .map_err(Error::from)
             }
             #[cfg(test)]
-            Env::Test(_, ref map) => match map.get(&file) {
-                Some(data) => data,
-                None => return tempfile().context(ErrorKind::Unknown).map_err(Error::from)
+            Env::Test(_, map) => match map.get(&file) {
+                Some(file) => file
+                    .reopen()
+                    .context(ErrorKind::Unknown)
+                    .map_err(Error::from),
+                None => tempfile().context(ErrorKind::Unknown).map_err(Error::from)
             }
-            .reopen()
-            .context(ErrorKind::Unknown)
-            .map_err(Error::from)
         }
     }
 
     /// Open a file for writing. If `append` is false, the file will be
     /// truncated.
     pub fn write_file(&self, file: PiholeFile, append: bool) -> Result<File, Error> {
-        match *self {
+        match self {
             Env::Production(_) => {
                 let mut open_options = OpenOptions::new();
                 open_options.create(true).write(true).mode(0o644);
@@ -92,13 +106,11 @@ impl Env {
                     .map_err(Error::from)
             }
             #[cfg(test)]
-            Env::Test(_, ref map) => {
+            Env::Test(_, map) => {
                 let file = match map.get(&file) {
-                    Some(data) => data,
+                    Some(file) => file.reopen().context(ErrorKind::Unknown)?,
                     None => return tempfile().context(ErrorKind::Unknown).map_err(Error::from)
-                }
-                .reopen()
-                .context(ErrorKind::Unknown)?;
+                };
 
                 if !append {
                     file.set_len(0).context(ErrorKind::Unknown)?;
@@ -109,19 +121,59 @@ impl Env {
         }
     }
 
+    /// Rename (move) a file from `from` to `to`
+    pub fn rename_file(&self, from: PiholeFile, to: PiholeFile) -> Result<(), Error> {
+        match self {
+            Env::Production(_) => {
+                let to_path = self.file_location(to);
+
+                fs::rename(self.file_location(from), to_path)
+                    .context(ErrorKind::FileWrite(to_path.to_owned()))?;
+
+                Ok(())
+            }
+            #[cfg(test)]
+            Env::Test(_, ref map) => {
+                let mut from_file = match map.get(&from) {
+                    Some(file) => file.reopen().context(ErrorKind::Unknown)?,
+                    // It's an error if the from file does not exist
+                    None => return Err(Error::from(ErrorKind::Unknown))
+                };
+
+                let mut to_file = match map.get(&to) {
+                    Some(file) => file.reopen().context(ErrorKind::Unknown)?,
+                    // It's fine if the two file does not exist, create one
+                    None => tempfile().context(ErrorKind::Unknown)?
+                };
+
+                // Copy the data from the "from" file to the "to" file.
+                // At the end, the "from" file is empty and the "to" file has
+                // the original contents of the "from" file.
+                let mut buffer = Vec::new();
+                from_file
+                    .read_to_end(&mut buffer)
+                    .context(ErrorKind::Unknown)?;
+                to_file.set_len(0).context(ErrorKind::Unknown)?;
+                to_file.write_all(&buffer).context(ErrorKind::Unknown)?;
+                from_file.set_len(0).context(ErrorKind::Unknown)?;
+
+                Ok(())
+            }
+        }
+    }
+
     /// Check if a file exists
-    #[allow(unused)]
     pub fn file_exists(&self, file: PiholeFile) -> bool {
-        match *self {
+        match self {
             Env::Production(_) => Path::new(self.file_location(file)).is_file(),
             #[cfg(test)]
-            Env::Test(_, ref map) => map.contains_key(&file)
+            Env::Test(_, map) => map.contains_key(&file)
         }
     }
 
     /// Check if we're in a testing environment
     pub fn is_test(&self) -> bool {
-        match *self {
+        match self {
             Env::Production(_) => false,
             #[cfg(test)]
             Env::Test(_, _) => true
