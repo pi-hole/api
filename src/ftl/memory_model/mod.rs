@@ -21,6 +21,7 @@ mod domain;
 mod lock;
 mod over_time;
 mod query;
+mod settings;
 mod strings;
 mod upstream;
 
@@ -31,6 +32,7 @@ pub use self::{
     lock::FtlLock,
     over_time::FtlOverTime,
     query::{FtlDnssecType, FtlQuery, FtlQueryReplyType, FtlQueryStatus},
+    settings::FtlSettings,
     strings::FtlStrings,
     upstream::FtlUpstream
 };

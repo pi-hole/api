@@ -135,6 +135,11 @@ pub enum ErrorKind {
     SharedMemoryRead,
     #[fail(display = "Failed to lock shared memory")]
     SharedMemoryLock,
+    #[fail(
+        display = "Incompatible version of shared memory. Found {}, expected {}",
+        _0, _1
+    )]
+    SharedMemoryVersion(usize, usize),
     #[fail(display = "Error while interacting with the FTL database")]
     FtlDatabase
 }
@@ -222,6 +227,7 @@ impl ErrorKind {
             ErrorKind::SharedMemoryOpen(_) => "shared_memory_open",
             ErrorKind::SharedMemoryRead => "shared_memory_read",
             ErrorKind::SharedMemoryLock => "shared_memory_lock",
+            ErrorKind::SharedMemoryVersion(_, _) => "shared_memory_version",
             ErrorKind::FtlDatabase => "ftl_database"
         }
     }
@@ -249,6 +255,7 @@ impl ErrorKind {
             | ErrorKind::SharedMemoryOpen(_)
             | ErrorKind::SharedMemoryRead
             | ErrorKind::SharedMemoryLock
+            | ErrorKind::SharedMemoryVersion(_, _)
             | ErrorKind::FtlDatabase => Status::InternalServerError
         }
     }

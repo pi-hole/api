@@ -38,7 +38,7 @@ pub fn query_types(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
 #[cfg(test)]
 mod test {
     use crate::{
-        ftl::{FtlCounters, FtlMemory},
+        ftl::{FtlCounters, FtlMemory, FtlSettings},
         testing::TestBuilder
     };
     use std::collections::HashMap;
@@ -56,7 +56,8 @@ mod test {
             strings: HashMap::new(),
             upstreams: Vec::new(),
             queries: Vec::new(),
-            clients: Vec::new()
+            clients: Vec::new(),
+            settings: FtlSettings::default()
         }
     }
 

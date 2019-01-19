@@ -95,7 +95,7 @@ pub fn get_summary(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
 mod test {
     use crate::{
         env::PiholeFile,
-        ftl::{FtlClient, FtlCounters, FtlMemory},
+        ftl::{FtlClient, FtlCounters, FtlMemory, FtlSettings},
         testing::TestBuilder
     };
     use std::collections::HashMap;
@@ -142,7 +142,8 @@ mod test {
                 reply_count_nxdomain: 2,
                 total_clients: 6,
                 ..FtlCounters::default()
-            }
+            },
+            settings: FtlSettings::default()
         }
     }
 

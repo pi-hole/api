@@ -158,7 +158,7 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
 mod test {
     use crate::{
         env::PiholeFile,
-        ftl::{FtlClient, FtlCounters, FtlMemory},
+        ftl::{FtlClient, FtlCounters, FtlMemory, FtlSettings},
         testing::TestBuilder
     };
     use std::collections::HashMap;
@@ -195,7 +195,8 @@ mod test {
                 blocked_queries: 15,
                 total_clients: 6,
                 ..FtlCounters::default()
-            }
+            },
+            settings: FtlSettings::default()
         }
     }
 

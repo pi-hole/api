@@ -71,7 +71,7 @@ pub fn upstreams(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
 #[cfg(test)]
 mod test {
     use crate::{
-        ftl::{FtlCounters, FtlMemory, FtlUpstream},
+        ftl::{FtlCounters, FtlMemory, FtlSettings, FtlUpstream},
         testing::TestBuilder
     };
     use std::collections::HashMap;
@@ -114,7 +114,8 @@ mod test {
                 domains: Vec::new(),
                 over_time: Vec::new(),
                 over_time_clients: Vec::new(),
-                queries: Vec::new()
+                queries: Vec::new(),
+                settings: FtlSettings::default()
             })
             .expect_json(json!({
                 "upstreams": [
@@ -153,7 +154,8 @@ mod test {
                 domains: Vec::new(),
                 over_time: Vec::new(),
                 over_time_clients: Vec::new(),
-                queries: Vec::new()
+                queries: Vec::new(),
+                settings: FtlSettings::default()
             })
             .expect_json(json!({
                 "upstreams": [

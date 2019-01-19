@@ -10,7 +10,7 @@
 
 use crate::ftl::{
     FtlClient, FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
-    FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlUpstream, MAGIC_BYTE
+    FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlSettings, FtlUpstream, MAGIC_BYTE
 };
 use std::collections::HashMap;
 
@@ -58,7 +58,8 @@ pub fn test_memory() -> FtlMemory {
         over_time_clients: Vec::new(),
         strings: test_strings(),
         queries: test_queries(),
-        upstreams: test_upstreams()
+        upstreams: test_upstreams(),
+        settings: FtlSettings::default()
     }
 }
 

@@ -10,7 +10,7 @@
 
 use crate::{
     env::PiholeFile,
-    ftl::{FtlCounters, FtlMemory},
+    ftl::{FtlCounters, FtlMemory, FtlSettings},
     setup
 };
 use rocket::http::{ContentType, Header, Method, Status};
@@ -165,7 +165,8 @@ impl TestBuilder {
                 queries: Vec::new(),
                 upstreams: Vec::new(),
                 strings: HashMap::new(),
-                counters: FtlCounters::default()
+                counters: FtlCounters::default(),
+                settings: FtlSettings::default()
             },
             test_config_builder: TestEnvBuilder::new(),
             expected_json: json!({

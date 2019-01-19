@@ -58,7 +58,7 @@ pub fn over_time_history(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply
 mod test {
     use crate::{
         env::PiholeFile,
-        ftl::{FtlCounters, FtlMemory, FtlOverTime},
+        ftl::{FtlCounters, FtlMemory, FtlOverTime, FtlSettings},
         testing::TestBuilder
     };
     use std::collections::HashMap;
@@ -80,7 +80,8 @@ mod test {
             upstreams: Vec::new(),
             strings: HashMap::new(),
             domains: Vec::new(),
-            queries: Vec::new()
+            queries: Vec::new(),
+            settings: FtlSettings::default()
         }
     }
 
