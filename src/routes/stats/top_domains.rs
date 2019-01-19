@@ -197,7 +197,7 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
 mod test {
     use crate::{
         env::PiholeFile,
-        ftl::{FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch},
+        ftl::{FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch, FtlSettings},
         testing::TestBuilder
     };
     use std::collections::HashMap;
@@ -230,7 +230,8 @@ mod test {
                 blocked_queries: 21,
                 total_domains: 5,
                 ..FtlCounters::default()
-            }
+            },
+            settings: FtlSettings::default()
         }
     }
 

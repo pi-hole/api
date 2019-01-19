@@ -141,7 +141,7 @@ pub fn over_time_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<E
 mod test {
     use crate::{
         env::PiholeFile,
-        ftl::{FtlClient, FtlCounters, FtlMemory, FtlOverTime},
+        ftl::{FtlClient, FtlCounters, FtlMemory, FtlOverTime, FtlSettings},
         testing::TestBuilder
     };
     use std::collections::HashMap;
@@ -190,7 +190,8 @@ mod test {
                 total_clients: 6,
                 over_time_size: 4,
                 ..FtlCounters::default()
-            }
+            },
+            settings: FtlSettings::default()
         }
     }
 

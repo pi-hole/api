@@ -104,7 +104,7 @@ pub fn get_clients(ftl_memory: &FtlMemory, env: &Env, params: ClientParams) -> R
 mod test {
     use crate::{
         env::PiholeFile,
-        ftl::{FtlClient, FtlCounters, FtlMemory},
+        ftl::{FtlClient, FtlCounters, FtlMemory, FtlSettings},
         testing::TestBuilder
     };
     use std::collections::HashMap;
@@ -139,7 +139,8 @@ mod test {
             counters: FtlCounters {
                 total_clients: 6,
                 ..FtlCounters::default()
-            }
+            },
+            settings: FtlSettings::default()
         }
     }
 

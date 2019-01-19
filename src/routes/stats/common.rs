@@ -88,7 +88,9 @@ mod tests {
     };
     use crate::{
         env::{Config, Env, PiholeFile},
-        ftl::{FtlClient, FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch, ShmLockGuard},
+        ftl::{
+            FtlClient, FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch, FtlSettings, ShmLockGuard
+        },
         testing::TestEnvBuilder
     };
     use std::collections::HashMap;
@@ -120,7 +122,8 @@ mod tests {
             strings,
             upstreams: Vec::new(),
             queries: Vec::new(),
-            counters: FtlCounters::default()
+            counters: FtlCounters::default(),
+            settings: FtlSettings::default()
         }
     }
 

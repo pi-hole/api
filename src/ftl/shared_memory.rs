@@ -19,8 +19,11 @@ use libc;
 use shmem::{Array, Map, Object};
 use std::{marker::PhantomData, ops::Deref};
 
+use crate::{ftl::memory_model::FtlSettings, util::ErrorKind};
 #[cfg(test)]
 use std::collections::HashMap;
+
+const FTL_SHM_VERSION: usize = 1;
 
 const FTL_SHM_CLIENTS: &str = "/FTL-clients";
 const FTL_SHM_DOMAINS: &str = "/FTL-domains";
@@ -30,6 +33,7 @@ const FTL_SHM_OVERTIME_CLIENT: &str = "/FTL-client-";
 const FTL_SHM_QUERIES: &str = "/FTL-queries";
 const FTL_SHM_STRINGS: &str = "/FTL-strings";
 const FTL_SHM_COUNTERS: &str = "/FTL-counters";
+const FTL_SHM_SETTINGS: &str = "/FTL-settings";
 
 /// A wrapper for accessing FTL's shared memory.
 ///
@@ -49,7 +53,8 @@ pub enum FtlMemory {
         upstreams: Vec<FtlUpstream>,
         queries: Vec<FtlQuery>,
         strings: HashMap<usize, String>,
-        counters: FtlCounters
+        counters: FtlCounters,
+        settings: FtlSettings
     }
 }
 
@@ -67,7 +72,23 @@ impl FtlMemory {
     /// [`ShmLockGuard`]: ../shared_lock/enum.ShmLockGuard.html
     pub fn lock(&self) -> Result<ShmLockGuard, Error> {
         match self {
-            FtlMemory::Production { lock } => lock.read(),
+            FtlMemory::Production { lock } => {
+                let guard = lock.read()?;
+
+                // Check the version of shared memory, in case it is not the
+                // same version used by this API
+                let settings = self.settings(&guard)?;
+                let version = settings.version as usize;
+
+                if version == FTL_SHM_VERSION {
+                    Ok(guard)
+                } else {
+                    Err(Error::from(ErrorKind::SharedMemoryVersion(
+                        version,
+                        FTL_SHM_VERSION
+                    )))
+                }
+            }
             #[cfg(test)]
             FtlMemory::Test { .. } => Ok(ShmLockGuard::Test)
         }
@@ -199,6 +220,19 @@ impl FtlMemory {
             FtlMemory::Production { .. } => Box::new(Map::new(Object::open(FTL_SHM_COUNTERS)?)?),
             #[cfg(test)]
             FtlMemory::Test { counters, .. } => Box::new(counters)
+        })
+    }
+
+    /// Get the FTL shared memory settings data. The resulting trait object can
+    /// dereference into `&FtlSettings`.
+    pub fn settings<'lock>(
+        &'lock self,
+        _lock_guard: &ShmLockGuard<'lock>
+    ) -> Result<Box<dyn Deref<Target = FtlSettings> + 'lock>, Error> {
+        Ok(match self {
+            FtlMemory::Production { .. } => Box::new(Map::new(Object::open(FTL_SHM_SETTINGS)?)?),
+            #[cfg(test)]
+            FtlMemory::Test { settings, .. } => Box::new(settings)
         })
     }
 }

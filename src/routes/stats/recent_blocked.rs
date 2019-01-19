@@ -82,7 +82,7 @@ mod test {
     use crate::{
         ftl::{
             FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
-            FtlQueryStatus, FtlQueryType, FtlRegexMatch, MAGIC_BYTE
+            FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlSettings, MAGIC_BYTE
         },
         testing::TestBuilder
     };
@@ -161,7 +161,8 @@ mod test {
                 total_queries: 6,
                 total_domains: 5,
                 ..FtlCounters::default()
-            }
+            },
+            settings: FtlSettings::default()
         }
     }
 
