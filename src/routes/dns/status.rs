@@ -116,9 +116,18 @@ fn disable(env: &Env, time: Option<usize>, scheduler: Option<&Scheduler>) -> Res
             scheduler
                 .unwrap()
                 .after_duration(Duration::from_secs(time as u64), move || {
-                    // Ignore the result of enabling, so that if it's an error
+                    // Handle the result of enabling, so that if it's an error
                     // the thread does not panic
-                    let _ = enable(&env_copy);
+                    if let Err(e) = enable(&env_copy) {
+                        if e.kind() == ErrorKind::BadRequest {
+                            // If it was a bad request, blocking was probably
+                            // already re-enabled. This is a fairly common
+                            // scenario, so no error should be logged.
+                            return;
+                        }
+
+                        e.print_stacktrace();
+                    }
                 });
         }
     }
