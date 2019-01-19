@@ -116,7 +116,9 @@ fn disable(env: &Env, time: Option<usize>, scheduler: Option<&Scheduler>) -> Res
             scheduler
                 .unwrap()
                 .after_duration(Duration::from_secs(time as u64), move || {
-                    enable(&env_copy).unwrap()
+                    // Ignore the result of enabling, so that if it's an error
+                    // the thread does not panic
+                    let _ = enable(&env_copy);
                 });
         }
     }
