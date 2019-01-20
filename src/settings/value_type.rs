@@ -39,7 +39,8 @@ pub enum ValueType {
     PortNumber,
     YesNo,
     WebPassword,
-    String(&'static [&'static str])
+    String(&'static [&'static str]),
+    LanguageCode
 }
 
 impl ValueType {
@@ -187,7 +188,10 @@ impl ValueType {
                 // Web password is a valid key, but altering it is disallowed
                 false
             }
-            ValueType::String(strings) => strings.contains(&value)
+            ValueType::String(strings) => strings.contains(&value),
+            ValueType::LanguageCode => Regex::new("^[a-zA-Z]+(-[a-zA-Z]+)*$")
+                .unwrap()
+                .is_match(value)
         }
     }
 }

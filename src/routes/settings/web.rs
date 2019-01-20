@@ -21,7 +21,8 @@ use rocket_contrib::json::Json;
 #[get("/settings/web")]
 pub fn get_web(_auth: User, env: State<Env>) -> Reply {
     let settings = WebSettings {
-        layout: SetupVarsEntry::WebLayout.read(&env)?
+        layout: SetupVarsEntry::WebLayout.read(&env)?,
+        language: SetupVarsEntry::WebLanguage.read(&env)?
     };
 
     reply_data(settings)
@@ -37,18 +38,21 @@ pub fn put_web(_auth: User, env: State<Env>, settings: Json<WebSettings>) -> Rep
     }
 
     SetupVarsEntry::WebLayout.write(&settings.layout, &env)?;
+    SetupVarsEntry::WebLanguage.write(&settings.language, &env)?;
 
     reply_success()
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct WebSettings {
-    layout: String
+    layout: String,
+    language: String
 }
 
 impl WebSettings {
     /// Check if all the web settings are valid
     fn is_valid(&self) -> bool {
         SetupVarsEntry::WebLayout.is_valid(&self.layout)
+            && SetupVarsEntry::WebLanguage.is_valid(&self.language)
     }
 }
