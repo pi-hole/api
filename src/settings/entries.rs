@@ -175,7 +175,8 @@ pub enum SetupVarsEntry {
     PiholeDomain,
     PiholeInterface,
     QueryLogging,
-    WebPassword
+    WebPassword,
+    WebLayout
 }
 
 impl ConfigEntry for SetupVarsEntry {
@@ -184,7 +185,7 @@ impl ConfigEntry for SetupVarsEntry {
     }
 
     fn key(&self) -> Cow<str> {
-        match *self {
+        match self {
             SetupVarsEntry::ApiExcludeClients => Cow::Borrowed("API_EXCLUDE_CLIENTS"),
             SetupVarsEntry::ApiExcludeDomains => Cow::Borrowed("API_EXCLUDE_DOMAINS"),
             SetupVarsEntry::ApiQueryLogShow => Cow::Borrowed("API_QUERY_LOG_SHOW"),
@@ -214,12 +215,13 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::PiholeDomain => Cow::Borrowed("PIHOLE_DOMAIN"),
             SetupVarsEntry::PiholeInterface => Cow::Borrowed("PIHOLE_INTERFACE"),
             SetupVarsEntry::QueryLogging => Cow::Borrowed("QUERY_LOGGING"),
-            SetupVarsEntry::WebPassword => Cow::Borrowed("WEBPASSWORD")
+            SetupVarsEntry::WebPassword => Cow::Borrowed("WEBPASSWORD"),
+            SetupVarsEntry::WebLayout => Cow::Borrowed("WEBUIBOXEDLAYOUT")
         }
     }
 
     fn value_type(&self) -> ValueType {
-        match *self {
+        match self {
             SetupVarsEntry::ApiExcludeClients => {
                 ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4, ValueType::Ipv6])
             }
@@ -249,12 +251,13 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::PiholeDomain => ValueType::Hostname,
             SetupVarsEntry::PiholeInterface => ValueType::Interface,
             SetupVarsEntry::QueryLogging => ValueType::Boolean,
-            SetupVarsEntry::WebPassword => ValueType::WebPassword
+            SetupVarsEntry::WebPassword => ValueType::WebPassword,
+            SetupVarsEntry::WebLayout => ValueType::String(&["boxed", "traditional"])
         }
     }
 
     fn get_default(&self) -> &str {
-        match *self {
+        match self {
             SetupVarsEntry::ApiExcludeClients => "",
             SetupVarsEntry::ApiExcludeDomains => "",
             SetupVarsEntry::ApiQueryLogShow => "all",
@@ -280,7 +283,8 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::PiholeDomain => "",
             SetupVarsEntry::PiholeInterface => "",
             SetupVarsEntry::QueryLogging => "false",
-            SetupVarsEntry::WebPassword => ""
+            SetupVarsEntry::WebPassword => "",
+            SetupVarsEntry::WebLayout => "boxed"
         }
     }
 }
@@ -344,7 +348,7 @@ impl ConfigEntry for FtlConfEntry {
     }
 
     fn key(&self) -> Cow<str> {
-        Cow::Borrowed(match *self {
+        Cow::Borrowed(match self {
             FtlConfEntry::AaaaQueryAnalysis => "AAAA_QUERY_ANALYSIS",
             FtlConfEntry::BlockingMode => "BLOCKINGMODE",
             FtlConfEntry::DbFile => "DBFILE",
@@ -363,7 +367,7 @@ impl ConfigEntry for FtlConfEntry {
     }
 
     fn value_type(&self) -> ValueType {
-        match *self {
+        match self {
             FtlConfEntry::AaaaQueryAnalysis => ValueType::YesNo,
             FtlConfEntry::BlockingMode => {
                 ValueType::String(&["NULL", "IP-AAAA-NODATA", "IP", "NXDOMAIN"])
@@ -384,7 +388,7 @@ impl ConfigEntry for FtlConfEntry {
     }
 
     fn get_default(&self) -> &str {
-        match *self {
+        match self {
             FtlConfEntry::AaaaQueryAnalysis => "yes",
             FtlConfEntry::BlockingMode => "NULL",
             FtlConfEntry::DbFile => "/etc/pihole/pihole-FTL.db",

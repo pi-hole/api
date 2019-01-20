@@ -181,6 +181,8 @@ fn setup(
             settings::put_dns,
             settings::get_ftldb,
             settings::get_ftl,
-            settings::get_network
+            settings::get_network,
+            settings::get_web,
+            settings::put_web
         ])
 }
