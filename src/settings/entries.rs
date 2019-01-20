@@ -176,7 +176,8 @@ pub enum SetupVarsEntry {
     PiholeInterface,
     QueryLogging,
     WebPassword,
-    WebLayout
+    WebLayout,
+    WebLanguage
 }
 
 impl ConfigEntry for SetupVarsEntry {
@@ -216,7 +217,8 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::PiholeInterface => Cow::Borrowed("PIHOLE_INTERFACE"),
             SetupVarsEntry::QueryLogging => Cow::Borrowed("QUERY_LOGGING"),
             SetupVarsEntry::WebPassword => Cow::Borrowed("WEBPASSWORD"),
-            SetupVarsEntry::WebLayout => Cow::Borrowed("WEBUIBOXEDLAYOUT")
+            SetupVarsEntry::WebLayout => Cow::Borrowed("WEBUIBOXEDLAYOUT"),
+            SetupVarsEntry::WebLanguage => Cow::Borrowed("WEB_LANGUAGE")
         }
     }
 
@@ -252,7 +254,8 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::PiholeInterface => ValueType::Interface,
             SetupVarsEntry::QueryLogging => ValueType::Boolean,
             SetupVarsEntry::WebPassword => ValueType::WebPassword,
-            SetupVarsEntry::WebLayout => ValueType::String(&["boxed", "traditional"])
+            SetupVarsEntry::WebLayout => ValueType::String(&["boxed", "traditional"]),
+            SetupVarsEntry::WebLanguage => ValueType::LanguageCode
         }
     }
 
@@ -284,7 +287,8 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::PiholeInterface => "",
             SetupVarsEntry::QueryLogging => "false",
             SetupVarsEntry::WebPassword => "",
-            SetupVarsEntry::WebLayout => "boxed"
+            SetupVarsEntry::WebLayout => "boxed",
+            SetupVarsEntry::WebLanguage => "en"
         }
     }
 }
