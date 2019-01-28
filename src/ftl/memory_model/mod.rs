@@ -31,7 +31,7 @@ pub use self::{
     domain::{FtlDomain, FtlRegexMatch},
     lock::FtlLock,
     over_time::FtlOverTime,
-    query::{FtlDnssecType, FtlQuery, FtlQueryReplyType, FtlQueryStatus},
+    query::{FtlDnssecType, FtlQuery, FtlQueryReplyType, FtlQueryStatus, BLOCKED_STATUSES},
     settings::FtlSettings,
     strings::FtlStrings,
     upstream::FtlUpstream

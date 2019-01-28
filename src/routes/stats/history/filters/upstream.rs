@@ -9,10 +9,12 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
+    databases::ftl::queries,
     ftl::{FtlMemory, FtlQuery, FtlQueryStatus, ShmLockGuard},
     routes::stats::history::endpoints::HistoryParams,
     util::Error
 };
+use diesel::{prelude::*, sqlite::Sqlite};
 use std::{collections::HashSet, iter};
 
 /// Only show queries from the specified upstream
@@ -69,20 +71,38 @@ pub fn filter_upstream<'a>(
     }
 }
 
+/// Only show queries from the specified upstream in database results
+pub fn filter_upstream_db<'a>(
+    db_query: queries::BoxedQuery<'a, Sqlite>,
+    params: &HistoryParams
+) -> queries::BoxedQuery<'a, Sqlite> {
+    // Use the Diesel DSL of this table for easy querying
+    use self::queries::dsl::*;
+
+    if let Some(ref search_upstream) = params.upstream {
+        db_query.filter(upstream.like(format!("%{}%", search_upstream)))
+    } else {
+        db_query
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use super::filter_upstream;
+    use super::{filter_upstream, filter_upstream_db};
     use crate::{
+        databases::ftl::connect_to_test_db,
         ftl::{FtlQuery, ShmLockGuard},
         routes::stats::history::{
+            database::execute_query,
             endpoints::HistoryParams,
             testing::{test_memory, test_queries}
         }
     };
+    use diesel::prelude::*;
 
     /// Only return queries with the specified upstream IP
     #[test]
-    fn test_filter_upstream_ip() {
+    fn ip() {
         let queries = test_queries();
         let expected_queries = vec![&queries[7]];
         let filtered_queries: Vec<&FtlQuery> = filter_upstream(
@@ -103,7 +123,7 @@ mod test {
     /// Only return queries with the specified upstream IP. This test uses
     /// substring matching.
     #[test]
-    fn test_filter_upstream_ip_substring() {
+    fn ip_substring() {
         let queries = test_queries();
         let expected_queries = vec![&queries[7]];
         let filtered_queries: Vec<&FtlQuery> = filter_upstream(
@@ -123,7 +143,7 @@ mod test {
 
     /// Only return queries with the specified upstream name
     #[test]
-    fn test_filter_upstream_name() {
+    fn name() {
         let queries = test_queries();
         let expected_queries = vec![&queries[7]];
         let filtered_queries: Vec<&FtlQuery> = filter_upstream(
@@ -144,7 +164,7 @@ mod test {
     /// Only return queries with the specified upstream name. This test uses
     /// substring matching.
     #[test]
-    fn test_filter_upstream_name_substring() {
+    fn name_substring() {
         let queries = test_queries();
         let expected_queries = vec![&queries[7]];
         let filtered_queries: Vec<&FtlQuery> = filter_upstream(
@@ -160,5 +180,24 @@ mod test {
         .collect();
 
         assert_eq!(filtered_queries, expected_queries);
+    }
+
+    /// Only queries with an upstream similar to the input are returned. This is
+    /// a database filter.
+    #[test]
+    fn database() {
+        use crate::databases::ftl::queries::dsl::*;
+
+        let params = HistoryParams {
+            upstream: Some("8.8.8".to_owned()),
+            ..HistoryParams::default()
+        };
+
+        let db_query = filter_upstream_db(queries.into_boxed(), &params);
+        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+
+        for query in filtered_queries {
+            assert_eq!(query.upstream, Some("8.8.8.8".to_owned()));
+        }
     }
 }
