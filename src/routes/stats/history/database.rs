@@ -63,6 +63,7 @@ pub fn load_queries_from_database(
     let db_query = filter_blocked_db(db_query, params);
     let db_query = filter_excluded_domains_db(db_query, env)?;
     let db_query = filter_excluded_clients_db(db_query, env)?;
+    let db_query = filter_setup_vars_setting_db(db_query, env)?;
 
     // Execute the query and load the results
     let mut results: Vec<FtlDbQuery> = execute_query(db, db_query)?;
