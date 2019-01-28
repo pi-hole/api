@@ -151,7 +151,7 @@ pub fn get_history(
     {
         // Load queries from the database
         let (db_queries, cursor) =
-            load_queries_from_database(db as &SqliteConnection, last_db_id, &params, limit)?;
+            load_queries_from_database(db as &SqliteConnection, last_db_id, &params, env, limit)?;
 
         // Map the queries into JSON
         let db_queries = db_queries.into_iter().map(Into::into);

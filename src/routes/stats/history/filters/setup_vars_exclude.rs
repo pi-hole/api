@@ -9,11 +9,13 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
+    databases::ftl::queries,
     env::Env,
     ftl::{FtlMemory, FtlQuery, ShmLockGuard},
     settings::{ConfigEntry, SetupVarsEntry},
     util::Error
 };
+use diesel::{prelude::*, sqlite::Sqlite};
 use std::collections::HashSet;
 
 /// Apply the `SetupVarsEntry::ApiExcludeDomains` setting
@@ -113,19 +115,73 @@ pub fn filter_excluded_clients<'a>(
     })))
 }
 
+/// Apply the `SetupVarsEntry::ApiExcludeDomains` setting to database queries
+pub fn filter_excluded_domains_db<'a>(
+    db_query: queries::BoxedQuery<'a, Sqlite>,
+    env: &Env
+) -> Result<queries::BoxedQuery<'a, Sqlite>, Error> {
+    // Use the Diesel DSL of this table for easy querying
+    use self::queries::dsl::*;
+
+    // Get the excluded domains list
+    let excluded_domains = SetupVarsEntry::ApiExcludeDomains.read(env)?.to_lowercase();
+    let excluded_domains: HashSet<String> = excluded_domains
+        .split(',')
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_owned())
+        .collect();
+
+    if excluded_domains.is_empty() {
+        Ok(db_query)
+    } else {
+        Ok(db_query.filter(domain.ne_all(excluded_domains)))
+    }
+}
+
+/// Apply the `SetupVarsEntry::ApiExcludeClients` setting to database queries
+pub fn filter_excluded_clients_db<'a>(
+    db_query: queries::BoxedQuery<'a, Sqlite>,
+    env: &Env
+) -> Result<queries::BoxedQuery<'a, Sqlite>, Error> {
+    // Use the Diesel DSL of this table for easy querying
+    use self::queries::dsl::*;
+
+    // Get the excluded clients list
+    let excluded_clients = SetupVarsEntry::ApiExcludeClients.read(env)?.to_lowercase();
+    let excluded_clients: HashSet<String> = excluded_clients
+        .split(',')
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_owned())
+        .collect();
+
+    if excluded_clients.is_empty() {
+        Ok(db_query)
+    } else {
+        Ok(db_query.filter(client.ne_all(excluded_clients)))
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{filter_excluded_clients, filter_excluded_domains};
+    use super::{
+        filter_excluded_clients, filter_excluded_clients_db, filter_excluded_domains,
+        filter_excluded_domains_db
+    };
     use crate::{
+        databases::ftl::connect_to_test_db,
         env::{Config, Env, PiholeFile},
         ftl::{FtlQuery, ShmLockGuard},
-        routes::stats::history::testing::{test_memory, test_queries},
+        routes::stats::history::{
+            database::execute_query,
+            testing::{test_memory, test_queries}
+        },
         testing::TestEnvBuilder
     };
+    use diesel::prelude::*;
 
     /// No queries should be filtered out if `API_EXCLUDE_CLIENTS` is empty
     #[test]
-    fn filter_clients_empty() {
+    fn clients_empty() {
         let env = Env::Test(
             Config::default(),
             TestEnvBuilder::new()
@@ -148,7 +204,7 @@ mod tests {
 
     /// No queries should be filtered out if `API_EXCLUDE_DOMAINS` is empty
     #[test]
-    fn filter_domains_empty() {
+    fn domains_empty() {
         let env = Env::Test(
             Config::default(),
             TestEnvBuilder::new()
@@ -172,7 +228,7 @@ mod tests {
     /// Queries with a client in the `API_EXCLUDE_CLIENTS` list should be
     /// removed
     #[test]
-    fn filter_clients() {
+    fn clients() {
         let env = Env::Test(
             Config::default(),
             TestEnvBuilder::new()
@@ -203,7 +259,7 @@ mod tests {
     /// Queries with a domain in the `API_EXCLUDE_DOMAINS` list should be
     /// removed
     #[test]
-    fn filter_domains() {
+    fn domains() {
         let env = Env::Test(
             Config::default(),
             TestEnvBuilder::new()
@@ -223,5 +279,50 @@ mod tests {
         .collect();
 
         assert_eq!(filtered_queries, expected_queries);
+    }
+
+    /// Queries with a client in the `API_EXCLUDE_CLIENTS` list should be
+    /// removed. This is a database filter.
+    #[test]
+    fn clients_db() {
+        use crate::databases::ftl::queries::dsl::*;
+
+        let env = Env::Test(
+            Config::default(),
+            TestEnvBuilder::new()
+                .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=127.0.0.1")
+                .build()
+        );
+
+        let db_query = filter_excluded_clients_db(queries.into_boxed(), &env).unwrap();
+        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+
+        assert_eq!(filtered_queries.len(), 1);
+        assert_eq!(filtered_queries[0].client, "10.1.1.1".to_owned());
+    }
+
+    /// Queries with a domain in the `API_EXCLUDE_DOMAIN` list should be
+    /// removed. This is a database filter.
+    #[test]
+    fn domains_db() {
+        use crate::databases::ftl::queries::dsl::*;
+
+        let env = Env::Test(
+            Config::default(),
+            TestEnvBuilder::new()
+                .file(
+                    PiholeFile::SetupVars,
+                    "API_EXCLUDE_DOMAINS=0.ubuntu.pool.ntp.org,1.ubuntu.pool.ntp.org"
+                )
+                .build()
+        );
+
+        let db_query = filter_excluded_domains_db(queries.into_boxed(), &env).unwrap();
+        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+
+        for query in filtered_queries {
+            assert_ne!(query.domain, "0.ubuntu.pool.ntp.org".to_owned());
+            assert_ne!(query.domain, "1.ubuntu.pool.ntp.org".to_owned());
+        }
     }
 }

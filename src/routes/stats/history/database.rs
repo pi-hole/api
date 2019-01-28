@@ -10,6 +10,7 @@
 
 use crate::{
     databases::ftl::{queries, FtlDbQuery},
+    env::Env,
     routes::stats::history::{
         endpoints::{HistoryCursor, HistoryParams},
         filters::*,
@@ -33,6 +34,7 @@ pub fn load_queries_from_database(
     db: &SqliteConnection,
     start_id: Option<i64>,
     params: &HistoryParams,
+    env: &Env,
     limit: usize
 ) -> Result<(Vec<FtlDbQuery>, Option<HistoryCursor>), Error> {
     // Use the Diesel DSL of this table for easy querying
@@ -59,6 +61,8 @@ pub fn load_queries_from_database(
     let db_query = filter_query_type_db(db_query, params);
     let db_query = filter_status_db(db_query, params);
     let db_query = filter_blocked_db(db_query, params);
+    let db_query = filter_excluded_domains_db(db_query, env)?;
+    let db_query = filter_excluded_clients_db(db_query, env)?;
 
     // Execute the query and load the results
     let mut results: Vec<FtlDbQuery> = execute_query(db, db_query)?;
@@ -98,16 +102,21 @@ mod test {
     use super::load_queries_from_database;
     use crate::{
         databases::ftl::connect_to_test_db,
+        env::{Config, Env},
         routes::stats::history::endpoints::{HistoryCursor, HistoryParams}
     };
+    use std::collections::HashMap;
 
     /// Queries are ordered by id, descending
     #[test]
     fn order_by_id() {
+        let env = Env::Test(Config::default(), HashMap::new());
+
         let (queries, cursor) = load_queries_from_database(
             &connect_to_test_db(),
             Some(2),
             &HistoryParams::default(),
+            &env,
             100
         )
         .unwrap();
@@ -120,6 +129,7 @@ mod test {
     /// The max number of queries returned is specified by the limit
     #[test]
     fn limit() {
+        let env = Env::Test(Config::default(), HashMap::new());
         let expected_cursor = Some(HistoryCursor {
             id: None,
             db_id: Some(1)
@@ -129,6 +139,7 @@ mod test {
             &connect_to_test_db(),
             Some(3),
             &HistoryParams::default(),
+            &env,
             2
         )
         .unwrap();
