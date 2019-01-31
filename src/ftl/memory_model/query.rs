@@ -13,7 +13,7 @@ use libc;
 use rocket::{http::RawStr, request::FromFormValue};
 
 /// A list of query statuses which mark a query as blocked
-pub static BLOCKED_STATUSES: [i32; 4] = [
+pub const BLOCKED_STATUSES: [i32; 4] = [
     FtlQueryStatus::Gravity as i32,
     FtlQueryStatus::Wildcard as i32,
     FtlQueryStatus::Blacklist as i32,
