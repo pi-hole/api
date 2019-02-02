@@ -23,7 +23,7 @@ use crate::{ftl::memory_model::FtlSettings, util::ErrorKind};
 #[cfg(test)]
 use std::collections::HashMap;
 
-const FTL_SHM_VERSION: usize = 1;
+const FTL_SHM_VERSION: usize = 2;
 
 const FTL_SHM_CLIENTS: &str = "/FTL-clients";
 const FTL_SHM_DOMAINS: &str = "/FTL-domains";
