@@ -56,6 +56,13 @@ version: 2
         command: |
           [[ "$CIRCLE_JOB" != "x86_64" ]] || time cargo test --release --target $TARGET
     - run:
+        name: "Build DEB"
+        command: |
+          export DEB_BUILD_OPTIONS=nostrip
+          dpkg-buildpackage -b -a $DEB_ARCH
+          mv ../pihole-api*.deb .
+          [[ "$CIRCLE_JOB" == "arm" ]] && rename armhf armv6hf *.deb
+    - run:
         name: "Upload"
         command: |
           [ -z "$FTL_SECRET" ] && exit 0
@@ -65,6 +72,7 @@ version: 2
           chmod +x ./FTL-client
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}" "${FTL_SECRET}"
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}.sha1" "${FTL_SECRET}"
+          [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" pihole-api*.deb "${FTL_SECRET}"
           rm ./FTL-client
     - save_cache:
         key: v3-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
@@ -78,36 +86,42 @@ jobs:
     environment:
       BIN_NAME: "pihole-API-arm-linux-gnueabi"
       TARGET: "arm-unknown-linux-gnueabi"
+      DEB_ARCH: "armhf"
 
   armhf:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-arm-linux-gnueabihf"
       TARGET: "arm-unknown-linux-gnueabihf"
+      DEB_ARCH: "armhf"
 
   aarch64:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-aarch64-linux-gnu"
       TARGET: "aarch64-unknown-linux-gnu"
+      DEB_ARCH: "arm64"
 
   x86_64:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-linux-x86_64"
       TARGET: "x86_64-unknown-linux-gnu"
+      DEB_ARCH: "amd64"
 
   x86_64-musl:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-musl-linux-x86_64"
       TARGET: "x86_64-unknown-linux-musl"
+      DEB_ARCH: "musl-linux-amd64"
 
   x86_32:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-linux-x86_32"
       TARGET: "i686-unknown-linux-gnu"
+      DEB_ARCH: "i386"
 
 workflows:
   version: 2

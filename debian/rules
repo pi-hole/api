@@ -1,0 +1,9 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --with systemd
+
+# This rule is overridden to install the service with a different name than the
+# package
+override_dh_installinit:
+	dh_installinit --name pihole-API

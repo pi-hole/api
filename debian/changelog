@@ -1,0 +1,5 @@
+pihole-api (0.1.0-1) stretch; urgency=medium
+
+  * Initial package
+
+ -- Mark Drobnak <mark@pi-hole.net>  Sat, 02 Feb 2019 16:01:45 -0800
