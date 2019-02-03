@@ -102,7 +102,11 @@ pub enum FtlQueryReplyType {
     CNAME,
     IP,
     DOMAIN,
-    RRNAME
+    RRNAME,
+    SERVFAIL,
+    REFUSED,
+    NOTIMP,
+    OTHER
 }
 
 impl FtlQueryReplyType {
@@ -116,6 +120,10 @@ impl FtlQueryReplyType {
             4 => Some(FtlQueryReplyType::IP),
             5 => Some(FtlQueryReplyType::DOMAIN),
             6 => Some(FtlQueryReplyType::RRNAME),
+            7 => Some(FtlQueryReplyType::SERVFAIL),
+            8 => Some(FtlQueryReplyType::REFUSED),
+            9 => Some(FtlQueryReplyType::NOTIMP),
+            10 => Some(FtlQueryReplyType::OTHER),
             _ => None
         }
     }
