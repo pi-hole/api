@@ -61,7 +61,7 @@ version: 2
           export DEB_BUILD_OPTIONS=nostrip
           dpkg-buildpackage -b -a $DEB_ARCH
           mv ../pihole-api*.deb .
-          [[ "$CIRCLE_JOB" != "arm" ]] || for file in pihole-api*.deb; do mv $file ${file//armhf/armv6hf}; done
+          [[ "$CIRCLE_JOB" != "arm" ]] || for file in pihole-api*.deb; do mv $file ${file//armhf/arm}; done
     - run:
         name: "Upload"
         command: |
