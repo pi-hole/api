@@ -8,7 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use crate::{ftl::FtlQuery, routes::stats::history::endpoints::HistoryParams};
+use crate::{
+    databases::ftl::queries, ftl::FtlQuery, routes::stats::history::endpoints::HistoryParams
+};
+use diesel::{prelude::*, sqlite::Sqlite};
 
 /// Skip iteration until the query which corresponds to the cursor.
 pub fn skip_to_cursor<'a>(
@@ -29,20 +32,39 @@ pub fn skip_to_cursor<'a>(
     }
 }
 
+/// Skip database queries until the query which corresponds to the cursor.
+pub fn skip_to_cursor_db(
+    db_query: queries::BoxedQuery<Sqlite>,
+    start_id: Option<i64>
+) -> queries::BoxedQuery<Sqlite> {
+    // Use the Diesel DSL of this table for easy querying
+    use self::queries::dsl::*;
+
+    // If a start ID is given, ignore any queries before it
+    if let Some(start_id) = start_id {
+        db_query.filter(id.le(start_id as i32))
+    } else {
+        db_query
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use super::skip_to_cursor;
+    use super::{skip_to_cursor, skip_to_cursor_db};
     use crate::{
+        databases::ftl::{connect_to_test_db, FtlDbQuery},
         ftl::FtlQuery,
         routes::stats::history::{
+            database::execute_query,
             endpoints::{HistoryCursor, HistoryParams},
             testing::test_queries
         }
     };
+    use diesel::prelude::*;
 
     /// Skip queries according to the cursor (dnsmasq ID)
     #[test]
-    fn test_skip_to_cursor_dnsmasq() {
+    fn dnsmasq_cursor() {
         let queries = test_queries();
         let expected_queries: Vec<&FtlQuery> = queries.iter().skip(7).collect();
         let filtered_queries: Vec<&FtlQuery> = skip_to_cursor(
@@ -62,7 +84,7 @@ mod test {
 
     /// Skip queries according to the cursor (database ID)
     #[test]
-    fn test_skip_to_cursor_database() {
+    fn database_cursor() {
         let queries = test_queries();
         let expected_queries: Vec<&FtlQuery> = queries.iter().skip(4).collect();
         let filtered_queries: Vec<&FtlQuery> = skip_to_cursor(
@@ -76,6 +98,27 @@ mod test {
             }
         )
         .collect();
+
+        assert_eq!(filtered_queries, expected_queries);
+    }
+
+    /// Search starts from the start_id. This is a database filter.
+    #[test]
+    fn database() {
+        use crate::databases::ftl::queries::dsl::*;
+
+        let expected_queries = vec![FtlDbQuery {
+            id: Some(1),
+            timestamp: 0,
+            query_type: 6,
+            status: 3,
+            domain: "1.1.1.10.in-addr.arpa".to_owned(),
+            client: "127.0.0.1".to_owned(),
+            upstream: None
+        }];
+
+        let db_query = skip_to_cursor_db(queries.into_boxed(), Some(1));
+        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
 
         assert_eq!(filtered_queries, expected_queries);
     }

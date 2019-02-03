@@ -89,6 +89,8 @@ pub fn get_history(
     let queries_iter = filter_blocked(queries_iter, &params);
     let queries_iter = filter_dnssec(queries_iter, &params);
     let queries_iter = filter_reply(queries_iter, &params);
+    let queries_iter = filter_excluded_domains(queries_iter, env, ftl_memory, &lock)?;
+    let queries_iter = filter_excluded_clients(queries_iter, env, ftl_memory, &lock)?;
 
     // Get the limit
     let limit = params.limit.unwrap_or(100);
@@ -149,7 +151,7 @@ pub fn get_history(
     {
         // Load queries from the database
         let (db_queries, cursor) =
-            load_queries_from_database(db as &SqliteConnection, last_db_id, &params, limit)?;
+            load_queries_from_database(db as &SqliteConnection, last_db_id, &params, env, limit)?;
 
         // Map the queries into JSON
         let db_queries = db_queries.into_iter().map(Into::into);

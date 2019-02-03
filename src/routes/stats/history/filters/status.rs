@@ -8,7 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use crate::{ftl::FtlQuery, routes::stats::history::endpoints::HistoryParams};
+use crate::{
+    databases::ftl::queries, ftl::FtlQuery, routes::stats::history::endpoints::HistoryParams
+};
+use diesel::{prelude::*, sqlite::Sqlite};
 
 /// Only show queries with the specific status
 pub fn filter_status<'a>(
@@ -22,13 +25,32 @@ pub fn filter_status<'a>(
     }
 }
 
+/// Only show queries with the specific status in database results
+pub fn filter_status_db<'a>(
+    db_query: queries::BoxedQuery<'a, Sqlite>,
+    params: &HistoryParams
+) -> queries::BoxedQuery<'a, Sqlite> {
+    // Use the Diesel DSL of this table for easy querying
+    use self::queries::dsl::*;
+
+    if let Some(search_status) = params.status {
+        db_query.filter(status.eq(search_status as i32))
+    } else {
+        db_query
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use super::filter_status;
+    use super::{filter_status, filter_status_db};
     use crate::{
+        databases::ftl::connect_to_test_db,
         ftl::{FtlQuery, FtlQueryStatus},
-        routes::stats::history::{endpoints::HistoryParams, testing::test_queries}
+        routes::stats::history::{
+            database::execute_query, endpoints::HistoryParams, testing::test_queries
+        }
     };
+    use diesel::prelude::*;
 
     /// Only return queries with the specified status
     #[test]
@@ -45,5 +67,25 @@ mod test {
         .collect();
 
         assert_eq!(filtered_queries, expected_queries);
+    }
+
+    /// Only queries with the input query status are returned. This is a
+    /// database filter.
+    #[test]
+    fn database() {
+        use crate::databases::ftl::queries::dsl::*;
+
+        let expected_status = FtlQueryStatus::Forward;
+        let params = HistoryParams {
+            status: Some(expected_status),
+            ..HistoryParams::default()
+        };
+
+        let db_query = filter_status_db(queries.into_boxed(), &params);
+        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+
+        for query in filtered_queries {
+            assert_eq!(query.status, expected_status as i32);
+        }
     }
 }

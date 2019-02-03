@@ -9,12 +9,16 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    databases::ftl::FtlDbQuery,
-    ftl::FtlQueryStatus,
-    routes::stats::history::endpoints::{HistoryCursor, HistoryParams},
+    databases::ftl::{queries, FtlDbQuery},
+    env::Env,
+    routes::stats::history::{
+        endpoints::{HistoryCursor, HistoryParams},
+        filters::*,
+        skip_to_cursor::skip_to_cursor_db
+    },
     util::{Error, ErrorKind}
 };
-use diesel::{prelude::*, query_builder::BoxedSelectStatement};
+use diesel::{prelude::*, sqlite::Sqlite};
 use failure::ResultExt;
 
 /// Load queries from the database according to the parameters. A cursor is
@@ -30,13 +34,14 @@ pub fn load_queries_from_database(
     db: &SqliteConnection,
     start_id: Option<i64>,
     params: &HistoryParams,
+    env: &Env,
     limit: usize
 ) -> Result<(Vec<FtlDbQuery>, Option<HistoryCursor>), Error> {
     // Use the Diesel DSL of this table for easy querying
     use crate::databases::ftl::queries::dsl::*;
 
     // Start creating the database query
-    let mut db_query: BoxedSelectStatement<_, _, _> = queries
+    let db_query = queries
         // The query must be boxed, because we are dynamically building it
         .into_boxed()
         // Take up to the limit, plus one to build the cursor
@@ -45,61 +50,23 @@ pub fn load_queries_from_database(
         .order(id.desc());
 
     // If a start ID is given, ignore any queries before it
-    if let Some(start_id) = start_id {
-        db_query = db_query.filter(id.le(start_id as i32));
-    }
+    let db_query = skip_to_cursor_db(db_query, start_id);
 
     // Apply filters
-
-    if let Some(from) = params.from {
-        db_query = db_query.filter(timestamp.ge(from as i32));
-    }
-
-    if let Some(until) = params.until {
-        db_query = db_query.filter(timestamp.le(until as i32));
-    }
-
-    if let Some(ref search_domain) = params.domain {
-        db_query = db_query.filter(domain.like(format!("%{}%", search_domain)));
-    }
-
-    if let Some(ref search_client) = params.client {
-        db_query = db_query.filter(client.like(format!("%{}%", search_client)));
-    }
-
-    if let Some(ref search_upstream) = params.upstream {
-        db_query = db_query.filter(upstream.like(format!("%{}%", search_upstream)));
-    }
-
-    if let Some(search_query_type) = params.query_type {
-        db_query = db_query.filter(query_type.eq(search_query_type as i32));
-    }
-
-    if let Some(search_status) = params.status {
-        db_query = db_query.filter(status.eq(search_status as i32));
-    }
-
-    // A list of query statuses which mark a query as blocked
-    let blocked_statuses = [
-        FtlQueryStatus::Gravity as i32,
-        FtlQueryStatus::Wildcard as i32,
-        FtlQueryStatus::Blacklist as i32,
-        FtlQueryStatus::ExternalBlock as i32
-    ];
-
-    if let Some(blocked) = params.blocked {
-        db_query = if blocked {
-            db_query.filter(status.eq_any(&blocked_statuses))
-        } else {
-            db_query.filter(status.ne_all(&blocked_statuses))
-        };
-    }
+    let db_query = filter_time_from_db(db_query, params);
+    let db_query = filter_time_until_db(db_query, params);
+    let db_query = filter_domain_db(db_query, params);
+    let db_query = filter_client_db(db_query, params);
+    let db_query = filter_upstream_db(db_query, params);
+    let db_query = filter_query_type_db(db_query, params);
+    let db_query = filter_status_db(db_query, params);
+    let db_query = filter_blocked_db(db_query, params);
+    let db_query = filter_excluded_domains_db(db_query, env)?;
+    let db_query = filter_excluded_clients_db(db_query, env)?;
+    let db_query = filter_setup_vars_setting_db(db_query, env)?;
 
     // Execute the query and load the results
-    let mut results: Vec<FtlDbQuery> = db_query
-        .load(db as &SqliteConnection)
-        .context(ErrorKind::FtlDatabase)
-        .map_err(Error::from)?;
+    let mut results: Vec<FtlDbQuery> = execute_query(db, db_query)?;
 
     // If more queries could be loaded beyond the given limit (if we loaded
     // limit + 1 queries), then set the cursor to use the limit + 1 query's ID.
@@ -119,53 +86,38 @@ pub fn load_queries_from_database(
     Ok((results, cursor))
 }
 
+/// Execute a database query for DNS queries on an FTL database.
+/// The database could be real, or it could be a test database.
+pub fn execute_query(
+    db: &SqliteConnection,
+    db_query: queries::BoxedQuery<Sqlite>
+) -> Result<Vec<FtlDbQuery>, Error> {
+    db_query
+        .load(db as &SqliteConnection)
+        .context(ErrorKind::FtlDatabase)
+        .map_err(Error::from)
+}
+
 #[cfg(test)]
 mod test {
     use super::load_queries_from_database;
     use crate::{
-        databases::{ftl::FtlDbQuery, TEST_DATABASE_PATH},
-        ftl::{FtlQueryStatus, FtlQueryType},
+        databases::ftl::connect_to_test_db,
+        env::{Config, Env},
         routes::stats::history::endpoints::{HistoryCursor, HistoryParams}
     };
-    use diesel::prelude::*;
-
-    /// Connect to the testing database
-    fn connect_to_test_db() -> SqliteConnection {
-        SqliteConnection::establish(TEST_DATABASE_PATH).unwrap()
-    }
-
-    /// Search starts from the start_id
-    #[test]
-    fn start_id() {
-        let expected_queries = vec![FtlDbQuery {
-            id: Some(1),
-            timestamp: 0,
-            query_type: 6,
-            status: 3,
-            domain: "1.1.1.10.in-addr.arpa".to_owned(),
-            client: "127.0.0.1".to_owned(),
-            upstream: None
-        }];
-
-        let (queries, cursor) = load_queries_from_database(
-            &connect_to_test_db(),
-            Some(1),
-            &HistoryParams::default(),
-            100
-        )
-        .unwrap();
-
-        assert_eq!(queries, expected_queries);
-        assert_eq!(cursor, None);
-    }
+    use std::collections::HashMap;
 
     /// Queries are ordered by id, descending
     #[test]
     fn order_by_id() {
+        let env = Env::Test(Config::default(), HashMap::new());
+
         let (queries, cursor) = load_queries_from_database(
             &connect_to_test_db(),
             Some(2),
             &HistoryParams::default(),
+            &env,
             100
         )
         .unwrap();
@@ -178,6 +130,7 @@ mod test {
     /// The max number of queries returned is specified by the limit
     #[test]
     fn limit() {
+        let env = Env::Test(Config::default(), HashMap::new());
         let expected_cursor = Some(HistoryCursor {
             id: None,
             db_id: Some(1)
@@ -187,144 +140,12 @@ mod test {
             &connect_to_test_db(),
             Some(3),
             &HistoryParams::default(),
+            &env,
             2
         )
         .unwrap();
 
         assert_eq!(queries.len(), 2);
         assert_eq!(cursor, expected_cursor);
-    }
-
-    /// Only queries newer than `from` are returned
-    #[test]
-    fn from() {
-        let from = 177_179;
-        let params = HistoryParams {
-            from: Some(from),
-            ..HistoryParams::default()
-        };
-
-        let (queries, _) =
-            load_queries_from_database(&connect_to_test_db(), None, &params, 1).unwrap();
-
-        assert_eq!(queries.len(), 1);
-        assert!(queries[0].timestamp >= from as i32);
-    }
-
-    /// Only queries older than `until` are returned
-    #[test]
-    fn until() {
-        let until = 1;
-        let params = HistoryParams {
-            until: Some(until),
-            ..HistoryParams::default()
-        };
-
-        let (queries, _) =
-            load_queries_from_database(&connect_to_test_db(), None, &params, 1).unwrap();
-
-        assert_eq!(queries.len(), 1);
-        assert!(queries[0].timestamp <= until as i32);
-    }
-
-    /// Only queries with domains similar to the input are returned.
-    #[test]
-    fn domain() {
-        let params = HistoryParams {
-            domain: Some("goog".to_owned()),
-            ..HistoryParams::default()
-        };
-
-        let (queries, _) =
-            load_queries_from_database(&connect_to_test_db(), None, &params, 1).unwrap();
-
-        assert_eq!(queries.len(), 1);
-        assert_eq!(queries[0].domain, "google.com");
-    }
-
-    /// Only queries with a client similar to the input are returned.
-    #[test]
-    fn client() {
-        let params = HistoryParams {
-            client: Some("10.1".to_owned()),
-            ..HistoryParams::default()
-        };
-
-        let (queries, _) =
-            load_queries_from_database(&connect_to_test_db(), None, &params, 1).unwrap();
-
-        assert_eq!(queries.len(), 1);
-        assert_eq!(queries[0].client, "10.1.1.1");
-    }
-
-    /// Only queries with an upstream similar to the input are returned.
-    #[test]
-    fn upstream() {
-        let params = HistoryParams {
-            upstream: Some("8.8.8".to_owned()),
-            ..HistoryParams::default()
-        };
-
-        let (queries, _) =
-            load_queries_from_database(&connect_to_test_db(), None, &params, 1).unwrap();
-
-        assert_eq!(queries.len(), 1);
-        assert_eq!(queries[0].upstream, Some("8.8.8.8".to_owned()));
-    }
-
-    /// Only queries with the input query type are returned.
-    #[test]
-    fn query_type() {
-        let query_type = FtlQueryType::PTR;
-        let params = HistoryParams {
-            query_type: Some(query_type),
-            ..HistoryParams::default()
-        };
-
-        let (queries, _) =
-            load_queries_from_database(&connect_to_test_db(), None, &params, 1).unwrap();
-
-        assert_eq!(queries.len(), 1);
-        assert_eq!(queries[0].query_type, query_type as i32);
-    }
-
-    /// Only queries with the input query status are returned.
-    #[test]
-    fn status() {
-        let status = FtlQueryStatus::Forward;
-        let params = HistoryParams {
-            status: Some(status),
-            ..HistoryParams::default()
-        };
-
-        let (queries, _) =
-            load_queries_from_database(&connect_to_test_db(), None, &params, 1).unwrap();
-
-        assert_eq!(queries.len(), 1);
-        assert_eq!(queries[0].status, status as i32);
-    }
-
-    /// Only queries with a blocked/unblocked status are returned.
-    #[test]
-    fn blocked() {
-        let blocked = false;
-        let params = HistoryParams {
-            blocked: Some(blocked),
-            ..HistoryParams::default()
-        };
-
-        let (queries, _) =
-            load_queries_from_database(&connect_to_test_db(), None, &params, 1).unwrap();
-
-        assert_eq!(queries.len(), 1);
-        assert!(
-            match FtlQueryStatus::from_number(queries[0].status as isize).unwrap() {
-                FtlQueryStatus::Gravity
-                | FtlQueryStatus::Wildcard
-                | FtlQueryStatus::Blacklist
-                | FtlQueryStatus::ExternalBlock => blocked,
-                _ => !blocked
-            }
-        );
     }
 }

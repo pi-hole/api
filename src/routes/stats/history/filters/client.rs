@@ -9,10 +9,12 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
+    databases::ftl::queries,
     ftl::{FtlMemory, FtlQuery, ShmLockGuard},
     routes::stats::history::endpoints::HistoryParams,
     util::Error
 };
+use diesel::{prelude::*, sqlite::Sqlite};
 use std::{collections::HashSet, iter};
 
 /// Only show queries of the specified client
@@ -56,20 +58,38 @@ pub fn filter_client<'a>(
     }
 }
 
+/// Only show queries of the specified client in database results
+pub fn filter_client_db<'a>(
+    db_query: queries::BoxedQuery<'a, Sqlite>,
+    params: &HistoryParams
+) -> queries::BoxedQuery<'a, Sqlite> {
+    // Use the Diesel DSL of this table for easy querying
+    use self::queries::dsl::*;
+
+    if let Some(ref search_client) = params.client {
+        db_query.filter(client.like(format!("%{}%", search_client)))
+    } else {
+        db_query
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use super::filter_client;
+    use super::{filter_client, filter_client_db};
     use crate::{
+        databases::ftl::connect_to_test_db,
         ftl::{FtlQuery, ShmLockGuard},
         routes::stats::history::{
+            database::execute_query,
             endpoints::HistoryParams,
             testing::{test_memory, test_queries}
         }
     };
+    use diesel::prelude::*;
 
     /// Only return queries from the specified client IP
     #[test]
-    fn test_filter_client_ip() {
+    fn ip() {
         let queries = test_queries();
         let expected_queries = vec![&queries[0], &queries[1], &queries[2]];
         let filtered_queries: Vec<&FtlQuery> = filter_client(
@@ -90,7 +110,7 @@ mod test {
     /// Only return queries from the specified client IP. This test uses
     /// substring matching.
     #[test]
-    fn test_filter_client_ip_substring() {
+    fn ip_substring() {
         let queries = test_queries();
         let expected_queries = vec![&queries[0], &queries[1], &queries[2]];
         let filtered_queries: Vec<&FtlQuery> = filter_client(
@@ -110,7 +130,7 @@ mod test {
 
     /// Only return queries from the specified client name
     #[test]
-    fn test_filter_client_name() {
+    fn name() {
         let queries = test_queries();
         let expected_queries = vec![&queries[0], &queries[1], &queries[2]];
         let filtered_queries: Vec<&FtlQuery> = filter_client(
@@ -131,7 +151,7 @@ mod test {
     /// Only return queries from the specified client name. This test uses
     /// substring matching.
     #[test]
-    fn test_filter_client_name_substring() {
+    fn name_substring() {
         let queries = test_queries();
         let expected_queries = vec![&queries[0], &queries[1], &queries[2]];
         let filtered_queries: Vec<&FtlQuery> = filter_client(
@@ -147,5 +167,23 @@ mod test {
         .collect();
 
         assert_eq!(filtered_queries, expected_queries);
+    }
+
+    /// Only queries with a client similar to the input are returned. This is a
+    /// database filter.
+    #[test]
+    fn database() {
+        use crate::databases::ftl::queries::dsl::*;
+
+        let params = HistoryParams {
+            client: Some("10.1".to_owned()),
+            ..HistoryParams::default()
+        };
+
+        let db_query = filter_client_db(queries.into_boxed(), &params);
+        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+
+        assert_eq!(filtered_queries.len(), 1);
+        assert_eq!(filtered_queries[0].client, "10.1.1.1");
     }
 }

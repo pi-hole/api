@@ -12,6 +12,14 @@ use crate::ftl::FtlQueryType;
 use libc;
 use rocket::{http::RawStr, request::FromFormValue};
 
+/// A list of query statuses which mark a query as blocked
+pub const BLOCKED_STATUSES: [i32; 4] = [
+    FtlQueryStatus::Gravity as i32,
+    FtlQueryStatus::Wildcard as i32,
+    FtlQueryStatus::Blacklist as i32,
+    FtlQueryStatus::ExternalBlock as i32
+];
+
 /// The query struct stored in shared memory
 #[repr(C)]
 #[cfg_attr(test, derive(PartialEq, Debug))]
@@ -40,13 +48,7 @@ pub struct FtlQuery {
 impl FtlQuery {
     /// Check if the query was blocked
     pub fn is_blocked(&self) -> bool {
-        match self.status {
-            FtlQueryStatus::Gravity
-            | FtlQueryStatus::Wildcard
-            | FtlQueryStatus::Blacklist
-            | FtlQueryStatus::ExternalBlock => true,
-            _ => false
-        }
+        BLOCKED_STATUSES.contains(&(self.status as i32))
     }
 }
 

@@ -14,6 +14,7 @@ use crate::{
     settings::{ConfigEntry, SetupVarsEntry},
     util::Error
 };
+use std::collections::HashSet;
 
 /// Remove clients from the `clients` vector if they show up in
 /// [`SetupVarsEntry::ApiExcludeClients`].
@@ -26,7 +27,7 @@ pub fn remove_excluded_clients(
     strings: &FtlStrings
 ) -> Result<(), Error> {
     let excluded_clients = SetupVarsEntry::ApiExcludeClients.read(env)?.to_lowercase();
-    let excluded_clients: Vec<&str> = excluded_clients
+    let excluded_clients: HashSet<&str> = excluded_clients
         .split(',')
         .filter(|s| !s.is_empty())
         .collect();
@@ -55,7 +56,7 @@ pub fn remove_excluded_domains(
     strings: &FtlStrings
 ) -> Result<(), Error> {
     let excluded_domains = SetupVarsEntry::ApiExcludeDomains.read(env)?.to_lowercase();
-    let excluded_domains: Vec<&str> = excluded_domains
+    let excluded_domains: HashSet<&str> = excluded_domains
         .split(',')
         .filter(|s| !s.is_empty())
         .collect();

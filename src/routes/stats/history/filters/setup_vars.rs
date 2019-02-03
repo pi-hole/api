@@ -9,11 +9,13 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
+    databases::ftl::queries,
     env::Env,
-    ftl::FtlQuery,
+    ftl::{FtlQuery, BLOCKED_STATUSES},
     settings::{ConfigEntry, SetupVarsEntry},
     util::Error
 };
+use diesel::{prelude::*, sqlite::Sqlite};
 use std::iter;
 
 /// Apply the `SetupVarsEntry::ApiQueryLogShow` setting (`permittedonly`,
@@ -30,19 +32,38 @@ pub fn filter_setup_vars_setting<'a>(
     })
 }
 
+/// Apply the `SetupVarsEntry::ApiQueryLogShow` setting (`permittedonly`,
+/// `blockedonly`, etc) to database results.
+pub fn filter_setup_vars_setting_db<'a>(
+    db_query: queries::BoxedQuery<'a, Sqlite>,
+    env: &Env
+) -> Result<queries::BoxedQuery<'a, Sqlite>, Error> {
+    // Use the Diesel DSL of this table for easy querying
+    use self::queries::dsl::*;
+
+    Ok(match SetupVarsEntry::ApiQueryLogShow.read(env)?.as_str() {
+        "permittedonly" => db_query.filter(status.ne_all(&BLOCKED_STATUSES)),
+        "blockedonly" => db_query.filter(status.eq_any(&BLOCKED_STATUSES)),
+        "nothing" => db_query.limit(0),
+        _ => db_query
+    })
+}
+
 #[cfg(test)]
 mod test {
-    use super::filter_setup_vars_setting;
+    use super::{filter_setup_vars_setting, filter_setup_vars_setting_db};
     use crate::{
+        databases::ftl::connect_to_test_db,
         env::{Config, Env, PiholeFile},
-        ftl::FtlQuery,
-        routes::stats::history::testing::test_queries,
+        ftl::{FtlQuery, BLOCKED_STATUSES},
+        routes::stats::history::{database::execute_query, testing::test_queries},
         testing::TestEnvBuilder
     };
+    use diesel::prelude::*;
 
     /// No queries should be shown if `API_QUERY_LOG_SHOW` equals `nothing`
     #[test]
-    fn test_filter_setup_vars_setting_nothing() {
+    fn setting_is_nothing() {
         let env = Env::Test(
             Config::default(),
             TestEnvBuilder::new()
@@ -55,13 +76,13 @@ mod test {
                 .unwrap()
                 .collect();
 
-        assert_eq!(filtered_queries, Vec::<&FtlQuery>::new());
+        assert_eq!(filtered_queries.len(), 0);
     }
 
     /// Only permitted queries should be shown if `API_QUERY_LOG_SHOW` equals
     /// `permittedonly`
     #[test]
-    fn test_filter_setup_vars_setting_permitted() {
+    fn setting_is_permitted() {
         let env = Env::Test(
             Config::default(),
             TestEnvBuilder::new()
@@ -87,7 +108,7 @@ mod test {
     /// Only blocked queries should be shown if `API_QUERY_LOG_SHOW` equals
     /// `blockedonly`
     #[test]
-    fn test_filter_setup_vars_setting_blocked() {
+    fn setting_is_blocked() {
         let env = Env::Test(
             Config::default(),
             TestEnvBuilder::new()
@@ -103,5 +124,66 @@ mod test {
                 .collect();
 
         assert_eq!(filtered_queries, expected_queries);
+    }
+
+    /// No queries should be shown if `API_QUERY_LOG_SHOW` equals `nothing`.
+    /// This is a database filter.
+    #[test]
+    fn setting_is_nothing_db() {
+        use crate::databases::ftl::queries::dsl::*;
+
+        let env = Env::Test(
+            Config::default(),
+            TestEnvBuilder::new()
+                .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=nothing")
+                .build()
+        );
+
+        let db_query = filter_setup_vars_setting_db(queries.into_boxed(), &env).unwrap();
+        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+
+        assert_eq!(filtered_queries.len(), 0);
+    }
+
+    /// Only permitted queries should be shown if `API_QUERY_LOG_SHOW` equals
+    /// `permittedonly`. This is a database filter.
+    #[test]
+    fn setting_is_permitted_db() {
+        use crate::databases::ftl::queries::dsl::*;
+
+        let env = Env::Test(
+            Config::default(),
+            TestEnvBuilder::new()
+                .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=permittedonly")
+                .build()
+        );
+
+        let db_query = filter_setup_vars_setting_db(queries.into_boxed(), &env).unwrap();
+        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+
+        for query in filtered_queries {
+            assert!(!BLOCKED_STATUSES.contains(&(query.status as i32)));
+        }
+    }
+
+    /// Only blocked queries should be shown if `API_QUERY_LOG_SHOW` equals
+    /// `blockedonly`. This is a database filter
+    #[test]
+    fn setting_is_blocked_db() {
+        use crate::databases::ftl::queries::dsl::*;
+
+        let env = Env::Test(
+            Config::default(),
+            TestEnvBuilder::new()
+                .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=blockedonly")
+                .build()
+        );
+
+        let db_query = filter_setup_vars_setting_db(queries.into_boxed(), &env).unwrap();
+        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+
+        for query in filtered_queries {
+            assert!(BLOCKED_STATUSES.contains(&(query.status as i32)));
+        }
     }
 }

@@ -12,6 +12,8 @@ mod blocked;
 mod client;
 mod dnssec;
 mod domain;
+mod exclude_clients;
+mod exclude_domains;
 mod private;
 mod query_type;
 mod reply;
@@ -21,6 +23,6 @@ mod time;
 mod upstream;
 
 pub use self::{
-    blocked::*, client::*, dnssec::*, domain::*, private::*, query_type::*, reply::*,
-    setup_vars::*, status::*, time::*, upstream::*
+    blocked::*, client::*, dnssec::*, domain::*, exclude_clients::*, exclude_domains::*,
+    private::*, query_type::*, reply::*, setup_vars::*, status::*, time::*, upstream::*
 };
