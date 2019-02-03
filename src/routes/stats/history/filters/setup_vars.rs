@@ -63,7 +63,7 @@ mod test {
 
     /// No queries should be shown if `API_QUERY_LOG_SHOW` equals `nothing`
     #[test]
-    fn nothing() {
+    fn setting_is_nothing() {
         let env = Env::Test(
             Config::default(),
             TestEnvBuilder::new()
@@ -82,7 +82,7 @@ mod test {
     /// Only permitted queries should be shown if `API_QUERY_LOG_SHOW` equals
     /// `permittedonly`
     #[test]
-    fn permitted() {
+    fn setting_is_permitted() {
         let env = Env::Test(
             Config::default(),
             TestEnvBuilder::new()
@@ -108,7 +108,7 @@ mod test {
     /// Only blocked queries should be shown if `API_QUERY_LOG_SHOW` equals
     /// `blockedonly`
     #[test]
-    fn blocked() {
+    fn setting_is_blocked() {
         let env = Env::Test(
             Config::default(),
             TestEnvBuilder::new()
@@ -129,7 +129,7 @@ mod test {
     /// No queries should be shown if `API_QUERY_LOG_SHOW` equals `nothing`.
     /// This is a database filter.
     #[test]
-    fn nothing_db() {
+    fn setting_is_nothing_db() {
         use crate::databases::ftl::queries::dsl::*;
 
         let env = Env::Test(
@@ -148,7 +148,7 @@ mod test {
     /// Only permitted queries should be shown if `API_QUERY_LOG_SHOW` equals
     /// `permittedonly`. This is a database filter.
     #[test]
-    fn permitted_db() {
+    fn setting_is_permitted_db() {
         use crate::databases::ftl::queries::dsl::*;
 
         let env = Env::Test(
@@ -169,7 +169,7 @@ mod test {
     /// Only blocked queries should be shown if `API_QUERY_LOG_SHOW` equals
     /// `blockedonly`. This is a database filter
     #[test]
-    fn blocked_db() {
+    fn setting_is_blocked_db() {
         use crate::databases::ftl::queries::dsl::*;
 
         let env = Env::Test(
