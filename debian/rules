@@ -5,5 +5,5 @@
 
 # This rule is overridden to install the service with a different name than the
 # package
-override_dh_installinit:
-	dh_installinit --name pihole-API
+override_dh_systemd_enable:
+	dh_systemd_enable --name pihole-API
