@@ -4,7 +4,8 @@ FROM debian:stretch
 RUN dpkg --add-architecture arm64 && \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates git \
-        gcc libc-dev libsqlite3-dev:arm64 gcc-aarch64-linux-gnu libc-dev-arm64-cross && \
+        gcc libc-dev libsqlite3-dev:arm64 gcc-aarch64-linux-gnu libc-dev-arm64-cross \
+        build-essential debhelper dh-systemd && \
     rm -rf /var/lib/apt/lists/* && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2019-01-09 && \
     export PATH="/root/.cargo/bin:$PATH" && \

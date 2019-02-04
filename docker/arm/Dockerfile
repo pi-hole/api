@@ -1,10 +1,10 @@
 FROM debian:stretch
 
-# Install Rust
 RUN dpkg --add-architecture armel && \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates git \
-        gcc libc-dev libsqlite3-dev:armel gcc-arm-linux-gnueabi libc-dev-armel-cross && \
+        gcc libc-dev libsqlite3-dev:armel gcc-arm-linux-gnueabi libc-dev-armel-cross \
+        build-essential debhelper dh-systemd && \
     rm -rf /var/lib/apt/lists/* && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2019-01-09 && \
     export PATH="/root/.cargo/bin:$PATH" && \
