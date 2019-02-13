@@ -62,33 +62,73 @@ pub fn get_summary(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
         "disabled"
     };
 
-    reply_data(json!({
-        "gravity_size": counters.gravity_size,
-        "total_queries": {
-            "A": counters.query_type(FtlQueryType::A),
-            "AAAA": counters.query_type(FtlQueryType::AAAA),
-            "ANY": counters.query_type(FtlQueryType::ANY),
-            "SRV": counters.query_type(FtlQueryType::SRV),
-            "SOA": counters.query_type(FtlQueryType::SOA),
-            "PTR": counters.query_type(FtlQueryType::PTR),
-            "TXT": counters.query_type(FtlQueryType::TXT)
+    reply_data(Summary {
+        gravity_size: counters.gravity_size as usize,
+        total_queries: TotalQueries {
+            A: counters.query_type(FtlQueryType::A),
+            AAAA: counters.query_type(FtlQueryType::AAAA),
+            ANY: counters.query_type(FtlQueryType::ANY),
+            SRV: counters.query_type(FtlQueryType::SRV),
+            SOA: counters.query_type(FtlQueryType::SOA),
+            PTR: counters.query_type(FtlQueryType::PTR),
+            TXT: counters.query_type(FtlQueryType::TXT)
         },
-        "blocked_queries": counters.blocked_queries,
-        "percent_blocked": percent_blocked,
-        "unique_domains": counters.total_domains,
-        "forwarded_queries": counters.forwarded_queries,
-        "cached_queries": counters.cached_queries,
-        "reply_types": {
-            "IP": counters.reply_count_ip,
-            "CNAME": counters.reply_count_cname,
-            "DOMAIN": counters.reply_count_domain,
-            "NODATA": counters.reply_count_nodata,
-            "NXDOMAIN": counters.reply_count_nxdomain
+        blocked_queries: counters.blocked_queries as usize,
+        percent_blocked,
+        unique_domains: counters.total_domains as usize,
+        forwarded_queries: counters.forwarded_queries as usize,
+        cached_queries: counters.cached_queries as usize,
+        reply_types: ReplyTypes {
+            IP: counters.reply_count_ip as usize,
+            CNAME: counters.reply_count_cname as usize,
+            DOMAIN: counters.reply_count_domain as usize,
+            NODATA: counters.reply_count_nodata as usize,
+            NXDOMAIN: counters.reply_count_nxdomain as usize
         },
-        "total_clients": total_clients,
-        "active_clients": active_clients,
-        "status": status
-    }))
+        total_clients,
+        active_clients,
+        status
+    })
+}
+
+/// Represents the response of summary endpoints
+#[derive(Serialize)]
+pub struct Summary {
+    pub gravity_size: usize,
+    pub total_queries: TotalQueries,
+    pub blocked_queries: usize,
+    pub percent_blocked: f64,
+    pub unique_domains: usize,
+    pub forwarded_queries: usize,
+    pub cached_queries: usize,
+    pub reply_types: ReplyTypes,
+    pub total_clients: usize,
+    pub active_clients: usize,
+    pub status: &'static str
+}
+
+/// Part of the summary response
+#[allow(non_snake_case)]
+#[derive(Serialize)]
+pub struct TotalQueries {
+    pub A: usize,
+    pub AAAA: usize,
+    pub ANY: usize,
+    pub SRV: usize,
+    pub SOA: usize,
+    pub PTR: usize,
+    pub TXT: usize
+}
+
+/// Part of the summary response
+#[allow(non_snake_case)]
+#[derive(Serialize)]
+pub struct ReplyTypes {
+    pub IP: usize,
+    pub CNAME: usize,
+    pub DOMAIN: usize,
+    pub NODATA: usize,
+    pub NXDOMAIN: usize
 }
 
 #[cfg(test)]
