@@ -50,7 +50,7 @@ impl FtlCounters {
 ///
 /// [`FtlCounters::query_type`]: struct.FtlCounters.html#method.query_type
 #[repr(u8)]
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
 pub enum FtlQueryType {
     A = 1,
     AAAA,

@@ -150,6 +150,7 @@ fn setup(
             auth::check,
             auth::logout,
             stats::get_summary,
+            stats::get_summary_db,
             stats::top_domains,
             stats::top_domains_params,
             stats::top_clients,
