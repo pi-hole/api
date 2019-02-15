@@ -37,6 +37,18 @@ pub fn get_summary_db(
     // (only need to cast once, here)
     let db = &ftl_database as &SqliteConnection;
 
+    reply_data(get_summary_impl(from, until, db, &env)?)
+}
+
+/// Implementation of [`get_summary_db`]
+///
+/// [`get_summary_db`]: fn.get_summary_db.html
+fn get_summary_impl(
+    from: u64,
+    until: u64,
+    db: &SqliteConnection,
+    env: &Env
+) -> Result<Summary, Error> {
     let query_type_counts = get_query_type_counts(db, from, until)?;
 
     let total_queries_a = *query_type_counts.get(&FtlQueryType::A).unwrap_or(&0);
@@ -56,7 +68,7 @@ pub fn get_summary_db(
         + total_queries_txt;
     let blocked_queries = get_blocked_query_count(db, from, until)?;
 
-    reply_data(Summary {
+    Ok(Summary {
         // Gravity size is set to zero because it is not relevant when looking
         // at long term data
         gravity_size: 0,
