@@ -24,9 +24,8 @@ use failure::ResultExt;
 use rocket::State;
 use std::collections::HashMap;
 
-/// Get summary data from database. Rank = 0 is used to avoid using this route
-/// for `/stats/summary`.
-#[get("/stats/summary?<from>&<until>", rank = 0)]
+/// Get summary data from database
+#[get("/stats/summary?<from>&<until>")]
 pub fn get_summary_db(
     from: u64,
     until: u64,
