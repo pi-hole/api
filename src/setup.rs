@@ -83,7 +83,7 @@ pub fn test(
     Client::new(setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Development)
-                .log_level(LoggingLevel::Off)
+                .log_level(LoggingLevel::Debug)
                 .extra("databases", load_test_databases())
                 .finalize()
                 .unwrap()
