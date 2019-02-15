@@ -11,7 +11,7 @@
 use crate::{
     databases::ftl::FtlDatabase,
     env::Env,
-    ftl::{FtlMemory, FtlQueryStatus, FtlQueryType, BLOCKED_STATUSES},
+    ftl::{FtlQueryStatus, FtlQueryType, BLOCKED_STATUSES},
     routes::{
         auth::User,
         stats::summary::{ReplyTypes, Summary, TotalQueries}
