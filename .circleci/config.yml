@@ -92,7 +92,7 @@ jobs:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-arm-linux-gnueabihf"
-      TARGET: "arm-unknown-linux-gnueabihf"
+      TARGET: "armv7-unknown-linux-gnueabihf"
       DEB_ARCH: "armhf"
 
   aarch64:
