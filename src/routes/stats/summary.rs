@@ -193,10 +193,6 @@ mod test {
             .endpoint("/admin/api/stats/summary")
             .ftl_memory(test_data())
             .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=true")
-            // Used to avoid error when the DB version of summary endpoint is
-            // checked during routing
-            // TODO: remove when we have more control over FtlDatabase
-            .need_database(true)
             .expect_json(json!({
                 "gravity_size": 100_000,
                 "total_queries": {
@@ -234,10 +230,6 @@ mod test {
             .ftl_memory(test_data())
             .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=false")
             .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=2")
-            // Used to avoid error when the DB version of summary endpoint is
-            // checked during routing
-            // TODO: remove when we have more control over FtlDatabase
-            .need_database(true)
             .expect_json(json!({
                 "gravity_size": 100_000,
                 "total_queries": {

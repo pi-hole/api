@@ -25,7 +25,7 @@ use rocket::State;
 use std::collections::HashMap;
 
 /// Get summary data from database
-#[get("/stats/summary?<from>&<until>")]
+#[get("/stats/database/summary?<from>&<until>")]
 pub fn get_summary_db(
     from: u64,
     until: u64,
