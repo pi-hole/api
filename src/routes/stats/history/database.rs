@@ -93,7 +93,7 @@ pub fn execute_query(
     db_query: queries::BoxedQuery<Sqlite>
 ) -> Result<Vec<FtlDbQuery>, Error> {
     db_query
-        .load(db as &SqliteConnection)
+        .load(db)
         .context(ErrorKind::FtlDatabase)
         .map_err(Error::from)
 }

@@ -93,6 +93,7 @@ pub fn get_summary(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
 
 /// Represents the response of summary endpoints
 #[derive(Serialize)]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct Summary {
     pub gravity_size: usize,
     pub total_queries: TotalQueries,
@@ -110,6 +111,7 @@ pub struct Summary {
 /// Part of the summary response
 #[allow(non_snake_case)]
 #[derive(Serialize)]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct TotalQueries {
     pub A: usize,
     pub AAAA: usize,
@@ -123,6 +125,7 @@ pub struct TotalQueries {
 /// Part of the summary response
 #[allow(non_snake_case)]
 #[derive(Serialize)]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct ReplyTypes {
     pub IP: usize,
     pub CNAME: usize,

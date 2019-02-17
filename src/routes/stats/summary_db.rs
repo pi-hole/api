@@ -118,7 +118,7 @@ fn get_query_type_counts(
     use crate::databases::ftl::queries::dsl::*;
     use diesel::{dsl::sql, sql_types::BigInt};
 
-    let counts = queries
+    let mut counts: HashMap<FtlQueryType, usize> = queries
         // Select the query types and their counts.
         // The raw SQL is used due to a limitation of Diesel, in that it doesn't
         // have full support for mixing aggregate and non-aggregate data when
@@ -140,6 +140,13 @@ fn get_query_type_counts(
         })
         // Turn the iterator into a HashMap
         .collect();
+
+    // Fill in the rest of the query types not found in the database
+    for q_type in FtlQueryType::variants() {
+        if !counts.contains_key(q_type) {
+            counts.insert(*q_type, 0);
+        }
+    }
 
     Ok(counts)
 }
@@ -192,4 +199,117 @@ fn get_query_status_count(
         .context(ErrorKind::FtlDatabase)?;
 
     Ok(count as usize)
+}
+
+#[cfg(test)]
+mod test {
+    use super::{
+        get_blocked_query_count, get_query_status_count, get_query_type_counts, get_summary_impl,
+        get_unique_domain_count
+    };
+    use crate::{
+        databases::ftl::connect_to_test_db,
+        env::{Config, Env},
+        ftl::{FtlQueryStatus, FtlQueryType},
+        routes::stats::summary::{ReplyTypes, Summary, TotalQueries}
+    };
+    use std::collections::HashMap;
+
+    const FROM_TIMESTAMP: u64 = 0;
+    const UNTIL_TIMESTAMP: u64 = 177_180;
+
+    /// Verify that the summary returned using the database is accurate
+    #[test]
+    fn summary_impl() {
+        let expected_summary = Summary {
+            gravity_size: 0,
+            total_queries: TotalQueries {
+                A: 36,
+                AAAA: 35,
+                ANY: 0,
+                SRV: 0,
+                SOA: 0,
+                PTR: 23,
+                TXT: 0
+            },
+            blocked_queries: 0,
+            percent_blocked: 0f64,
+            unique_domains: 11,
+            forwarded_queries: 26,
+            cached_queries: 28,
+            reply_types: ReplyTypes {
+                IP: 0,
+                CNAME: 0,
+                DOMAIN: 0,
+                NODATA: 0,
+                NXDOMAIN: 0
+            },
+            total_clients: 0,
+            active_clients: 0,
+            status: "enabled"
+        };
+
+        let db = connect_to_test_db();
+        let env = Env::Test(Config::default(), HashMap::new());
+        let actual_summary = get_summary_impl(FROM_TIMESTAMP, UNTIL_TIMESTAMP, &db, &env).unwrap();
+
+        assert_eq!(actual_summary, expected_summary);
+    }
+
+    /// Verify the query type counts are accurate
+    #[test]
+    fn query_type_counts() {
+        let mut expected = HashMap::new();
+        expected.insert(FtlQueryType::A, 36);
+        expected.insert(FtlQueryType::AAAA, 35);
+        expected.insert(FtlQueryType::ANY, 0);
+        expected.insert(FtlQueryType::SRV, 0);
+        expected.insert(FtlQueryType::SOA, 0);
+        expected.insert(FtlQueryType::PTR, 23);
+        expected.insert(FtlQueryType::TXT, 0);
+
+        let db = connect_to_test_db();
+        let actual = get_query_type_counts(&db, FROM_TIMESTAMP, UNTIL_TIMESTAMP).unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    /// Verify the blocked query count is accurate
+    #[test]
+    fn blocked_query_count() {
+        let expected = 0;
+
+        let db = connect_to_test_db();
+        let actual = get_blocked_query_count(&db, FROM_TIMESTAMP, UNTIL_TIMESTAMP).unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    /// Verify the unique domain count is accurate
+    #[test]
+    fn unique_domain_count() {
+        let expected = 11;
+
+        let db = connect_to_test_db();
+        let actual = get_unique_domain_count(&db, FROM_TIMESTAMP, UNTIL_TIMESTAMP).unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    /// Verify the query status count is accurate
+    #[test]
+    fn query_status_count() {
+        let expected = 26;
+
+        let db = connect_to_test_db();
+        let actual = get_query_status_count(
+            &db,
+            FROM_TIMESTAMP,
+            UNTIL_TIMESTAMP,
+            FtlQueryStatus::Forward
+        )
+        .unwrap();
+
+        assert_eq!(actual, expected);
+    }
 }
