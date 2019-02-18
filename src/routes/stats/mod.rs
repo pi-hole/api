@@ -20,6 +20,8 @@ mod top_clients;
 mod top_domains;
 mod upstreams;
 
+pub mod database;
+
 pub use self::{
     clients::*, history::*, over_time_clients::*, over_time_history::*, query_types::*,
     recent_blocked::*, summary::*, top_clients::*, top_domains::*, upstreams::*

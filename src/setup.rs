@@ -83,7 +83,7 @@ pub fn test(
     Client::new(setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Development)
-                .log_level(LoggingLevel::Off)
+                .log_level(LoggingLevel::Debug)
                 .extra("databases", load_test_databases())
                 .finalize()
                 .unwrap()
@@ -164,6 +164,7 @@ fn setup(
             stats::clients_params,
             stats::over_time_history,
             stats::over_time_clients,
+            stats::database::get_summary_db,
             dns::get_whitelist,
             dns::get_blacklist,
             dns::get_regexlist,
