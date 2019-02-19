@@ -22,15 +22,9 @@ use rocket::{request::Form, State};
 use rocket_contrib::json::JsonValue;
 use std::io::{BufRead, BufReader};
 
-/// Return the top domains with default parameters
-#[get("/stats/top_domains")]
-pub fn top_domains(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
-    get_top_domains(&ftl_memory, &env, TopParams::default())
-}
-
-/// Return the top domains with specified parameters
+/// Return the top domains
 #[get("/stats/top_domains?<params..>")]
-pub fn top_domains_params(
+pub fn top_domains(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
@@ -39,8 +33,7 @@ pub fn top_domains_params(
     get_top_domains(&ftl_memory, &env, params.into_inner())
 }
 
-/// Represents the possible GET parameters on `/stats/top_domains` and
-/// `/stats/top_blocked`
+/// Represents the possible GET parameters on `/stats/top_domains`
 #[derive(FromForm)]
 pub struct TopParams {
     limit: Option<usize>,
@@ -49,20 +42,12 @@ pub struct TopParams {
     blocked: Option<bool>
 }
 
-impl Default for TopParams {
-    /// The default parameters of top_domains and top_blocked requests
-    fn default() -> Self {
-        TopParams {
-            limit: Some(10),
-            audit: Some(false),
-            ascending: Some(false),
-            blocked: Some(false)
-        }
-    }
-}
-
 /// Get the top domains (blocked or not)
 fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Reply {
+    // Resolve the parameters
+    let limit = params.limit.unwrap_or(10);
+    let audit = params.audit.unwrap_or(false);
+    let ascending = params.ascending.unwrap_or(false);
     let blocked = params.blocked.unwrap_or(false);
 
     let lock = ftl_memory.lock()?;
@@ -131,7 +116,7 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
     }
 
     // If audit flag is true, only include unaudited domains
-    if params.audit.unwrap_or(false) {
+    if audit {
         let audit_file = BufReader::new(env.read_file(PiholeFile::AuditLog)?);
         let audited_domains: Vec<String> =
             audit_file.lines().filter_map(|line| line.ok()).collect();
@@ -143,7 +128,7 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
     }
 
     // Sort the domains (descending by default)
-    match (params.ascending.unwrap_or(false), blocked) {
+    match (ascending, blocked) {
         (false, false) => domains.sort_by(|a, b| {
             (b.query_count - b.blocked_count).cmp(&(a.query_count - a.blocked_count))
         }),
@@ -154,11 +139,9 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
         (true, true) => domains.sort_by(|a, b| a.blocked_count.cmp(&b.blocked_count))
     }
 
-    // Take into account the limit if specified
-    if let Some(limit) = params.limit {
-        if limit < domains.len() {
-            domains.split_off(limit);
-        }
+    // Take into account the limit
+    if limit < domains.len() {
+        domains.split_off(limit);
     }
 
     // Map the domains into the output format

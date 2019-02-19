@@ -151,7 +151,6 @@ fn setup(
             auth::logout,
             stats::get_summary,
             stats::top_domains,
-            stats::top_domains_params,
             stats::top_clients,
             stats::top_clients_params,
             stats::upstreams,
