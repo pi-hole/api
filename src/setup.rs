@@ -157,7 +157,6 @@ fn setup(
             stats::history,
             stats::recent_blocked,
             stats::clients,
-            stats::clients_params,
             stats::over_time_history,
             stats::over_time_clients,
             stats::database::get_summary_db,
