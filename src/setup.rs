@@ -152,7 +152,6 @@ fn setup(
             stats::get_summary,
             stats::top_domains,
             stats::top_clients,
-            stats::top_clients_params,
             stats::upstreams,
             stats::query_types,
             stats::history,
