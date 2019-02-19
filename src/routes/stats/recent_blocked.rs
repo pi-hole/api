@@ -10,7 +10,7 @@
 
 use crate::{
     env::Env,
-    ftl::{FtlMemory, FtlQueryStatus},
+    ftl::FtlMemory,
     routes::auth::User,
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::{reply_data, Reply}
