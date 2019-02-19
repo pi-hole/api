@@ -155,7 +155,6 @@ fn setup(
             stats::upstreams,
             stats::query_types,
             stats::history,
-            stats::history_params,
             stats::recent_blocked,
             stats::recent_blocked_params,
             stats::clients,
