@@ -35,10 +35,10 @@ version: 2
           echo "Using the $branch branch"
 
           # If web directory already exists, empty it out
-          mkdir -p web
-          rm web/*
+          rm -rf web
           # Uncompress the files to the "web" folder
           curl "$root/$branch/$file" -o web.tar.gz
+          mkdir web
           tar -xzf web.tar.gz -C web
     - run:
         name: "Code Style Check"
