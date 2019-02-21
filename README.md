@@ -12,6 +12,10 @@ well as the PHP API of the pre-5.0 web interface.
       in [`rust-toolchain`](rust-toolchain). The version should be detected and
       used automatically when you run a Rust command in the project directory,
       such as `cargo check` (this is a feature of `rustup`)
+    - After installing, make sure the Rust tools are on your PATH:
+      ```
+      source ~/.cargo/env
+      ```
 - Install your distro's build tools
     - `build-essential` for Debian distros, `gcc-c++` and `make` for RHEL
       distros
