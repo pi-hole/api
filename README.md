@@ -20,6 +20,7 @@ well as the PHP API of the pre-5.0 web interface.
 - Fork the repository and clone to your computer (not the Pi-hole). In
   production the Pi-hole only needs the compiled output of the project, not its
   source code
+    - Checkout the `development` branch for the latest changes.
 - Run `cargo check`. This will download the Rust nightly toolchain and project
   dependencies, and it will check the program for errors. If everything was set
   up correctly, the final output should look like this:
