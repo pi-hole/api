@@ -11,6 +11,11 @@ RUN dpkg --add-architecture arm64 && \
     export PATH="/root/.cargo/bin:$PATH" && \
     rustup target add aarch64-unknown-linux-gnu
 
+# Install ghr for GitHub Releases: https://github.com/tcnksm/ghr
+RUN curl -L -o ghr.tar.gz https://github.com/tcnksm/ghr/releases/download/v0.12.0/ghr_v0.12.0_linux_amd64.tar.gz && \
+    tar -xzf ghr.tar.gz && \
+    mv ghr_*_linux_amd64/ghr /usr/bin/ghr
+
 ENV PATH="/root/.cargo/bin:$PATH" \
     TARGET_CC=aarch64-linux-gnu-gcc \
     CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \

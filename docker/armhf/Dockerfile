@@ -10,6 +10,11 @@ RUN dpkg --add-architecture armhf && \
     export PATH="/root/.cargo/bin:$PATH" && \
     rustup target add armv7-unknown-linux-gnueabihf
 
+# Install ghr for GitHub Releases: https://github.com/tcnksm/ghr
+RUN curl -L -o ghr.tar.gz https://github.com/tcnksm/ghr/releases/download/v0.12.0/ghr_v0.12.0_linux_amd64.tar.gz && \
+    tar -xzf ghr.tar.gz && \
+    mv ghr_*_linux_amd64/ghr /usr/bin/ghr
+
 ENV PATH="/root/.cargo/bin:$PATH" \
     TARGET_CC=arm-linux-gnueabihf-gcc \
     CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc \

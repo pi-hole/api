@@ -10,4 +10,9 @@ RUN dpkg --add-architecture i386 && \
     export PATH="/root/.cargo/bin:$PATH" && \
     rustup target add i686-unknown-linux-gnu
 
+# Install ghr for GitHub Releases: https://github.com/tcnksm/ghr
+RUN curl -L -o ghr.tar.gz https://github.com/tcnksm/ghr/releases/download/v0.12.0/ghr_v0.12.0_linux_amd64.tar.gz && \
+    tar -xzf ghr.tar.gz && \
+    mv ghr_*_linux_amd64/ghr /usr/bin/ghr
+
 ENV PATH="/root/.cargo/bin:$PATH"
