@@ -13,6 +13,10 @@ use libc;
 #[cfg(test)]
 use crate::ftl::memory_model::MAGIC_BYTE;
 
+pub const MAX_LOG_AGE: usize = 24;
+pub const OVERTIME_INTERVAL: usize = 600;
+pub const OVERTIME_SLOTS: usize = (MAX_LOG_AGE + 1) * 3600 / OVERTIME_INTERVAL;
+
 #[repr(C)]
 #[cfg_attr(test, derive(Debug))]
 #[derive(Copy, Clone)]

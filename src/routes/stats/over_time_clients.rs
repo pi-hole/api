@@ -10,7 +10,7 @@
 
 use crate::{
     env::Env,
-    ftl::{FtlClient, FtlMemory},
+    ftl::{FtlClient, FtlMemory, OVERTIME_SLOTS},
     routes::{
         auth::User,
         stats::common::{remove_excluded_clients, remove_hidden_clients}
@@ -20,10 +20,7 @@ use crate::{
 };
 use rocket::State;
 use rocket_contrib::json::JsonValue;
-use std::{
-    collections::HashMap,
-    time::{SystemTime, UNIX_EPOCH}
-};
+use std::collections::HashMap;
 
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
@@ -66,48 +63,23 @@ pub fn over_time_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<E
     remove_hidden_clients(&mut clients, &strings);
     remove_excluded_clients(&mut clients, &env, &strings)?;
 
-    // Get the client overTime data for each client.
-    // This is done without an iterator because `ftl_memory.over_time_client` could
-    // throw an error, which should be returned.
-    let client_data = {
-        let mut client_data = Vec::with_capacity(clients.len());
-
-        for &client in &clients {
-            // Client overTime data is stored using the client ID (index)
-            client_data.push(ftl_memory.over_time_client(client_ids[client], &lock)?);
-        }
-
-        client_data
-    };
-
-    // Get the current timestamp, to be used when getting overTime data
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Current time is older than epoch")
-        .as_secs() as f64;
-
-    // Get the max log age FTL setting, to be used when getting overTime data
-    let max_log_age = FtlConfEntry::MaxLogAge.read_as::<f64>(&env).unwrap_or(24.0) * 3600.0;
-
-    // Get the valid over time slots (starting at the max-log-age timestamp).
-    // Then, combine with the client data from above to get the final overTime
+    // Get the valid over time slots (Skip while the slots are empty).
+    // Then, combine with the client overTime data to get the final overTime
     // output.
     let over_time: Vec<JsonValue> = over_time
         .iter()
-        .take(counters.over_time_size as usize)
+        .take(OVERTIME_SLOTS)
         .enumerate()
-        // Skip the overTime slots without any data, and any slots which are
-        // before the max-log-age time.
+        // Skip the overTime slots without any data
         .skip_while(|(_, time)| {
             (time.total_queries <= 0 && time.blocked_queries <= 0)
-                || ((time.timestamp as f64) < timestamp - max_log_age)
         })
         .map(|(i, time)| {
             // Get the client data for this time slot
-            let data: Vec<usize> = client_data
+            let data: Vec<usize> = clients
                 .iter()
                 // Each client data is indexed according to the overTime index
-                .map(|client| *client.get(i).unwrap_or(&0) as usize)
+                .map(|client| *client.over_time.get(i).unwrap_or(&0) as usize)
                 .collect();
 
             json!({
@@ -161,12 +133,12 @@ mod test {
 
         FtlMemory::Test {
             clients: vec![
-                FtlClient::new(1, 0, 1, Some(2)),
-                FtlClient::new(1, 0, 3, None),
-                FtlClient::new(1, 0, 4, Some(5)),
-                FtlClient::new(1, 0, 6, None),
-                FtlClient::new(0, 0, 7, None),
-                FtlClient::new(0, 0, 8, None),
+                FtlClient::new(1, 0, 1, Some(2)).with_over_time(vec![0, 1, 0, 0]),
+                FtlClient::new(1, 0, 3, None).with_over_time(vec![0, 1, 0, 0]),
+                FtlClient::new(1, 0, 4, Some(5)).with_over_time(vec![0, 1, 0, 0]),
+                FtlClient::new(1, 0, 6, None).with_over_time(vec![0, 0, 1, 0]),
+                FtlClient::new(0, 0, 7, None).with_over_time(vec![0, 0, 1, 0]),
+                FtlClient::new(0, 0, 8, None).with_over_time(vec![0, 0, 0, 1]),
             ],
             domains: Vec::new(),
             over_time: vec![
@@ -175,20 +147,11 @@ mod test {
                 FtlOverTime::new(2, 2, 2, 0, 0, [0; 7]),
                 FtlOverTime::new(3, 1, 1, 1, 0, [0; 7]),
             ],
-            over_time_clients: vec![
-                vec![0, 1, 0, 0],
-                vec![0, 1, 0, 0],
-                vec![0, 1, 0, 0],
-                vec![0, 0, 1, 0],
-                vec![0, 0, 1, 0],
-                vec![0, 0, 0, 1],
-            ],
             strings,
             upstreams: Vec::new(),
             queries: Vec::new(),
             counters: FtlCounters {
                 total_clients: 6,
-                over_time_size: 4,
                 ..FtlCounters::default()
             },
             settings: FtlSettings::default()
@@ -202,8 +165,6 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/overTime/clients")
             .ftl_memory(test_data())
-            // Abuse From<&str> for f64 and use all overTime data
-            .file(PiholeFile::FtlConfig, "MAXLOGAGE=inf")
             .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=client1")
             .expect_json(json!({
                 "clients": [
@@ -217,26 +178,6 @@ mod test {
                     { "timestamp": 2, "data": [0, 0, 1, 1] },
                     { "timestamp": 3, "data": [0, 0, 0, 0] },
                 ]
-            }))
-            .test();
-    }
-
-    /// Only overTime slots within the MAXLOGAGE value are considered
-    #[test]
-    fn max_log_age() {
-        TestBuilder::new()
-            .endpoint("/admin/api/stats/overTime/clients")
-            .ftl_memory(test_data())
-            .file(PiholeFile::FtlConfig, "MAXLOGAGE=0")
-            .expect_json(json!({
-                "clients": [
-                    { "name": "client1", "ip": "10.1.1.1" },
-                    { "name": "",        "ip": "10.1.1.2" },
-                    { "name": "client3", "ip": "10.1.1.3" },
-                    { "name": "",        "ip": "10.1.1.4" },
-                    { "name": "",        "ip": "10.1.1.5" }
-                ],
-                "over_time": []
             }))
             .test();
     }

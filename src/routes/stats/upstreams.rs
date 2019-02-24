@@ -113,7 +113,6 @@ mod test {
                 clients: Vec::new(),
                 domains: Vec::new(),
                 over_time: Vec::new(),
-                over_time_clients: Vec::new(),
                 queries: Vec::new(),
                 settings: FtlSettings::default()
             })
@@ -153,7 +152,6 @@ mod test {
                 clients: Vec::new(),
                 domains: Vec::new(),
                 over_time: Vec::new(),
-                over_time_clients: Vec::new(),
                 queries: Vec::new(),
                 settings: FtlSettings::default()
             })

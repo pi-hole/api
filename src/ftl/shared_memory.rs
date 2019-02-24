@@ -15,7 +15,6 @@ use crate::{
     },
     util::Error
 };
-use libc;
 use shmem::{Array, Map, Object};
 use std::{marker::PhantomData, ops::Deref};
 
@@ -23,13 +22,12 @@ use crate::{ftl::memory_model::FtlSettings, util::ErrorKind};
 #[cfg(test)]
 use std::collections::HashMap;
 
-const FTL_SHM_VERSION: usize = 2;
+const FTL_SHM_VERSION: usize = 3;
 
 const FTL_SHM_CLIENTS: &str = "/FTL-clients";
 const FTL_SHM_DOMAINS: &str = "/FTL-domains";
 const FTL_SHM_FORWARDED: &str = "/FTL-forwarded";
 const FTL_SHM_OVERTIME: &str = "/FTL-overTime";
-const FTL_SHM_OVERTIME_CLIENT: &str = "/FTL-client-";
 const FTL_SHM_QUERIES: &str = "/FTL-queries";
 const FTL_SHM_STRINGS: &str = "/FTL-strings";
 const FTL_SHM_COUNTERS: &str = "/FTL-counters";
@@ -49,7 +47,6 @@ pub enum FtlMemory {
         clients: Vec<FtlClient>,
         domains: Vec<FtlDomain>,
         over_time: Vec<FtlOverTime>,
-        over_time_clients: Vec<Vec<libc::c_int>>,
         upstreams: Vec<FtlUpstream>,
         queries: Vec<FtlQuery>,
         strings: HashMap<usize, String>,
@@ -139,28 +136,6 @@ impl FtlMemory {
             ),
             #[cfg(test)]
             FtlMemory::Test { over_time, .. } => Box::new(over_time.as_slice())
-        })
-    }
-
-    /// Get the FTL shared memory overTime client data. The resulting trait
-    /// object can dereference into `&[libc::c_int]`.
-    pub fn over_time_client<'lock>(
-        &'lock self,
-        client_id: usize,
-        _lock_guard: &ShmLockGuard<'lock>
-    ) -> Result<Box<dyn Deref<Target = [libc::c_int]> + 'lock>, Error> {
-        Ok(match self {
-            FtlMemory::Production { .. } => Box::new(
-                // Load the shared memory
-                Array::new(Object::open(format!(
-                    "{}{}",
-                    FTL_SHM_OVERTIME_CLIENT, client_id
-                ))?)?
-            ),
-            #[cfg(test)]
-            FtlMemory::Test {
-                over_time_clients, ..
-            } => Box::new(over_time_clients[client_id].as_slice())
         })
     }
 
