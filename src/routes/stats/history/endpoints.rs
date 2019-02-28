@@ -23,20 +23,9 @@ use rocket::{
     State
 };
 
-/// Get the entire query history (as stored in FTL)
-#[get("/stats/history")]
-pub fn history(
-    _auth: User,
-    ftl_memory: State<FtlMemory>,
-    env: State<Env>,
-    db: FtlDatabase
-) -> Reply {
-    get_history(&ftl_memory, &env, HistoryParams::default(), &db)
-}
-
 /// Get the query history according to the specified parameters
 #[get("/stats/history?<params..>")]
-pub fn history_params(
+pub fn history(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,

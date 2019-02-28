@@ -21,15 +21,9 @@ use crate::{
 use rocket::{request::Form, State};
 use rocket_contrib::json::JsonValue;
 
-/// Get the top clients with default parameters
-#[get("/stats/top_clients")]
-pub fn top_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
-    get_top_clients(&ftl_memory, &env, TopClientParams::default())
-}
-
-/// Get the top clients with specified parameters
+/// Get the top clients
 #[get("/stats/top_clients?<params..>")]
-pub fn top_clients_params(
+pub fn top_clients(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
@@ -47,22 +41,16 @@ pub struct TopClientParams {
     blocked: Option<bool>
 }
 
-impl Default for TopClientParams {
-    fn default() -> Self {
-        TopClientParams {
-            limit: None,
-            inactive: Some(false),
-            ascending: Some(false),
-            blocked: Some(false)
-        }
-    }
-}
-
 /// Get the top clients according to the parameters
 fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -> Reply {
+    // Resolve the parameters
+    let limit = params.limit.unwrap_or(10);
+    let inactive = params.inactive.unwrap_or(false);
+    let ascending = params.ascending.unwrap_or(false);
+    let blocked = params.blocked.unwrap_or(false);
+
     let lock = ftl_memory.lock()?;
     let counters = ftl_memory.counters(&lock)?;
-    let blocked = params.blocked.unwrap_or(false);
 
     // Check if the client details are private
     if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)?
@@ -91,14 +79,12 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
         .collect();
 
     // Ignore inactive clients by default (retain active clients)
-    if !params.inactive.unwrap_or(false) {
-        clients.retain(|client| {
-            if blocked {
-                client.blocked_count > 0
-            } else {
-                client.query_count > 0
-            }
-        });
+    if !inactive {
+        if blocked {
+            clients.retain(|client| client.blocked_count > 0);
+        } else {
+            clients.retain(|client| client.query_count > 0);
+        }
     }
 
     // Remove excluded and hidden clients
@@ -106,7 +92,7 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
     remove_hidden_clients(&mut clients, &strings);
 
     // Sort the clients (descending by default)
-    match (params.ascending.unwrap_or(false), blocked) {
+    match (ascending, blocked) {
         (false, false) => clients.sort_by(|a, b| b.query_count.cmp(&a.query_count)),
         (true, false) => clients.sort_by(|a, b| a.query_count.cmp(&b.query_count)),
         (false, true) => clients.sort_by(|a, b| b.blocked_count.cmp(&a.blocked_count)),
@@ -114,10 +100,8 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
     }
 
     // Take into account the limit if specified
-    if let Some(limit) = params.limit {
-        if limit < clients.len() {
-            clients.split_off(limit);
-        }
+    if limit < clients.len() {
+        clients.split_off(limit);
     }
 
     // Map the clients into the output format

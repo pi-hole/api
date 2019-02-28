@@ -13,7 +13,6 @@ use crate::{
     util::{reply_data, Reply}
 };
 use rocket::State;
-use rocket_contrib::json::JsonValue;
 
 /// Get the query history over time (separated into blocked and not blocked)
 #[get("/stats/overTime/history")]
@@ -21,22 +20,30 @@ pub fn over_time_history(ftl_memory: State<FtlMemory>) -> Reply {
     let lock = ftl_memory.lock()?;
     let over_time = ftl_memory.over_time(&lock)?;
 
-    let over_time_data: Vec<JsonValue> = over_time.iter()
+    let over_time_data: Vec<OverTimeItem> = over_time.iter()
         .take(OVERTIME_SLOTS)
         // Skip the overTime slots without any data
         .skip_while(|time| {
             (time.total_queries <= 0 && time.blocked_queries <= 0)
         })
         .map(|time| {
-            json!({
-                "timestamp": time.timestamp,
-                "total_queries": time.total_queries,
-                "blocked_queries": time.blocked_queries
-            })
+            OverTimeItem {
+                timestamp: time.timestamp as u64,
+                total_queries: time.total_queries as usize,
+                blocked_queries: time.blocked_queries as usize
+            }
         })
         .collect();
 
     reply_data(over_time_data)
+}
+
+#[derive(Serialize)]
+#[cfg_attr(test, derive(PartialEq, Debug))]
+pub struct OverTimeItem {
+    pub timestamp: u64,
+    pub total_queries: usize,
+    pub blocked_queries: usize
 }
 
 #[cfg(test)]
