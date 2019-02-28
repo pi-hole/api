@@ -15,7 +15,6 @@ use crate::{
     util::{reply_data, Reply}
 };
 use rocket::State;
-use rocket_contrib::json::JsonValue;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Get the query history over time (separated into blocked and not blocked)
@@ -34,7 +33,7 @@ pub fn over_time_history(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply
     // Get the max log age FTL setting, to be used when getting overTime data
     let max_log_age = FtlConfEntry::MaxLogAge.read_as::<f64>(&env).unwrap_or(24.0) * 3600.0;
 
-    let over_time_data: Vec<JsonValue> = over_time.iter()
+    let over_time_data: Vec<OverTimeItem> = over_time.iter()
        .take(counters.over_time_size as usize)
         // Skip the overTime slots without any data, and any slots which are
         // before the max-log-age time.
@@ -43,15 +42,23 @@ pub fn over_time_history(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply
                 || ((time.timestamp as f64) < timestamp - max_log_age)
         })
         .map(|time| {
-            json!({
-                "timestamp": time.timestamp,
-                "total_queries": time.total_queries,
-                "blocked_queries": time.blocked_queries
-            })
+            OverTimeItem {
+                timestamp: time.timestamp as u64,
+                total_queries: time.total_queries as usize,
+                blocked_queries: time.blocked_queries as usize
+            }
         })
         .collect();
 
     reply_data(over_time_data)
+}
+
+#[derive(Serialize)]
+#[cfg_attr(test, derive(PartialEq, Debug))]
+pub struct OverTimeItem {
+    pub timestamp: u64,
+    pub total_queries: usize,
+    pub blocked_queries: usize
 }
 
 #[cfg(test)]
