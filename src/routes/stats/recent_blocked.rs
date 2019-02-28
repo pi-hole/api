@@ -17,27 +17,21 @@ use crate::{
 };
 use rocket::{request::Form, State};
 
-/// Get the most recent blocked domain
-#[get("/stats/recent_blocked")]
-pub fn recent_blocked(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
-    get_recent_blocked(&ftl_memory, &env, 1)
-}
-
 /// Get the `num` most recently blocked domains
 #[get("/stats/recent_blocked?<params..>")]
-pub fn recent_blocked_params(
+pub fn recent_blocked(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
     params: Form<RecentBlockedParams>
 ) -> Reply {
-    get_recent_blocked(&ftl_memory, &env, params.num)
+    get_recent_blocked(&ftl_memory, &env, params.num.unwrap_or(1))
 }
 
 /// Represents the possible GET parameters on `/stats/recent_blocked`
 #[derive(FromForm)]
 pub struct RecentBlockedParams {
-    num: usize
+    num: Option<usize>
 }
 
 /// Get `num`-many most recently blocked domains

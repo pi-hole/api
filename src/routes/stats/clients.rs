@@ -21,15 +21,9 @@ use crate::{
 use rocket::{request::Form, State};
 use rocket_contrib::json::JsonValue;
 
-/// Get the client information with default parameters
-#[get("/stats/clients")]
-pub fn clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
-    get_clients(&ftl_memory, &env, ClientParams::default())
-}
-
-/// Get the client information with specified parameters
+/// Get client information
 #[get("/stats/clients?<params..>")]
-pub fn clients_params(
+pub fn clients(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
@@ -42,14 +36,6 @@ pub fn clients_params(
 #[derive(FromForm)]
 pub struct ClientParams {
     inactive: Option<bool>
-}
-
-impl Default for ClientParams {
-    fn default() -> Self {
-        ClientParams {
-            inactive: Some(false)
-        }
-    }
 }
 
 /// Get client info according to the parameters
