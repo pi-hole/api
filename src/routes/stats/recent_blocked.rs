@@ -10,7 +10,7 @@
 
 use crate::{
     env::Env,
-    ftl::{FtlMemory, FtlQueryStatus},
+    ftl::FtlMemory,
     routes::auth::User,
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::{reply_data, Reply}
@@ -61,13 +61,7 @@ pub fn get_recent_blocked(ftl_memory: &FtlMemory, env: &Env, num: usize) -> Repl
         // Skip the uninitialized queries
         .skip(queries.len() - counters.total_queries as usize)
         // Only get blocked queries
-        .filter(|query| match query.status {
-            FtlQueryStatus::Gravity
-            | FtlQueryStatus::Blacklist
-            | FtlQueryStatus::Wildcard
-            | FtlQueryStatus::ExternalBlock => true,
-            _ => false
-        })
+        .filter(|query| query.is_blocked())
         // Get up to num queries
         .take(num)
         // Only return the domain
