@@ -52,7 +52,6 @@ mod test {
             },
             domains: Vec::new(),
             over_time: Vec::new(),
-            over_time_clients: Vec::new(),
             strings: HashMap::new(),
             upstreams: Vec::new(),
             queries: Vec::new(),

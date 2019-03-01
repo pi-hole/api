@@ -27,7 +27,7 @@ pub const BLOCKED_STATUSES: [i32; 4] = [
 pub struct FtlQuery {
     pub magic: libc::c_uchar,
     pub timestamp: libc::time_t,
-    pub time_index: libc::c_int,
+    pub time_index: libc::c_uint,
     pub query_type: FtlQueryType,
     pub status: FtlQueryStatus,
     pub domain_id: libc::c_int,

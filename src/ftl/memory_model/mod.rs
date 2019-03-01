@@ -30,7 +30,7 @@ pub use self::{
     counters::{FtlCounters, FtlQueryType},
     domain::{FtlDomain, FtlRegexMatch},
     lock::FtlLock,
-    over_time::FtlOverTime,
+    over_time::*,
     query::{FtlDnssecType, FtlQuery, FtlQueryReplyType, FtlQueryStatus, BLOCKED_STATUSES},
     settings::FtlSettings,
     strings::FtlStrings,
