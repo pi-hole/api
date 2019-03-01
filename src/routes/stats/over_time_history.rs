@@ -9,7 +9,8 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    ftl::{FtlMemory, OVERTIME_SLOTS},
+    ftl::FtlMemory,
+    routes::stats::common::get_current_over_time_slot,
     util::{reply_data, Reply}
 };
 use rocket::State;
@@ -21,7 +22,8 @@ pub fn over_time_history(ftl_memory: State<FtlMemory>) -> Reply {
     let over_time = ftl_memory.over_time(&lock)?;
 
     let over_time_data: Vec<OverTimeItem> = over_time.iter()
-        .take(OVERTIME_SLOTS)
+        // Take all of the slots including the current slot
+        .take(get_current_over_time_slot(&over_time) + 1)
         // Skip the overTime slots without any data
         .skip_while(|time| {
             (time.total_queries <= 0 && time.blocked_queries <= 0)

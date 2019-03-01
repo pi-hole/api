@@ -10,11 +10,14 @@
 
 use crate::{
     env::Env,
-    ftl::{FtlClient, FtlDomain, FtlStrings},
+    ftl::{FtlClient, FtlDomain, FtlOverTime, FtlStrings, OVERTIME_SLOTS},
     settings::{ConfigEntry, SetupVarsEntry},
     util::Error
 };
-use std::collections::HashSet;
+use std::{
+    collections::HashSet,
+    time::{SystemTime, UNIX_EPOCH}
+};
 
 /// Remove clients from the `clients` vector if they show up in
 /// [`SetupVarsEntry::ApiExcludeClients`].
@@ -79,6 +82,29 @@ pub fn remove_hidden_clients(clients: &mut Vec<&FtlClient>, strings: &FtlStrings
 /// to the privacy level.
 pub fn remove_hidden_domains(domains: &mut Vec<&FtlDomain>, strings: &FtlStrings) {
     domains.retain(|domain| domain.get_domain(strings) != "hidden");
+}
+
+/// Get the current overTime slot index, based on the current time. If all of
+/// the slots are in the past, then the last slot index will be returned.
+pub fn get_current_over_time_slot(over_time: &[FtlOverTime]) -> usize {
+    // Get the current timestamp so we can ignore future overTime slots
+    let current_timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time web backwards")
+        .as_secs();
+
+    // Find the current slot
+    over_time
+        .iter()
+        .enumerate()
+        .find_map(|(i, item)| {
+            if item.timestamp as u64 >= current_timestamp {
+                Some(i)
+            } else {
+                None
+            }
+        })
+        .unwrap_or(OVERTIME_SLOTS - 1)
 }
 
 #[cfg(test)]

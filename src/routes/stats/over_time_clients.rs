@@ -10,10 +10,12 @@
 
 use crate::{
     env::Env,
-    ftl::{FtlClient, FtlMemory, OVERTIME_SLOTS},
+    ftl::{FtlClient, FtlMemory},
     routes::{
         auth::User,
-        stats::common::{remove_excluded_clients, remove_hidden_clients}
+        stats::common::{
+            get_current_over_time_slot, remove_excluded_clients, remove_hidden_clients
+        }
     },
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::{reply_data, Reply}
@@ -68,7 +70,8 @@ pub fn over_time_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<E
     // output.
     let over_time: Vec<JsonValue> = over_time
         .iter()
-        .take(OVERTIME_SLOTS)
+        // Take all of the slots including the current slot
+        .take(get_current_over_time_slot(&over_time) + 1)
         .enumerate()
         // Skip the overTime slots without any data
         .skip_while(|(_, time)| {
