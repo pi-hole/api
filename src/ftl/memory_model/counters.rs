@@ -27,7 +27,7 @@ pub struct FtlCounters {
     pub upstream_capacity: libc::c_int,
     pub client_capacity: libc::c_int,
     pub domain_capacity: libc::c_int,
-    pub over_time_capacity: libc::c_int,
+    pub string_capacity: libc::c_int,
     pub gravity_size: libc::c_int,
     pub gravity_conf: libc::c_int,
     pub query_type_counters: [libc::c_int; 7],

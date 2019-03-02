@@ -14,11 +14,17 @@ use libc;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FtlSettings {
-    pub version: libc::c_int
+    pub version: libc::c_int,
+    pub global_shm_counter: libc::c_uint,
+    pub next_str_pos: libc::c_uint
 }
 
 impl Default for FtlSettings {
     fn default() -> Self {
-        FtlSettings { version: 0 }
+        FtlSettings {
+            version: 0,
+            global_shm_counter: 0,
+            next_str_pos: 1 // 0 is used as the empty string
+        }
     }
 }
