@@ -19,7 +19,7 @@ use rocket_contrib::json::Json;
 
 /// Get web interface settings
 #[get("/settings/web")]
-pub fn get_web(_auth: User, env: State<Env>) -> Reply {
+pub fn get_web(env: State<Env>) -> Reply {
     let settings = WebSettings {
         layout: SetupVarsEntry::WebLayout.read(&env)?,
         language: SetupVarsEntry::WebLanguage.read(&env)?
