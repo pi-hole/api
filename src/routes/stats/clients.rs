@@ -10,16 +10,15 @@
 
 use crate::{
     env::Env,
-    ftl::FtlMemory,
+    ftl::{ClientReply, FtlClient, FtlMemory, ShmLockGuard},
     routes::{
         auth::User,
         stats::common::{remove_excluded_clients, remove_hidden_clients}
     },
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
-    util::{reply_data, Reply}
+    util::{reply_data, Error, Reply}
 };
 use rocket::{request::Form, State};
-use rocket_contrib::json::JsonValue;
 
 /// Get client information
 #[get("/stats/clients?<params..>")]
@@ -29,28 +28,51 @@ pub fn clients(
     env: State<Env>,
     params: Form<ClientParams>
 ) -> Reply {
-    get_clients(&ftl_memory, &env, params.into_inner())
+    reply_data(get_clients(&ftl_memory, &env, params.into_inner())?)
 }
 
 /// The possible GET parameters for `/stats/clients`
-#[derive(FromForm)]
+#[derive(FromForm, Default)]
 pub struct ClientParams {
     inactive: Option<bool>
 }
 
-/// Get client info according to the parameters
-pub fn get_clients(ftl_memory: &FtlMemory, env: &Env, params: ClientParams) -> Reply {
+/// Get client data for API output according to the parameters
+fn get_clients(
+    ftl_memory: &FtlMemory,
+    env: &Env,
+    params: ClientParams
+) -> Result<Vec<ClientReply>, Error> {
+    let lock = ftl_memory.lock()?;
+    let strings = ftl_memory.strings(&lock)?;
+    let clients = ftl_memory.clients(&lock)?;
+
+    Ok(
+        filter_ftl_clients(ftl_memory, &lock, &clients, env, params)?
+            .iter()
+            .map(|client| client.as_reply(&strings))
+            .collect::<Vec<ClientReply>>()
+    )
+}
+
+/// Get FTL clients which are allowed to be used according to settings and
+/// parameters
+pub fn filter_ftl_clients<'a>(
+    ftl_memory: &'a FtlMemory,
+    lock: &ShmLockGuard<'a>,
+    clients: &'a [FtlClient],
+    env: &Env,
+    params: ClientParams
+) -> Result<Vec<&'a FtlClient>, Error> {
     // Check if client details are private
     if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)?
         >= FtlPrivacyLevel::HideDomainsAndClients
     {
-        return reply_data([0; 0]);
+        return Ok(Vec::new());
     }
 
-    let lock = ftl_memory.lock()?;
     let strings = ftl_memory.strings(&lock)?;
     let counters = ftl_memory.counters(&lock)?;
-    let clients = ftl_memory.clients(&lock)?;
 
     // Get an array of valid client references (FTL allocates more than it uses)
     let mut clients = clients
@@ -58,32 +80,16 @@ pub fn get_clients(ftl_memory: &FtlMemory, env: &Env, params: ClientParams) -> R
         .take(counters.total_clients as usize)
         .collect();
 
-    // Ignore excluded clients
-    remove_excluded_clients(&mut clients, &env, &strings)?;
-
-    // Ignore hidden clients (due to privacy level)
+    // Ignore hidden and excluded clients
     remove_hidden_clients(&mut clients, &strings);
+    remove_excluded_clients(&mut clients, &env, &strings)?;
 
     // Ignore inactive clients by default (retain active clients)
     if !params.inactive.unwrap_or(false) {
         clients.retain(|client| client.query_count > 0);
     }
 
-    // Only output the name and IP of each client
-    reply_data(
-        clients
-            .iter()
-            .map(|client| {
-                let name = client.get_name(&strings).unwrap_or_default();
-                let ip = client.get_ip(&strings);
-
-                json!({
-                    "name": name,
-                    "ip": ip
-                })
-            })
-            .collect::<Vec<JsonValue>>()
-    )
+    Ok(clients)
 }
 
 #[cfg(test)]
