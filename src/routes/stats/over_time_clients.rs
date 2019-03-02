@@ -10,7 +10,7 @@
 
 use crate::{
     env::Env,
-    ftl::{FtlClient, FtlMemory},
+    ftl::FtlMemory,
     routes::{
         auth::User,
         stats::common::{
@@ -22,7 +22,6 @@ use crate::{
 };
 use rocket::State;
 use rocket_contrib::json::JsonValue;
-use std::collections::HashMap;
 
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
@@ -44,21 +43,10 @@ pub fn over_time_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<E
     let over_time = ftl_memory.over_time(&lock)?;
     let clients = ftl_memory.clients(&lock)?;
 
-    // Store the client IDs (indexes), even after going through filters
-    let mut client_ids = HashMap::new();
-
     // Get the clients we will be returning overTime data of
-    let mut clients: Vec<&FtlClient> = clients
+    let mut clients = clients
         .iter()
         .take(counters.total_clients as usize)
-        // Enumerate so the client ID can be stored
-        .enumerate()
-        .map(|(i, client)| {
-            client_ids.insert(client, i);
-
-            // After this, we don't need the index in this iterator
-            client
-        })
         .collect();
 
     // Ignore hidden and excluded clients
