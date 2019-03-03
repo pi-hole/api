@@ -11,35 +11,44 @@
 use crate::{
     ftl::{FtlMemory, FtlQueryType},
     routes::auth::User,
-    util::{reply_data, Reply}
+    util::{reply_data, Error, Reply}
 };
 use rocket::State;
-use rocket_contrib::json::JsonValue;
 
 /// Get the query types
 #[get("/stats/query_types")]
 pub fn query_types(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
+    reply_data(query_types_impl(&ftl_memory)?)
+}
+
+/// Get the query types
+fn query_types_impl(ftl_memory: &FtlMemory) -> Result<Vec<QueryTypeReply>, Error> {
     let lock = ftl_memory.lock()?;
     let counters = ftl_memory.counters(&lock)?;
 
-    reply_data(
-        FtlQueryType::variants()
-            .iter()
-            .map(|&variant| {
-                json!({
-                    "name": format!("{:?}", variant),
-                    "count": counters.query_type(variant)
-                })
-            })
-            .collect::<Vec<JsonValue>>()
-    )
+    Ok(FtlQueryType::variants()
+        .iter()
+        .map(|&variant| QueryTypeReply {
+            name: variant.get_name(),
+            count: counters.query_type(variant)
+        })
+        .collect())
+}
+
+/// Represents the reply structure for returning query type data
+#[derive(Serialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct QueryTypeReply {
+    pub name: String,
+    pub count: usize
 }
 
 #[cfg(test)]
 mod test {
+    use super::query_types_impl;
     use crate::{
         ftl::{FtlCounters, FtlMemory, FtlSettings},
-        testing::TestBuilder
+        routes::stats::query_types::QueryTypeReply
     };
     use std::collections::HashMap;
 
@@ -63,18 +72,39 @@ mod test {
     /// Simple test to validate output
     #[test]
     fn query_types() {
-        TestBuilder::new()
-            .endpoint("/admin/api/stats/query_types")
-            .ftl_memory(test_data())
-            .expect_json(json!([
-                { "name": "A", "count": 2 },
-                { "name": "AAAA", "count": 2 },
-                { "name": "ANY", "count": 1 },
-                { "name": "SRV", "count": 1 },
-                { "name": "SOA", "count": 1 },
-                { "name": "PTR", "count": 2 },
-                { "name": "TXT", "count": 1 }
-            ]))
-            .test();
+        let expected = vec![
+            QueryTypeReply {
+                name: "A".to_owned(),
+                count: 2
+            },
+            QueryTypeReply {
+                name: "AAAA".to_owned(),
+                count: 2
+            },
+            QueryTypeReply {
+                name: "ANY".to_owned(),
+                count: 1
+            },
+            QueryTypeReply {
+                name: "SRV".to_owned(),
+                count: 1
+            },
+            QueryTypeReply {
+                name: "SOA".to_owned(),
+                count: 1
+            },
+            QueryTypeReply {
+                name: "PTR".to_owned(),
+                count: 2
+            },
+            QueryTypeReply {
+                name: "TXT".to_owned(),
+                count: 1
+            },
+        ];
+
+        let actual = query_types_impl(&test_data()).unwrap();
+
+        assert_eq!(actual, expected);
     }
 }
