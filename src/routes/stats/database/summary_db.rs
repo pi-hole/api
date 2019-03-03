@@ -17,7 +17,7 @@ use crate::{
         stats::summary::{ReplyTypes, Summary, TotalQueries}
     },
     settings::{ConfigEntry, SetupVarsEntry},
-    util::{reply_data, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::prelude::*;
 use failure::ResultExt;
@@ -37,7 +37,7 @@ pub fn get_summary_db(
     // (only need to cast once, here)
     let db = &ftl_database as &SqliteConnection;
 
-    reply_data(get_summary_impl(from, until, db, &env)?)
+    reply_result(get_summary_impl(from, until, db, &env))
 }
 
 /// Implementation of [`get_summary_db`]

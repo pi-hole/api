@@ -12,7 +12,7 @@ use crate::{
     databases::ftl::FtlDatabase,
     ftl::BLOCKED_STATUSES,
     routes::{auth::User, stats::over_time_history::OverTimeItem},
-    util::{reply_data, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt};
 use failure::ResultExt;
@@ -28,12 +28,12 @@ pub fn over_time_history_db(
     _auth: User,
     db: FtlDatabase
 ) -> Reply {
-    reply_data(over_time_history_db_impl(
+    reply_result(over_time_history_db_impl(
         from,
         until,
         interval.unwrap_or(600),
         &db as &SqliteConnection
-    )?)
+    ))
 }
 
 /// Get the over time data from the database
