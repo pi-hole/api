@@ -21,6 +21,7 @@ use std::fmt::{
 
 /// Represents an FTL client in API responses
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct ClientReply {
     pub name: String,
     pub ip: String

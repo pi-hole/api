@@ -160,6 +160,7 @@ fn setup(
             stats::over_time_history,
             stats::over_time_clients,
             stats::database::get_summary_db,
+            stats::database::over_time_clients_db,
             stats::database::over_time_history_db,
             dns::get_whitelist,
             dns::get_blacklist,

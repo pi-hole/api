@@ -22,6 +22,7 @@ use crate::{
     util::{reply_data, Reply}
 };
 use rocket::State;
+use std::cmp::Ordering;
 
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
@@ -89,14 +90,32 @@ pub fn over_time_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<E
 
 /// Represents an overTime client item, which holds time and client data for an
 /// overTime interval
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq, Eq)]
+#[cfg_attr(test, derive(Debug))]
 pub struct OverTimeClientItem {
     pub timestamp: u64,
     pub data: Vec<usize>
 }
 
+impl PartialOrd for OverTimeClientItem {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(
+            self.timestamp
+                .cmp(&other.timestamp)
+                .then(self.data.cmp(&other.data))
+        )
+    }
+}
+
+impl Ord for OverTimeClientItem {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
 /// Represents the reply format for the overTime clients endpoint
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct OverTimeClients {
     pub over_time: Vec<OverTimeClientItem>,
     pub clients: Vec<ClientReply>

@@ -8,7 +8,8 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+mod over_time_clients_db;
 mod over_time_history_db;
 mod summary_db;
 
-pub use self::{over_time_history_db::*, summary_db::*};
+pub use self::{over_time_clients_db::*, over_time_history_db::*, summary_db::*};
