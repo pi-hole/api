@@ -99,7 +99,7 @@ impl FtlQueryType {
     }
 
     /// Get the name of the query type
-    pub fn get_name(&self) -> String {
+    pub fn get_name(self) -> String {
         format!("{:?}", self)
     }
 }
