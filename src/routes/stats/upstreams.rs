@@ -31,7 +31,7 @@ pub fn upstreams(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
         .filter(|upstream| upstream.query_count > 0)
         .collect();
 
-    // Sort the upstreams
+    // Sort the upstreams (descending by count)
     ftl_upstreams.sort_by(|a, b| b.query_count.cmp(&a.query_count));
 
     let mut upstreams: Vec<UpstreamItemReply> = Vec::with_capacity(ftl_upstreams.len() + 2);
@@ -69,6 +69,7 @@ pub fn upstreams(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
 
 /// Represents the reply structure for returning upstream item data
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct UpstreamItemReply {
     pub name: String,
     pub ip: String,
@@ -77,6 +78,7 @@ pub struct UpstreamItemReply {
 
 /// Represents the reply structure for upstreams endpoints
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct UpstreamsReply {
     pub upstreams: Vec<UpstreamItemReply>,
     pub forwarded_queries: usize,
