@@ -3,7 +3,7 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// Forward Destinations Endpoint
+// Upstream Servers Endpoint
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
@@ -14,7 +14,6 @@ use crate::{
     util::{reply_data, Reply}
 };
 use rocket::State;
-use rocket_contrib::json::JsonValue;
 
 /// Get the upstreams
 #[get("/stats/upstreams")]
@@ -35,37 +34,53 @@ pub fn upstreams(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
     // Sort the upstreams
     ftl_upstreams.sort_by(|a, b| b.query_count.cmp(&a.query_count));
 
-    let mut upstreams: Vec<JsonValue> = Vec::with_capacity(ftl_upstreams.len() + 2);
+    let mut upstreams: Vec<UpstreamItemReply> = Vec::with_capacity(ftl_upstreams.len() + 2);
 
     // Add blocklist and cache upstreams
-    upstreams.push(json!({
-        "name": "blocklist",
-        "ip": "blocklist",
-        "count": counters.blocked_queries
-    }));
-    upstreams.push(json!({
-        "name": "cache",
-        "ip": "cache",
-        "count": counters.cached_queries
-    }));
+    upstreams.push(UpstreamItemReply {
+        name: "blocklist".to_owned(),
+        ip: "blocklist".to_owned(),
+        count: counters.blocked_queries as usize
+    });
+    upstreams.push(UpstreamItemReply {
+        name: "cache".to_owned(),
+        ip: "cache".to_owned(),
+        count: counters.cached_queries as usize
+    });
 
     // Map the upstreams into the output format
     upstreams.extend(ftl_upstreams.into_iter().map(|upstream| {
-        let ip = upstream.get_ip(&strings);
-        let name = upstream.get_name(&strings).unwrap_or_default();
+        let ip = upstream.get_ip(&strings).to_owned();
+        let name = upstream.get_name(&strings).unwrap_or_default().to_owned();
 
-        json!({
-            "name": name,
-            "ip": ip,
-            "count": upstream.query_count
-        })
+        UpstreamItemReply {
+            name,
+            ip,
+            count: upstream.query_count as usize
+        }
     }));
 
-    reply_data(json!({
-        "upstreams": upstreams,
-        "forwarded_queries": counters.forwarded_queries,
-        "total_queries": counters.total_queries
-    }))
+    reply_data(UpstreamsReply {
+        upstreams,
+        forwarded_queries: counters.forwarded_queries as usize,
+        total_queries: counters.total_queries as usize
+    })
+}
+
+/// Represents the reply structure for returning upstream item data
+#[derive(Serialize)]
+pub struct UpstreamItemReply {
+    pub name: String,
+    pub ip: String,
+    pub count: usize
+}
+
+/// Represents the reply structure for upstreams endpoints
+#[derive(Serialize)]
+pub struct UpstreamsReply {
+    pub upstreams: Vec<UpstreamItemReply>,
+    pub forwarded_queries: usize,
+    pub total_queries: usize
 }
 
 #[cfg(test)]
