@@ -43,20 +43,7 @@ fn over_time_history_db_impl(
     interval: usize,
     db: &SqliteConnection
 ) -> Result<Vec<OverTimeItem>, Error> {
-    let is_range_increasing = from < until;
-
-    if !is_range_increasing {
-        // The timestamps should increase from "from" to "until"
-        return Err(Error::from(ErrorKind::BadRequest));
-    }
-
-    // Align timestamps with the interval
-    let from = from - (from % interval as u64);
-    let until = if until % interval as u64 != 0 {
-        until - (until % interval as u64) + interval as u64
-    } else {
-        until
-    };
+    let (from, until) = align_from_until(from, until, interval as u64)?;
 
     // Get the overTime data
     let total_intervals = get_total_intervals(from, until, interval, db)?;
@@ -78,6 +65,28 @@ fn over_time_history_db_impl(
     }
 
     Ok(over_time)
+}
+
+/// Align `from` and `until` with the interval. Also check that the time
+/// interval is increasing from `from` to `until`. If it is not, an error is
+/// returned.
+pub fn align_from_until(from: u64, until: u64, interval: u64) -> Result<(u64, u64), Error> {
+    let is_range_increasing = from < until;
+
+    if !is_range_increasing {
+        // The timestamps should increase from "from" to "until"
+        return Err(Error::from(ErrorKind::BadRequest));
+    }
+
+    // Align timestamps with the interval
+    let from = from - (from % interval);
+    let until = if until % interval != 0 {
+        until - (until % interval) + interval
+    } else {
+        until
+    };
+
+    Ok((from, until))
 }
 
 /// Get the over time data for all queries from the database
