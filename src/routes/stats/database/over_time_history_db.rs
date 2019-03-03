@@ -101,7 +101,6 @@ fn get_total_intervals(
         .filter(status.ne(0))
         .filter(timestamp.ge(from as i32))
         .filter(timestamp.le(until as i32))
-        .order_by(&interval_sql)
         .group_by(&interval_sql);
 
     // Execute SQL query
@@ -134,7 +133,6 @@ fn get_blocked_intervals(
         .filter(status.eq_any(&BLOCKED_STATUSES))
         .filter(timestamp.ge(from as i32))
         .filter(timestamp.le(until as i32))
-        .order_by(&interval_sql)
         .group_by(&interval_sql);
 
     // Execute SQL query
