@@ -52,13 +52,14 @@ fn over_time_history_db_impl(
     let mut over_time: Vec<OverTimeItem> = Vec::with_capacity((until - from) as usize / interval);
 
     // For each interval's timestamp, create the overTime slot
-    for timestamp in (from..=until).step_by(interval) {
+    for timestamp in (from..until).step_by(interval) {
         let timestamp_key = &(timestamp as i32);
         let total_queries = *total_intervals.get(timestamp_key).unwrap_or(&0) as usize;
         let blocked_queries = *blocked_intervals.get(timestamp_key).unwrap_or(&0) as usize;
 
         over_time.push(OverTimeItem {
-            timestamp,
+            // Display the timestamps as centered in the overTime slot interval
+            timestamp: timestamp + (interval / 2) as u64,
             total_queries,
             blocked_queries
         });
@@ -80,11 +81,7 @@ pub fn align_from_until(from: u64, until: u64, interval: u64) -> Result<(u64, u6
 
     // Align timestamps with the interval
     let from = from - (from % interval);
-    let until = if until % interval != 0 {
-        until - (until % interval) + interval
-    } else {
-        until
-    };
+    let until = until - (until % interval) + interval;
 
     Ok((from, until))
 }
@@ -109,7 +106,7 @@ fn get_total_intervals(
         .select((&interval_sql, sql::<BigInt>("COUNT(*)")))
         .filter(status.ne(0))
         .filter(timestamp.ge(from as i32))
-        .filter(timestamp.le(until as i32))
+        .filter(timestamp.lt(until as i32))
         .order_by(&interval_sql)
         .group_by(&interval_sql);
 
@@ -142,7 +139,7 @@ fn get_blocked_intervals(
         .select((&interval_sql, sql::<BigInt>("COUNT(*)")))
         .filter(status.eq_any(&BLOCKED_STATUSES))
         .filter(timestamp.ge(from as i32))
-        .filter(timestamp.le(until as i32))
+        .filter(timestamp.lt(until as i32))
         .order_by(&interval_sql)
         .group_by(&interval_sql);
 
@@ -172,24 +169,24 @@ mod test {
     fn over_time_history_impl() {
         let expected = vec![
             OverTimeItem {
-                timestamp: 164_400,
+                timestamp: 164_700,
                 total_queries: 26,
                 blocked_queries: 0
             },
             OverTimeItem {
-                timestamp: 165_000,
+                timestamp: 165_300,
                 total_queries: 7,
                 blocked_queries: 0
             },
             OverTimeItem {
-                timestamp: 165_600,
+                timestamp: 165_900,
                 total_queries: 0,
                 blocked_queries: 0
             },
         ];
 
         let db = connect_to_test_db();
-        let actual = over_time_history_db_impl(164_400, 165_600, 600, &db).unwrap();
+        let actual = over_time_history_db_impl(164_400, 165_600, INTERVAL, &db).unwrap();
 
         assert_eq!(actual, expected);
     }
