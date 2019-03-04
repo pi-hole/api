@@ -26,11 +26,12 @@ pub fn filter_excluded_clients<'a>(
     ftl_lock: &ShmLockGuard<'a>
 ) -> Result<Box<dyn Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     // Get the excluded clients list
-    let excluded_clients = SetupVarsEntry::ApiExcludeClients.read(env)?.to_lowercase();
-    let excluded_clients: HashSet<&str> = excluded_clients
-        .split(',')
-        .filter(|s| !s.is_empty())
+    let excluded_clients: Vec<String> = SetupVarsEntry::ApiExcludeClients
+        .read_list(env)?
+        .into_iter()
+        .map(|s| s.to_lowercase())
         .collect();
+    let excluded_clients: HashSet<&str> = excluded_clients.iter().map(String::as_str).collect();
 
     // End early if there are no excluded clients
     if excluded_clients.is_empty() {
@@ -77,11 +78,10 @@ pub fn filter_excluded_clients_db<'a>(
     use self::queries::dsl::*;
 
     // Get the excluded clients list
-    let excluded_clients = SetupVarsEntry::ApiExcludeClients.read(env)?.to_lowercase();
-    let excluded_clients: HashSet<String> = excluded_clients
-        .split(',')
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_owned())
+    let excluded_clients: HashSet<String> = SetupVarsEntry::ApiExcludeClients
+        .read_list(env)?
+        .into_iter()
+        .map(|s| s.to_lowercase())
         .collect();
 
     if excluded_clients.is_empty() {

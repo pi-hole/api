@@ -29,11 +29,12 @@ pub fn remove_excluded_clients(
     env: &Env,
     strings: &FtlStrings
 ) -> Result<(), Error> {
-    let excluded_clients = SetupVarsEntry::ApiExcludeClients.read(env)?.to_lowercase();
-    let excluded_clients: HashSet<&str> = excluded_clients
-        .split(',')
-        .filter(|s| !s.is_empty())
+    let excluded_clients: Vec<String> = SetupVarsEntry::ApiExcludeClients
+        .read_list(env)?
+        .into_iter()
+        .map(|s| s.to_lowercase())
         .collect();
+    let excluded_clients: HashSet<&str> = excluded_clients.iter().map(String::as_str).collect();
 
     if !excluded_clients.is_empty() {
         // Only retain clients which do not appear in the exclusion list
@@ -58,11 +59,12 @@ pub fn remove_excluded_domains(
     env: &Env,
     strings: &FtlStrings
 ) -> Result<(), Error> {
-    let excluded_domains = SetupVarsEntry::ApiExcludeDomains.read(env)?.to_lowercase();
-    let excluded_domains: HashSet<&str> = excluded_domains
-        .split(',')
-        .filter(|s| !s.is_empty())
+    let excluded_domains: Vec<String> = SetupVarsEntry::ApiExcludeDomains
+        .read_list(env)?
+        .into_iter()
+        .map(|s| s.to_lowercase())
         .collect();
+    let excluded_domains: HashSet<&str> = excluded_domains.iter().map(String::as_str).collect();
 
     if !excluded_domains.is_empty() {
         // Only retain domains which do not appear in the exclusion list

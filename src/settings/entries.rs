@@ -57,6 +57,16 @@ pub trait ConfigEntry {
             .map_err(Error::from)
     }
 
+    /// Try to read the value as a comma-separated list
+    fn read_list(&self, env: &Env) -> Result<Vec<String>, Error> {
+        Ok(self
+            .read(env)?
+            .split(',')
+            .filter(|s| !s.is_empty())
+            .map(ToOwned::to_owned)
+            .collect())
+    }
+
     /// Read this setting from the config file it appears in.
     /// If the setting is not found, its default value is returned.
     fn read(&self, env: &Env) -> Result<String, Error> {
