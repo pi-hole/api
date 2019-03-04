@@ -113,7 +113,11 @@ fn get_summary_impl(
 }
 
 /// Get the number of blocked queries in the specified time range
-fn get_blocked_query_count(db: &SqliteConnection, from: u64, until: u64) -> Result<usize, Error> {
+pub fn get_blocked_query_count(
+    db: &SqliteConnection,
+    from: u64,
+    until: u64
+) -> Result<usize, Error> {
     use crate::databases::ftl::queries::dsl::*;
 
     let count = queries
@@ -144,7 +148,7 @@ fn get_unique_domain_count(db: &SqliteConnection, from: u64, until: u64) -> Resu
 
 /// Get the number of queries with the specified query status in the specified
 /// time range
-fn get_query_status_count(
+pub fn get_query_status_count(
     db: &SqliteConnection,
     from: u64,
     until: u64,

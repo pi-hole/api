@@ -162,6 +162,7 @@ fn setup(
             stats::database::get_summary_db,
             stats::database::over_time_history_db,
             stats::database::query_types_db,
+            stats::database::upstreams_db,
             dns::get_whitelist,
             dns::get_blacklist,
             dns::get_regexlist,
