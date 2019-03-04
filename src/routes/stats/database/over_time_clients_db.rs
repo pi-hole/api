@@ -10,10 +10,12 @@
 
 use crate::{
     databases::ftl::FtlDatabase,
+    env::Env,
     ftl::ClientReply,
     routes::{
         auth::User,
         stats::{
+            common::{remove_excluded_clients_db, remove_hidden_clients_db},
             database::over_time_history_db::align_from_until,
             over_time_clients::{OverTimeClientItem, OverTimeClients}
         }
@@ -23,6 +25,7 @@ use crate::{
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, SqliteConnection};
 use failure::ResultExt;
+use rocket::State;
 use std::collections::HashMap;
 
 /// Get the clients queries over time data from the database
@@ -32,13 +35,15 @@ pub fn over_time_clients_db(
     until: u64,
     interval: Option<usize>,
     _auth: User,
-    db: FtlDatabase
+    db: FtlDatabase,
+    env: State<Env>
 ) -> Reply {
     reply_data(over_time_clients_db_impl(
         from,
         until,
         interval.unwrap_or(600),
-        &db as &SqliteConnection
+        &db as &SqliteConnection,
+        &env
     )?)
 }
 
@@ -47,12 +52,13 @@ fn over_time_clients_db_impl(
     from: u64,
     until: u64,
     interval: usize,
-    db: &SqliteConnection
+    db: &SqliteConnection,
+    env: &Env
 ) -> Result<OverTimeClients, Error> {
     let (from, until) = align_from_until(from, until, interval as u64)?;
 
     // Load the clients (names or IP addresses)
-    let client_identifiers = get_client_identifiers(from, until, db)?;
+    let client_identifiers = get_client_identifiers(from, until, db, env)?;
 
     // Build the timestamp -> client query data map
     let mut over_time_data: HashMap<u64, Vec<usize>> = (from..until)
@@ -114,17 +120,24 @@ fn over_time_clients_db_impl(
 fn get_client_identifiers(
     from: u64,
     until: u64,
-    db: &SqliteConnection
+    db: &SqliteConnection,
+    env: &Env
 ) -> Result<Vec<String>, Error> {
     use crate::databases::ftl::queries::dsl::*;
 
-    Ok(queries
+    let mut client_identifiers = queries
         .select(client)
         .distinct()
         .filter(timestamp.ge(from as i32))
         .filter(timestamp.lt(until as i32))
         .load(db)
-        .context(ErrorKind::FtlDatabase)?)
+        .context(ErrorKind::FtlDatabase)?;
+
+    // Remove clients which should not be used
+    remove_hidden_clients_db(&mut client_identifiers);
+    remove_excluded_clients_db(&mut client_identifiers, env)?;
+
+    Ok(client_identifiers)
 }
 
 /// Get the overTime data for the client in the specified interval
@@ -165,8 +178,10 @@ mod test {
     use super::{get_client_identifiers, get_client_over_time, over_time_clients_db_impl};
     use crate::{
         databases::ftl::connect_to_test_db,
+        env::{Config, Env, PiholeFile},
         ftl::ClientReply,
-        routes::stats::over_time_clients::{OverTimeClientItem, OverTimeClients}
+        routes::stats::over_time_clients::{OverTimeClientItem, OverTimeClients},
+        testing::TestEnvBuilder
     };
     use std::collections::HashMap;
 
@@ -205,8 +220,10 @@ mod test {
         };
 
         let db = connect_to_test_db();
+        let env = Env::Test(Config::default(), HashMap::new());
         let actual =
-            over_time_clients_db_impl(FROM_TIMESTAMP, UNTIL_TIMESTAMP, INTERVAL, &db).unwrap();
+            over_time_clients_db_impl(FROM_TIMESTAMP, UNTIL_TIMESTAMP, INTERVAL, &db, &env)
+                .unwrap();
 
         assert_eq!(actual, expected);
     }
@@ -218,7 +235,25 @@ mod test {
         let expected = vec!["127.0.0.1".to_owned(), "10.1.1.1".to_owned()];
 
         let db = connect_to_test_db();
-        let actual = get_client_identifiers(FROM_TIMESTAMP, UNTIL_TIMESTAMP, &db).unwrap();
+        let env = Env::Test(Config::default(), HashMap::new());
+        let actual = get_client_identifiers(FROM_TIMESTAMP, UNTIL_TIMESTAMP, &db, &env).unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    /// If a client is excluded, it is not returned
+    #[test]
+    fn client_identifiers_excluded() {
+        let expected = vec!["127.0.0.1".to_owned()];
+
+        let db = connect_to_test_db();
+        let env = Env::Test(
+            Config::default(),
+            TestEnvBuilder::new()
+                .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=10.1.1.1")
+                .build()
+        );
+        let actual = get_client_identifiers(FROM_TIMESTAMP, UNTIL_TIMESTAMP, &db, &env).unwrap();
 
         assert_eq!(actual, expected);
     }
