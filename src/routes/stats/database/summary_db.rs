@@ -14,7 +14,10 @@ use crate::{
     ftl::{FtlQueryStatus, FtlQueryType, BLOCKED_STATUSES},
     routes::{
         auth::User,
-        stats::summary::{ReplyTypes, Summary, TotalQueries}
+        stats::{
+            database::get_query_type_counts,
+            summary::{ReplyTypes, Summary, TotalQueries}
+        }
     },
     settings::{ConfigEntry, SetupVarsEntry},
     util::{reply_data, Error, ErrorKind, Reply}
@@ -22,7 +25,6 @@ use crate::{
 use diesel::prelude::*;
 use failure::ResultExt;
 use rocket::State;
-use std::collections::HashMap;
 
 /// Get summary data from database
 #[get("/stats/database/summary?<from>&<until>")]
@@ -30,14 +32,15 @@ pub fn get_summary_db(
     from: u64,
     until: u64,
     _auth: User,
-    ftl_database: FtlDatabase,
+    db: FtlDatabase,
     env: State<Env>
 ) -> Reply {
-    // Cast the database connection to &SqliteConnection to make using it easier
-    // (only need to cast once, here)
-    let db = &ftl_database as &SqliteConnection;
-
-    reply_data(get_summary_impl(from, until, db, &env)?)
+    reply_data(get_summary_impl(
+        from,
+        until,
+        &db as &SqliteConnection,
+        &env
+    )?)
 }
 
 /// Implementation of [`get_summary_db`]
@@ -109,48 +112,6 @@ fn get_summary_impl(
     })
 }
 
-/// Get the number of queries with each query type in the specified time range
-fn get_query_type_counts(
-    db: &SqliteConnection,
-    from: u64,
-    until: u64
-) -> Result<HashMap<FtlQueryType, usize>, Error> {
-    use crate::databases::ftl::queries::dsl::*;
-    use diesel::{dsl::sql, sql_types::BigInt};
-
-    let mut counts: HashMap<FtlQueryType, usize> = queries
-        // Select the query types and their counts.
-        // The raw SQL is used due to a limitation of Diesel, in that it doesn't
-        // have full support for mixing aggregate and non-aggregate data when
-        // using group_by. See https://github.com/diesel-rs/diesel/issues/1781
-        .select((query_type, sql::<BigInt>("COUNT(*)")))
-        // Search in the specified time interval
-        .filter(timestamp.le(until as i32).and(timestamp.ge(from as i32)))
-        // Group the results by query type
-        .group_by(query_type)
-        // Execute the query
-        .get_results::<(i32, i64)>(db)
-        // Add error context and check for errors
-        .context(ErrorKind::FtlDatabase)?
-        // Turn the resulting Vec into an iterator
-        .into_iter()
-        // Map the values into (FtlQueryType, usize)
-        .map(|(q_type, count)| {
-            (FtlQueryType::from_number(q_type as isize).unwrap(), count as usize)
-        })
-        // Turn the iterator into a HashMap
-        .collect();
-
-    // Fill in the rest of the query types not found in the database
-    for q_type in FtlQueryType::variants() {
-        if !counts.contains_key(q_type) {
-            counts.insert(*q_type, 0);
-        }
-    }
-
-    Ok(counts)
-}
-
 /// Get the number of blocked queries in the specified time range
 pub fn get_blocked_query_count(
     db: &SqliteConnection,
@@ -208,13 +169,12 @@ pub fn get_query_status_count(
 #[cfg(test)]
 mod test {
     use super::{
-        get_blocked_query_count, get_query_status_count, get_query_type_counts, get_summary_impl,
-        get_unique_domain_count
+        get_blocked_query_count, get_query_status_count, get_summary_impl, get_unique_domain_count
     };
     use crate::{
         databases::ftl::connect_to_test_db,
         env::{Config, Env},
-        ftl::{FtlQueryStatus, FtlQueryType},
+        ftl::FtlQueryStatus,
         routes::stats::summary::{ReplyTypes, Summary, TotalQueries}
     };
     use std::collections::HashMap;
@@ -258,24 +218,6 @@ mod test {
         let actual_summary = get_summary_impl(FROM_TIMESTAMP, UNTIL_TIMESTAMP, &db, &env).unwrap();
 
         assert_eq!(actual_summary, expected_summary);
-    }
-
-    /// Verify the query type counts are accurate
-    #[test]
-    fn query_type_counts() {
-        let mut expected = HashMap::new();
-        expected.insert(FtlQueryType::A, 36);
-        expected.insert(FtlQueryType::AAAA, 35);
-        expected.insert(FtlQueryType::ANY, 0);
-        expected.insert(FtlQueryType::SRV, 0);
-        expected.insert(FtlQueryType::SOA, 0);
-        expected.insert(FtlQueryType::PTR, 23);
-        expected.insert(FtlQueryType::TXT, 0);
-
-        let db = connect_to_test_db();
-        let actual = get_query_type_counts(&db, FROM_TIMESTAMP, UNTIL_TIMESTAMP).unwrap();
-
-        assert_eq!(actual, expected);
     }
 
     /// Verify the blocked query count is accurate

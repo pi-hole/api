@@ -9,7 +9,8 @@
 // Please see LICENSE file for your rights under this license.
 
 mod over_time_history_db;
+mod query_types_db;
 mod summary_db;
 mod upstreams_db;
 
-pub use self::{over_time_history_db::*, summary_db::*, upstreams_db::*};
+pub use self::{over_time_history_db::*, query_types_db::*, summary_db::*, upstreams_db::*};
