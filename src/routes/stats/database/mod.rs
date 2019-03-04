@@ -10,5 +10,6 @@
 
 mod over_time_history_db;
 mod summary_db;
+mod upstreams_db;
 
-pub use self::{over_time_history_db::*, summary_db::*};
+pub use self::{over_time_history_db::*, summary_db::*, upstreams_db::*};
