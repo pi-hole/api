@@ -16,10 +16,9 @@ use crate::{
         stats::common::{remove_excluded_domains, remove_hidden_domains}
     },
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
-    util::{reply_data, Reply}
+    util::{reply_data, Error, Reply}
 };
 use rocket::{request::Form, State};
-use rocket_contrib::json::JsonValue;
 use std::io::{BufRead, BufReader};
 
 /// Return the top domains
@@ -28,22 +27,43 @@ pub fn top_domains(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
-    params: Form<TopParams>
+    params: Form<TopDomainParams>
 ) -> Reply {
-    get_top_domains(&ftl_memory, &env, params.into_inner())
+    reply_data(get_top_domains(&ftl_memory, &env, params.into_inner())?)
 }
 
-/// Represents the possible GET parameters on `/stats/top_domains`
+/// Represents the possible GET parameters for top (blocked) domains requests
 #[derive(FromForm)]
-pub struct TopParams {
+pub struct TopDomainParams {
     limit: Option<usize>,
     audit: Option<bool>,
     ascending: Option<bool>,
     blocked: Option<bool>
 }
 
+/// Represents the reply structure for top (blocked) domains
+#[derive(Serialize)]
+pub struct TopDomainsReply {
+    pub top_domains: Vec<TopDomainItemReply>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_queries: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked_queries: Option<usize>
+}
+
+/// Represents the reply structure for a top (blocked) domain item
+#[derive(Serialize)]
+pub struct TopDomainItemReply {
+    pub domain: String,
+    pub count: usize
+}
+
 /// Get the top domains (blocked or not)
-fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Reply {
+fn get_top_domains(
+    ftl_memory: &FtlMemory,
+    env: &Env,
+    params: TopDomainParams
+) -> Result<TopDomainsReply, Error> {
     // Resolve the parameters
     let limit = params.limit.unwrap_or(10);
     let audit = params.audit.unwrap_or(false);
@@ -60,22 +80,24 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
         || (display_setting == "blockedonly" && !blocked)
     {
         if blocked {
-            return reply_data(json!({
-                "top_domains": [],
-                "blocked_queries": 0
-            }));
+            return Ok(TopDomainsReply {
+                top_domains: Vec::new(),
+                total_queries: None,
+                blocked_queries: Some(0)
+            });
         } else {
-            return reply_data(json!({
-                "top_domains": [],
+            return Ok(TopDomainsReply {
+                top_domains: Vec::new(),
                 // If they requested permitted queries but they only want to
                 // see blocked queries (and not nothing), then share the number
                 // of blocked queries (total - permitted)
-                "total_queries": if display_setting == "nothing" {
+                total_queries: Some(if display_setting == "nothing" {
                     0
                 } else {
-                    counters.blocked_queries
-                }
-            }));
+                    counters.blocked_queries as usize
+                }),
+                blocked_queries: None
+            });
         }
     }
 
@@ -83,15 +105,17 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
     if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)? >= FtlPrivacyLevel::HideDomains
     {
         if blocked {
-            return reply_data(json!({
-                "top_domains": [],
-                "blocked_queries": counters.blocked_queries
-            }));
+            return Ok(TopDomainsReply {
+                top_domains: Vec::new(),
+                total_queries: None,
+                blocked_queries: Some(counters.blocked_queries as usize)
+            });
         } else {
-            return reply_data(json!({
-                "top_domains": [],
-                "total_queries": counters.total_queries
-            }));
+            return Ok(TopDomainsReply {
+                top_domains: Vec::new(),
+                total_queries: Some(counters.total_queries as usize),
+                blocked_queries: None
+            });
         }
     }
 
@@ -145,34 +169,36 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
     }
 
     // Map the domains into the output format
-    let top_domains: Vec<JsonValue> = domains
+    let top_domains: Vec<TopDomainItemReply> = domains
         .iter()
         .map(|domain| {
-            let name = domain.get_domain(&strings);
+            let name = domain.get_domain(&strings).to_owned();
             let count = if blocked {
                 domain.blocked_count
             } else {
                 domain.query_count - domain.blocked_count
-            };
+            } as usize;
 
-            json!({
-                "domain": name,
-                "count": count
-            })
+            TopDomainItemReply {
+                domain: name,
+                count
+            }
         })
         .collect();
 
     // Output format changes when getting top blocked domains
     if blocked {
-        reply_data(json!({
-            "top_domains": top_domains,
-            "blocked_queries": counters.blocked_queries
-        }))
+        Ok(TopDomainsReply {
+            top_domains,
+            total_queries: None,
+            blocked_queries: Some(counters.blocked_queries as usize)
+        })
     } else {
-        reply_data(json!({
-            "top_domains": top_domains,
-            "total_queries": counters.total_queries
-        }))
+        Ok(TopDomainsReply {
+            top_domains,
+            total_queries: Some(counters.total_queries as usize),
+            blocked_queries: None
+        })
     }
 }
 
