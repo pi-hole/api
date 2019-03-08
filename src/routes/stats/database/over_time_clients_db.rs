@@ -15,7 +15,7 @@ use crate::{
     routes::{
         auth::User,
         stats::{
-            common::{remove_excluded_clients_db, remove_hidden_clients_db},
+            common::{get_excluded_clients, get_hidden_client_ip},
             database::over_time_history_db::align_from_until,
             over_time_clients::{OverTimeClientItem, OverTimeClients}
         }
@@ -125,17 +125,18 @@ fn get_client_identifiers(
 ) -> Result<Vec<String>, Error> {
     use crate::databases::ftl::queries::dsl::*;
 
-    let mut client_identifiers = queries
+    // Find clients which should not be used
+    let mut ignored_clients = get_excluded_clients(env)?;
+    ignored_clients.push(get_hidden_client_ip().to_owned());
+
+    let client_identifiers = queries
         .select(client)
         .distinct()
         .filter(timestamp.ge(from as i32))
         .filter(timestamp.lt(until as i32))
+        .filter(client.ne_all(ignored_clients))
         .load(db)
         .context(ErrorKind::FtlDatabase)?;
-
-    // Remove clients which should not be used
-    remove_hidden_clients_db(&mut client_identifiers);
-    remove_excluded_clients_db(&mut client_identifiers, env)?;
 
     Ok(client_identifiers)
 }

@@ -29,11 +29,7 @@ pub fn remove_excluded_clients(
     env: &Env,
     strings: &FtlStrings
 ) -> Result<(), Error> {
-    let excluded_clients: Vec<String> = SetupVarsEntry::ApiExcludeClients
-        .read_list(env)?
-        .into_iter()
-        .map(|s| s.to_lowercase())
-        .collect();
+    let excluded_clients = get_excluded_clients(env)?;
     let excluded_clients: HashSet<&str> = excluded_clients.iter().map(String::as_str).collect();
 
     if !excluded_clients.is_empty() {
@@ -49,27 +45,16 @@ pub fn remove_excluded_clients(
     Ok(())
 }
 
-/// Remove client identifiers from the `client_identifiers` vector if they show
-/// up in [`SetupVarsEntry::ApiExcludeClients`].
+/// Get the domains from [`SetupVarsEntry::ApiExcludeClients`] in lowercase.
 ///
 /// [`SetupVarsEntry::ApiExcludeClients`]:
 /// ../../../settings/entries/enum.SetupVarsEntry.html#variant.ApiExcludeClients
-pub fn remove_excluded_clients_db(
-    client_identifiers: &mut Vec<String>,
-    env: &Env
-) -> Result<(), Error> {
-    let excluded_clients: HashSet<String> = SetupVarsEntry::ApiExcludeClients
+pub fn get_excluded_clients(env: &Env) -> Result<Vec<String>, Error> {
+    Ok(SetupVarsEntry::ApiExcludeClients
         .read_list(env)?
         .into_iter()
         .map(|s| s.to_lowercase())
-        .collect();
-
-    if !excluded_clients.is_empty() {
-        // Only retain clients which do not appear in the exclusion list
-        client_identifiers.retain(|client_identifier| !excluded_clients.contains(client_identifier))
-    }
-
-    Ok(())
+        .collect())
 }
 
 /// Remove domains from the `domains` vector if they show up in
@@ -100,13 +85,13 @@ pub fn remove_excluded_domains(
 /// Remove clients from the `clients` vector if they are marked as hidden due
 /// to the privacy level.
 pub fn remove_hidden_clients(clients: &mut Vec<&FtlClient>, strings: &FtlStrings) {
-    clients.retain(|client| client.get_ip(strings) != "0.0.0.0");
+    let hidden_client_ip = get_hidden_client_ip();
+    clients.retain(|client| client.get_ip(strings) != hidden_client_ip);
 }
 
-/// Remove client identifiers from the `client_identifiers` vector if they are
-/// marked as hidden due to the privacy level.
-pub fn remove_hidden_clients_db(client_identifiers: &mut Vec<String>) {
-    client_identifiers.retain(|client| client != "0.0.0.0")
+/// Get the hidden client IP address
+pub fn get_hidden_client_ip() -> &'static str {
+    "0.0.0.0"
 }
 
 /// Remove domains from the `domains` vector if they are marked as hidden due
@@ -141,8 +126,8 @@ pub fn get_current_over_time_slot(over_time: &[FtlOverTime]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::{
-        remove_excluded_clients, remove_excluded_clients_db, remove_excluded_domains,
-        remove_hidden_clients, remove_hidden_clients_db, remove_hidden_domains
+        remove_excluded_clients, remove_excluded_domains, remove_hidden_clients,
+        remove_hidden_domains
     };
     use crate::{
         env::{Config, Env, PiholeFile},
@@ -213,32 +198,6 @@ mod tests {
         assert_eq!(clients, vec![&FtlClient::new(0, 0, 4, None)]);
     }
 
-    /// Clients marked as excluded are removed
-    #[test]
-    fn excluded_clients_db() {
-        let expected = vec!["0.0.0.0".to_owned()];
-
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(
-                    PiholeFile::SetupVars,
-                    "API_EXCLUDE_CLIENTS=10.1.1.2,client1"
-                )
-                .build()
-        );
-
-        let mut clients = vec![
-            "client1".to_owned(),
-            "10.1.1.2".to_owned(),
-            "0.0.0.0".to_owned(),
-        ];
-
-        remove_excluded_clients_db(&mut clients, &env).unwrap();
-
-        assert_eq!(clients, expected);
-    }
-
     /// Domains marked as excluded are removed
     #[test]
     fn excluded_domains() {
@@ -288,22 +247,6 @@ mod tests {
         remove_hidden_clients(&mut clients, &ftl_memory.strings(&lock_guard).unwrap());
 
         assert_eq!(clients, clients_clone);
-    }
-
-    /// Clients marked as hidden are removed
-    #[test]
-    fn hidden_clients_db() {
-        let expected = vec!["client1".to_owned(), "10.1.1.2".to_owned()];
-
-        let mut clients = vec![
-            "client1".to_owned(),
-            "10.1.1.2".to_owned(),
-            "0.0.0.0".to_owned(),
-        ];
-
-        remove_hidden_clients_db(&mut clients);
-
-        assert_eq!(clients, expected);
     }
 
     /// Domains marked as hidden are removed
