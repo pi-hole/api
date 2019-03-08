@@ -160,6 +160,7 @@ fn setup(
             stats::over_time_history,
             stats::over_time_clients,
             stats::database::get_summary_db,
+            stats::database::over_time_clients_db,
             stats::database::over_time_history_db,
             stats::database::query_types_db,
             stats::database::upstreams_db,

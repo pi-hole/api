@@ -29,11 +29,8 @@ pub fn remove_excluded_clients(
     env: &Env,
     strings: &FtlStrings
 ) -> Result<(), Error> {
-    let excluded_clients = SetupVarsEntry::ApiExcludeClients.read(env)?.to_lowercase();
-    let excluded_clients: HashSet<&str> = excluded_clients
-        .split(',')
-        .filter(|s| !s.is_empty())
-        .collect();
+    let excluded_clients = get_excluded_clients(env)?;
+    let excluded_clients: HashSet<&str> = excluded_clients.iter().map(String::as_str).collect();
 
     if !excluded_clients.is_empty() {
         // Only retain clients which do not appear in the exclusion list
@@ -48,6 +45,18 @@ pub fn remove_excluded_clients(
     Ok(())
 }
 
+/// Get the clients from [`SetupVarsEntry::ApiExcludeClients`] in lowercase.
+///
+/// [`SetupVarsEntry::ApiExcludeClients`]:
+/// ../../../settings/entries/enum.SetupVarsEntry.html#variant.ApiExcludeClients
+pub fn get_excluded_clients(env: &Env) -> Result<Vec<String>, Error> {
+    Ok(SetupVarsEntry::ApiExcludeClients
+        .read_list(env)?
+        .into_iter()
+        .map(|s| s.to_lowercase())
+        .collect())
+}
+
 /// Remove domains from the `domains` vector if they show up in
 /// [`SetupVarsEntry::ApiExcludeDomains`].
 ///
@@ -58,11 +67,12 @@ pub fn remove_excluded_domains(
     env: &Env,
     strings: &FtlStrings
 ) -> Result<(), Error> {
-    let excluded_domains = SetupVarsEntry::ApiExcludeDomains.read(env)?.to_lowercase();
-    let excluded_domains: HashSet<&str> = excluded_domains
-        .split(',')
-        .filter(|s| !s.is_empty())
+    let excluded_domains: Vec<String> = SetupVarsEntry::ApiExcludeDomains
+        .read_list(env)?
+        .into_iter()
+        .map(|s| s.to_lowercase())
         .collect();
+    let excluded_domains: HashSet<&str> = excluded_domains.iter().map(String::as_str).collect();
 
     if !excluded_domains.is_empty() {
         // Only retain domains which do not appear in the exclusion list
@@ -75,7 +85,13 @@ pub fn remove_excluded_domains(
 /// Remove clients from the `clients` vector if they are marked as hidden due
 /// to the privacy level.
 pub fn remove_hidden_clients(clients: &mut Vec<&FtlClient>, strings: &FtlStrings) {
-    clients.retain(|client| client.get_ip(strings) != "0.0.0.0");
+    let hidden_client_ip = get_hidden_client_ip();
+    clients.retain(|client| client.get_ip(strings) != hidden_client_ip);
+}
+
+/// Get the hidden client IP address
+pub fn get_hidden_client_ip() -> &'static str {
+    "0.0.0.0"
 }
 
 /// Remove domains from the `domains` vector if they are marked as hidden due

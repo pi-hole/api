@@ -19,6 +19,14 @@ use std::fmt::{
     self, {Debug, Formatter}
 };
 
+/// Represents an FTL client in API responses
+#[derive(Serialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct ClientReply {
+    pub name: String,
+    pub ip: String
+}
+
 /// The client struct stored in shared memory.
 ///
 /// Many traits, such as Debug and PartialEq, have to be manually implemented
@@ -88,6 +96,17 @@ impl FtlClient {
             strings.get_str(self.name_str_id as usize)
         } else {
             None
+        }
+    }
+
+    /// Convert this FTL client into the reply format
+    pub fn as_reply(&self, strings: &FtlStrings) -> ClientReply {
+        let name = self.get_name(&strings).unwrap_or_default();
+        let ip = self.get_ip(&strings);
+
+        ClientReply {
+            name: name.to_owned(),
+            ip: ip.to_owned()
         }
     }
 }
