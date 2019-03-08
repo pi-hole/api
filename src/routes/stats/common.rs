@@ -45,7 +45,7 @@ pub fn remove_excluded_clients(
     Ok(())
 }
 
-/// Get the domains from [`SetupVarsEntry::ApiExcludeClients`] in lowercase.
+/// Get the clients from [`SetupVarsEntry::ApiExcludeClients`] in lowercase.
 ///
 /// [`SetupVarsEntry::ApiExcludeClients`]:
 /// ../../../settings/entries/enum.SetupVarsEntry.html#variant.ApiExcludeClients
