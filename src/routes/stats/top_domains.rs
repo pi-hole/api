@@ -19,7 +19,6 @@ use crate::{
     util::{reply_data, Error, Reply}
 };
 use rocket::{request::Form, State};
-use std::io::{BufRead, BufReader};
 
 /// Return the top domains
 #[get("/stats/top_domains?<params..>")]
@@ -141,9 +140,7 @@ fn get_top_domains(
 
     // If audit flag is true, only include unaudited domains
     if audit {
-        let audit_file = BufReader::new(env.read_file(PiholeFile::AuditLog)?);
-        let audited_domains: Vec<String> =
-            audit_file.lines().filter_map(|line| line.ok()).collect();
+        let audited_domains = env.read_file_lines(PiholeFile::AuditLog)?;
 
         // Get a vector of references to strings, to better compare with the domains
         let audited_domains: Vec<&str> = audited_domains.iter().map(String::as_str).collect();

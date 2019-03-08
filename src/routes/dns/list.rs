@@ -14,7 +14,7 @@ use crate::{
     util::{Error, ErrorKind}
 };
 use failure::ResultExt;
-use std::io::{prelude::*, BufReader, BufWriter};
+use std::io::{prelude::*, BufWriter};
 
 pub enum List {
     White,
@@ -42,8 +42,8 @@ impl List {
 
     /// Read in the domains from the list
     pub fn get(&self, env: &Env) -> Result<Vec<String>, Error> {
-        let file = match env.read_file(self.file()) {
-            Ok(f) => f,
+        let domains = match env.read_file_lines(self.file()) {
+            Ok(domains) => domains,
             Err(e) => {
                 if e.kind() == ErrorKind::NotFound {
                     // If the file is not found, then the list is empty
@@ -54,10 +54,9 @@ impl List {
             }
         };
 
-        Ok(BufReader::new(file)
-            .lines()
-            .filter_map(|line| line.ok())
-            .filter(|line| !line.is_empty())
+        Ok(domains
+            .into_iter()
+            .filter(|domain| !domain.is_empty())
             .collect())
     }
 
