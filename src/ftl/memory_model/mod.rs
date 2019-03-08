@@ -26,7 +26,7 @@ mod strings;
 mod upstream;
 
 pub use self::{
-    client::FtlClient,
+    client::*,
     counters::{FtlCounters, FtlQueryType},
     domain::{FtlDomain, FtlRegexMatch},
     lock::FtlLock,

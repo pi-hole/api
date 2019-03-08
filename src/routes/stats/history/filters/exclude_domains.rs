@@ -26,11 +26,12 @@ pub fn filter_excluded_domains<'a>(
     ftl_lock: &ShmLockGuard<'a>
 ) -> Result<Box<dyn Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     // Get the excluded domains list
-    let excluded_domains = SetupVarsEntry::ApiExcludeDomains.read(env)?.to_lowercase();
-    let excluded_domains: HashSet<&str> = excluded_domains
-        .split(',')
-        .filter(|s| !s.is_empty())
+    let excluded_domains: Vec<String> = SetupVarsEntry::ApiExcludeDomains
+        .read_list(env)?
+        .into_iter()
+        .map(|s| s.to_lowercase())
         .collect();
+    let excluded_domains: HashSet<&str> = excluded_domains.iter().map(String::as_str).collect();
 
     // End early if there are no excluded domains
     if excluded_domains.is_empty() {
@@ -74,11 +75,10 @@ pub fn filter_excluded_domains_db<'a>(
     use self::queries::dsl::*;
 
     // Get the excluded domains list
-    let excluded_domains = SetupVarsEntry::ApiExcludeDomains.read(env)?.to_lowercase();
-    let excluded_domains: HashSet<String> = excluded_domains
-        .split(',')
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_owned())
+    let excluded_domains: HashSet<String> = SetupVarsEntry::ApiExcludeDomains
+        .read_list(env)?
+        .into_iter()
+        .map(|s| s.to_lowercase())
         .collect();
 
     if excluded_domains.is_empty() {

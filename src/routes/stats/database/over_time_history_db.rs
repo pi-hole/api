@@ -43,20 +43,7 @@ fn over_time_history_db_impl(
     interval: usize,
     db: &SqliteConnection
 ) -> Result<Vec<OverTimeItem>, Error> {
-    let is_range_increasing = from < until;
-
-    if !is_range_increasing {
-        // The timestamps should increase from "from" to "until"
-        return Err(Error::from(ErrorKind::BadRequest));
-    }
-
-    // Align timestamps with the interval
-    let from = from - (from % interval as u64);
-    let until = if until % interval as u64 != 0 {
-        until - (until % interval as u64) + interval as u64
-    } else {
-        until
-    };
+    let (from, until) = align_from_until(from, until, interval as u64)?;
 
     // Get the overTime data
     let total_intervals = get_total_intervals(from, until, interval, db)?;
@@ -65,19 +52,38 @@ fn over_time_history_db_impl(
     let mut over_time: Vec<OverTimeItem> = Vec::with_capacity((until - from) as usize / interval);
 
     // For each interval's timestamp, create the overTime slot
-    for timestamp in (from..=until).step_by(interval) {
+    for timestamp in (from..until).step_by(interval) {
         let timestamp_key = &(timestamp as i32);
         let total_queries = *total_intervals.get(timestamp_key).unwrap_or(&0) as usize;
         let blocked_queries = *blocked_intervals.get(timestamp_key).unwrap_or(&0) as usize;
 
         over_time.push(OverTimeItem {
-            timestamp,
+            // Display the timestamps as centered in the overTime slot interval
+            timestamp: timestamp + (interval / 2) as u64,
             total_queries,
             blocked_queries
         });
     }
 
     Ok(over_time)
+}
+
+/// Align `from` and `until` with the interval. Also check that the time
+/// interval is increasing from `from` to `until`. If it is not, an error is
+/// returned.
+pub fn align_from_until(from: u64, until: u64, interval: u64) -> Result<(u64, u64), Error> {
+    let is_range_increasing = from < until;
+
+    if !is_range_increasing {
+        // The timestamps should increase from "from" to "until"
+        return Err(Error::from(ErrorKind::BadRequest));
+    }
+
+    // Align timestamps with the interval
+    let from = from - (from % interval);
+    let until = until - (until % interval) + interval;
+
+    Ok((from, until))
 }
 
 /// Get the over time data for all queries from the database
@@ -100,7 +106,7 @@ fn get_total_intervals(
         .select((&interval_sql, sql::<BigInt>("COUNT(*)")))
         .filter(status.ne(0))
         .filter(timestamp.ge(from as i32))
-        .filter(timestamp.le(until as i32))
+        .filter(timestamp.lt(until as i32))
         .group_by(&interval_sql);
 
     // Execute SQL query
@@ -132,7 +138,7 @@ fn get_blocked_intervals(
         .select((&interval_sql, sql::<BigInt>("COUNT(*)")))
         .filter(status.eq_any(&BLOCKED_STATUSES))
         .filter(timestamp.ge(from as i32))
-        .filter(timestamp.le(until as i32))
+        .filter(timestamp.lt(until as i32))
         .group_by(&interval_sql);
 
     // Execute SQL query
@@ -161,24 +167,24 @@ mod test {
     fn over_time_history_impl() {
         let expected = vec![
             OverTimeItem {
-                timestamp: 164_400,
+                timestamp: 164_700,
                 total_queries: 26,
                 blocked_queries: 0
             },
             OverTimeItem {
-                timestamp: 165_000,
+                timestamp: 165_300,
                 total_queries: 7,
                 blocked_queries: 0
             },
             OverTimeItem {
-                timestamp: 165_600,
+                timestamp: 165_900,
                 total_queries: 0,
                 blocked_queries: 0
             },
         ];
 
         let db = connect_to_test_db();
-        let actual = over_time_history_db_impl(164_400, 165_600, 600, &db).unwrap();
+        let actual = over_time_history_db_impl(164_400, 165_600, INTERVAL, &db).unwrap();
 
         assert_eq!(actual, expected);
     }
