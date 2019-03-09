@@ -15,14 +15,16 @@ use crate::{
 use failure::ResultExt;
 use std::{
     fs::{self, File, OpenOptions},
+    io::{BufRead, BufReader},
     os::unix::fs::OpenOptionsExt,
     path::Path
 };
 
 #[cfg(test)]
-use std::collections::HashMap;
-#[cfg(test)]
-use std::io::{Read, Write};
+use std::{
+    collections::HashMap,
+    io::{Read, Write}
+};
 #[cfg(test)]
 use tempfile::{tempfile, NamedTempFile};
 
@@ -83,6 +85,13 @@ impl Env {
                 None => tempfile().context(ErrorKind::Unknown).map_err(Error::from)
             }
         }
+    }
+
+    /// Open a file and read its lines. This uses a `BufReader` under the hood
+    /// and skips lines with errors (invalid UTF-8).
+    pub fn read_file_lines(&self, file: PiholeFile) -> Result<Vec<String>, Error> {
+        let reader = BufReader::new(self.read_file(file)?);
+        Ok(reader.lines().filter_map(Result::ok).collect())
     }
 
     /// Open a file for writing. If `append` is false, the file will be

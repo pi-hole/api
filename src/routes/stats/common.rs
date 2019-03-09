@@ -67,11 +67,7 @@ pub fn remove_excluded_domains(
     env: &Env,
     strings: &FtlStrings
 ) -> Result<(), Error> {
-    let excluded_domains: Vec<String> = SetupVarsEntry::ApiExcludeDomains
-        .read_list(env)?
-        .into_iter()
-        .map(|s| s.to_lowercase())
-        .collect();
+    let excluded_domains: Vec<String> = get_excluded_domains(env)?;
     let excluded_domains: HashSet<&str> = excluded_domains.iter().map(String::as_str).collect();
 
     if !excluded_domains.is_empty() {
@@ -80,6 +76,18 @@ pub fn remove_excluded_domains(
     }
 
     Ok(())
+}
+
+/// Get the domains from [`SetupVarsEntry::ApiExcludeDomains`] in lowercase.
+///
+/// [`SetupVarsEntry::ApiExcludeDomains`]:
+/// ../../../settings/entries/enum.SetupVarsEntry.html#variant.ApiExcludeDomains
+pub fn get_excluded_domains(env: &Env) -> Result<Vec<String>, Error> {
+    Ok(SetupVarsEntry::ApiExcludeDomains
+        .read_list(env)?
+        .into_iter()
+        .map(|s| s.to_lowercase())
+        .collect())
 }
 
 /// Remove clients from the `clients` vector if they are marked as hidden due
@@ -97,7 +105,13 @@ pub fn get_hidden_client_ip() -> &'static str {
 /// Remove domains from the `domains` vector if they are marked as hidden due
 /// to the privacy level.
 pub fn remove_hidden_domains(domains: &mut Vec<&FtlDomain>, strings: &FtlStrings) {
-    domains.retain(|domain| domain.get_domain(strings) != "hidden");
+    let hidden_domain = get_hidden_domain();
+    domains.retain(|domain| domain.get_domain(strings) != hidden_domain);
+}
+
+/// Get the designated hidden domain
+pub fn get_hidden_domain() -> &'static str {
+    "hidden"
 }
 
 /// Get the current overTime slot index, based on the current time. If all of

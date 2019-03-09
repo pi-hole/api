@@ -16,7 +16,7 @@ use crate::{
 use failure::{Fail, ResultExt};
 use std::{
     borrow::Cow,
-    io::{self, prelude::*, BufReader, BufWriter},
+    io::{self, prelude::*, BufWriter},
     str::FromStr
 };
 
@@ -70,11 +70,11 @@ pub trait ConfigEntry {
     /// Read this setting from the config file it appears in.
     /// If the setting is not found, its default value is returned.
     fn read(&self, env: &Env) -> Result<String, Error> {
-        let reader = BufReader::new(env.read_file(self.file())?);
+        let lines = env.read_file_lines(self.file())?;
         let key = self.key();
 
         // Check every line for the key (filter out lines which could not be read)
-        for line in reader.lines().filter_map(|item| item.ok()) {
+        for line in lines {
             // Ignore lines without the entry as a substring
             if !line.contains(key.as_ref()) {
                 continue;
@@ -114,9 +114,9 @@ pub trait ConfigEntry {
         // Read specified file, removing any line matching the setting we are writing
         let key = self.key();
         let entry_equals = format!("{}=", key);
-        let mut entries: Vec<String> = BufReader::new(env.read_file(self.file())?)
-            .lines()
-            .filter_map(|item| item.ok())
+        let mut entries: Vec<String> = env
+            .read_file_lines(self.file())?
+            .into_iter()
             .filter(|line| !line.starts_with(&entry_equals))
             .collect();
 
@@ -306,9 +306,9 @@ impl ConfigEntry for SetupVarsEntry {
 impl SetupVarsEntry {
     /// Delete all `SetupVarsEntry::PiholeDns` entries
     pub fn delete_upstream_dns(env: &Env) -> Result<(), Error> {
-        let entries: Vec<String> = BufReader::new(env.read_file(PiholeFile::SetupVars)?)
-            .lines()
-            .filter_map(|item| item.ok())
+        let entries: Vec<String> = env
+            .read_file_lines(PiholeFile::SetupVars)?
+            .into_iter()
             .filter(|line| !line.starts_with("PIHOLE_DNS_"))
             .collect();
 

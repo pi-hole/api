@@ -167,7 +167,7 @@ fn get_client_over_time(
 
     // Execute SQL query
     Ok(sql_query
-        .load(&db as &SqliteConnection)
+        .load(db)
         .context(ErrorKind::FtlDatabase)?
         // Convert to HashMap
         .into_iter()
