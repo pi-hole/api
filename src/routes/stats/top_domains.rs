@@ -32,7 +32,7 @@ pub fn top_domains(
 }
 
 /// Represents the possible GET parameters for top (blocked) domains requests
-#[derive(FromForm)]
+#[derive(FromForm, Default)]
 pub struct TopDomainParams {
     pub limit: Option<usize>,
     pub audit: Option<bool>,
@@ -42,6 +42,7 @@ pub struct TopDomainParams {
 
 /// Represents the reply structure for top (blocked) domains
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct TopDomainsReply {
     pub top_domains: Vec<TopDomainItemReply>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -52,6 +53,7 @@ pub struct TopDomainsReply {
 
 /// Represents the reply structure for a top (blocked) domain item
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct TopDomainItemReply {
     pub domain: String,
     pub count: usize

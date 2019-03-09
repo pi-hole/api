@@ -177,3 +177,239 @@ fn execute_top_domains_query(
         .load::<(String, i64)>(db)
         .context(ErrorKind::FtlDatabase)?)
 }
+
+#[cfg(test)]
+mod test {
+    use super::top_domains_db_impl;
+    use crate::{
+        databases::ftl::connect_to_test_db,
+        env::{Config, Env, PiholeFile},
+        routes::stats::top_domains::{TopDomainItemReply, TopDomainParams, TopDomainsReply},
+        testing::TestEnvBuilder
+    };
+    use std::collections::HashMap;
+
+    const FROM_TIMESTAMP: u64 = 0;
+    const UNTIL_TIMESTAMP: u64 = 177_180;
+
+    /// Show permitted domains, but no hidden, inactive, or completely blocked
+    /// domains
+    #[test]
+    fn default_params() {
+        let expected = TopDomainsReply {
+            top_domains: vec![
+                TopDomainItemReply {
+                    domain: "0.ubuntu.pool.ntp.org".to_owned(),
+                    count: 14
+                },
+                TopDomainItemReply {
+                    domain: "1.ubuntu.pool.ntp.org".to_owned(),
+                    count: 12
+                },
+                TopDomainItemReply {
+                    domain: "github.com".to_owned(),
+                    count: 12
+                },
+                TopDomainItemReply {
+                    domain: "3.ubuntu.pool.ntp.org".to_owned(),
+                    count: 10
+                },
+                TopDomainItemReply {
+                    domain: "4.4.8.8.in-addr.arpa".to_owned(),
+                    count: 9
+                },
+                TopDomainItemReply {
+                    domain: "1.1.1.10.in-addr.arpa".to_owned(),
+                    count: 8
+                },
+                TopDomainItemReply {
+                    domain: "2.ubuntu.pool.ntp.org".to_owned(),
+                    count: 8
+                },
+                TopDomainItemReply {
+                    domain: "ntp.ubuntu.com".to_owned(),
+                    count: 8
+                },
+                TopDomainItemReply {
+                    domain: "8.8.8.8.in-addr.arpa".to_owned(),
+                    count: 6
+                },
+                TopDomainItemReply {
+                    domain: "ftl.pi-hole.net".to_owned(),
+                    count: 6
+                },
+            ],
+            total_queries: Some(94),
+            blocked_queries: None
+        };
+
+        let db = connect_to_test_db();
+        let env = Env::Test(Config::default(), HashMap::new());
+        let params = TopDomainParams::default();
+        let actual =
+            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    /// Don't show more domains than the limit
+    #[test]
+    fn limit() {
+        let expected = TopDomainsReply {
+            top_domains: vec![
+                TopDomainItemReply {
+                    domain: "0.ubuntu.pool.ntp.org".to_owned(),
+                    count: 14
+                },
+                TopDomainItemReply {
+                    domain: "1.ubuntu.pool.ntp.org".to_owned(),
+                    count: 12
+                },
+            ],
+            total_queries: Some(94),
+            blocked_queries: None
+        };
+
+        let db = connect_to_test_db();
+        let env = Env::Test(Config::default(), HashMap::new());
+        let params = TopDomainParams {
+            limit: Some(2),
+            ..TopDomainParams::default()
+        };
+        let actual =
+            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    /// Show blocked domains, but no hidden, inactive, or completely unblocked
+    /// domains
+    #[test]
+    fn blocked() {
+        // There are no blocked domains in the database
+        let expected = TopDomainsReply {
+            top_domains: Vec::new(),
+            total_queries: None,
+            blocked_queries: Some(0)
+        };
+
+        let db = connect_to_test_db();
+        let env = Env::Test(Config::default(), HashMap::new());
+        let params = TopDomainParams {
+            blocked: Some(true),
+            ..TopDomainParams::default()
+        };
+        let actual =
+            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    /// Show permitted domains in ascending order, but no hidden, inactive, or
+    /// completely blocked domains
+    #[test]
+    fn ascending() {
+        let expected = TopDomainsReply {
+            top_domains: vec![
+                TopDomainItemReply {
+                    domain: "google.com".to_owned(),
+                    count: 1
+                },
+                TopDomainItemReply {
+                    domain: "8.8.8.8.in-addr.arpa".to_owned(),
+                    count: 6
+                },
+            ],
+            total_queries: Some(94),
+            blocked_queries: None
+        };
+
+        let db = connect_to_test_db();
+        let env = Env::Test(Config::default(), HashMap::new());
+        let params = TopDomainParams {
+            ascending: Some(true),
+            limit: Some(2),
+            ..TopDomainParams::default()
+        };
+        let actual =
+            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    /// Show unaudited domains in ascending order, but no hidden, inactive, or
+    /// audited domains
+    #[test]
+    fn audit() {
+        let expected = TopDomainsReply {
+            top_domains: vec![
+                TopDomainItemReply {
+                    domain: "0.ubuntu.pool.ntp.org".to_owned(),
+                    count: 14
+                },
+                TopDomainItemReply {
+                    domain: "github.com".to_owned(),
+                    count: 12
+                },
+            ],
+            total_queries: Some(94),
+            blocked_queries: None
+        };
+
+        let db = connect_to_test_db();
+        let env = Env::Test(
+            Config::default(),
+            TestEnvBuilder::new()
+                .file(PiholeFile::AuditLog, "1.ubuntu.pool.ntp.org")
+                .build()
+        );
+        let params = TopDomainParams {
+            audit: Some(true),
+            limit: Some(2),
+            ..TopDomainParams::default()
+        };
+        let actual =
+            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    /// Show permitted domains, but no hidden, inactive, or excluded domains
+    #[test]
+    fn excluded() {
+        let expected = TopDomainsReply {
+            top_domains: vec![
+                TopDomainItemReply {
+                    domain: "0.ubuntu.pool.ntp.org".to_owned(),
+                    count: 14
+                },
+                TopDomainItemReply {
+                    domain: "github.com".to_owned(),
+                    count: 12
+                },
+            ],
+            total_queries: Some(94),
+            blocked_queries: None
+        };
+
+        let db = connect_to_test_db();
+        let env = Env::Test(
+            Config::default(),
+            TestEnvBuilder::new()
+                .file(
+                    PiholeFile::SetupVars,
+                    "API_EXCLUDE_DOMAINS=1.ubuntu.pool.ntp.org"
+                )
+                .build()
+        );
+        let params = TopDomainParams {
+            audit: Some(true),
+            limit: Some(2),
+            ..TopDomainParams::default()
+        };
+        let actual =
+            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+
+        assert_eq!(actual, expected);
+    }
+}
