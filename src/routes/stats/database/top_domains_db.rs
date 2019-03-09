@@ -148,7 +148,7 @@ fn execute_top_domains_query(
         .select((domain, sql::<BigInt>("COUNT(*)")))
         // Only consider queries in the time interval
         .filter(timestamp.ge(from as i32))
-        .filter(timestamp.lt(until as i32))
+        .filter(timestamp.le(until as i32))
         // Filter out ignored domains
         .filter(domain.ne_all(ignored_domains))
         // Group queries by domain
@@ -160,9 +160,9 @@ fn execute_top_domains_query(
 
     // Set the sort order
     let db_query = if ascending {
-        db_query.order(sql::<BigInt>("COUNT(*)").asc())
+        db_query.order((sql::<BigInt>("COUNT(*)").asc(), domain))
     } else {
-        db_query.order(sql::<BigInt>("COUNT(*)").desc())
+        db_query.order((sql::<BigInt>("COUNT(*)").desc(), domain))
     };
 
     // Filter by status
