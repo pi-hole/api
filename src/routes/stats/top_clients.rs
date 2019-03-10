@@ -3,7 +3,7 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// Top Clients Endpoints
+// Top Clients Endpoint
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
@@ -32,23 +32,23 @@ pub fn top_clients(
 }
 
 /// Represents the possible GET parameters on `/stats/top_clients`
-#[derive(FromForm)]
+#[derive(FromForm, Default)]
 pub struct TopClientParams {
-    limit: Option<usize>,
-    inactive: Option<bool>,
-    ascending: Option<bool>,
-    blocked: Option<bool>
+    pub limit: Option<usize>,
+    pub inactive: Option<bool>,
+    pub ascending: Option<bool>,
+    pub blocked: Option<bool>
 }
 
 /// Represents the reply structure for top (blocked) clients
 #[derive(Serialize)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct TopClientsReply {
-    top_clients: Vec<TopClientItemReply>,
+    pub top_clients: Vec<TopClientItemReply>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    total_queries: Option<usize>,
+    pub total_queries: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    blocked_queries: Option<usize>
+    pub blocked_queries: Option<usize>
 }
 
 /// Represents the reply structure for a top (blocked) client item
