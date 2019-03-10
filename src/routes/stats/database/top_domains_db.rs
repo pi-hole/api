@@ -153,7 +153,7 @@ fn execute_top_domains_query(
         .filter(domain.ne_all(ignored_domains))
         // Group queries by domain
         .group_by(domain)
-        // Take into account limit
+        // Take into account the limit
         .limit(limit as i64)
         // Box the query so we can conditionally modify it
         .into_boxed();
@@ -169,7 +169,8 @@ fn execute_top_domains_query(
     let db_query = if blocked {
         db_query.filter(status.eq_any(&BLOCKED_STATUSES))
     } else {
-        db_query.filter(status.ne_all(&BLOCKED_STATUSES))
+        // If not blocked, use all queries
+        db_query
     };
 
     // Execute query
