@@ -75,23 +75,17 @@ fn get_top_clients(
     let lock = ftl_memory.lock()?;
     let counters = ftl_memory.counters(&lock)?;
 
+    let total_count = if blocked {
+        counters.blocked_queries
+    } else {
+        counters.total_queries
+    } as usize;
+
     // Check if the client details are private
-    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)?
-        >= FtlPrivacyLevel::HideDomainsAndClients
-    {
-        return if blocked {
-            Ok(TopClientsReply {
-                top_clients: Vec::new(),
-                total_queries: None,
-                blocked_queries: Some(counters.blocked_queries as usize)
-            })
-        } else {
-            Ok(TopClientsReply {
-                top_clients: Vec::new(),
-                total_queries: Some(counters.total_queries as usize),
-                blocked_queries: None
-            })
-        };
+    if let Some(reply) = check_privacy_level_top_clients(env, blocked, total_count)? {
+        // We can not share any of the clients, so use the reply returned by the
+        // function
+        return Ok(reply);
     }
 
     let strings = ftl_memory.strings(&lock)?;
@@ -159,6 +153,34 @@ fn get_top_clients(
             blocked_queries: None
         })
     }
+}
+
+/// Check the privacy level to see if clients are allowed to be shared. If not,
+/// then only return the relevant count (total or blocked queries).
+pub fn check_privacy_level_top_clients(
+    env: &Env,
+    blocked: bool,
+    count: usize
+) -> Result<Option<TopClientsReply>, Error> {
+    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)?
+        >= FtlPrivacyLevel::HideDomainsAndClients
+    {
+        return if blocked {
+            Ok(Some(TopClientsReply {
+                top_clients: Vec::new(),
+                total_queries: None,
+                blocked_queries: Some(count)
+            }))
+        } else {
+            Ok(Some(TopClientsReply {
+                top_clients: Vec::new(),
+                total_queries: Some(count),
+                blocked_queries: None
+            }))
+        };
+    }
+
+    Ok(None)
 }
 
 #[cfg(test)]
