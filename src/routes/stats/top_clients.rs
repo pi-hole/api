@@ -16,10 +16,9 @@ use crate::{
         stats::common::{remove_excluded_clients, remove_hidden_clients}
     },
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
-    util::{reply_data, Reply}
+    util::{reply_data, Error, Reply}
 };
 use rocket::{request::Form, State};
-use rocket_contrib::json::JsonValue;
 
 /// Get the top clients
 #[get("/stats/top_clients?<params..>")]
@@ -29,7 +28,7 @@ pub fn top_clients(
     env: State<Env>,
     params: Form<TopClientParams>
 ) -> Reply {
-    get_top_clients(&ftl_memory, &env, params.into_inner())
+    reply_data(get_top_clients(&ftl_memory, &env, params.into_inner())?)
 }
 
 /// Represents the possible GET parameters on `/stats/top_clients`
@@ -41,8 +40,32 @@ pub struct TopClientParams {
     blocked: Option<bool>
 }
 
+/// Represents the reply structure for top (blocked) clients
+#[derive(Serialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct TopClientsReply {
+    top_clients: Vec<TopClientItemReply>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    total_queries: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    blocked_queries: Option<usize>
+}
+
+/// Represents the reply structure for a top (blocked) client item
+#[derive(Serialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct TopClientItemReply {
+    pub name: String,
+    pub ip: String,
+    pub count: usize
+}
+
 /// Get the top clients according to the parameters
-fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -> Reply {
+fn get_top_clients(
+    ftl_memory: &FtlMemory,
+    env: &Env,
+    params: TopClientParams
+) -> Result<TopClientsReply, Error> {
     // Resolve the parameters
     let limit = params.limit.unwrap_or(10);
     let inactive = params.inactive.unwrap_or(false);
@@ -57,15 +80,17 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
         >= FtlPrivacyLevel::HideDomainsAndClients
     {
         return if blocked {
-            reply_data(json!({
-                "top_clients": [],
-                "blocked_queries": counters.blocked_queries
-            }))
+            Ok(TopClientsReply {
+                top_clients: Vec::new(),
+                total_queries: None,
+                blocked_queries: Some(counters.blocked_queries as usize)
+            })
         } else {
-            reply_data(json!({
-                "top_clients": [],
-                "total_queries": counters.total_queries
-            }))
+            Ok(TopClientsReply {
+                top_clients: Vec::new(),
+                total_queries: Some(counters.total_queries as usize),
+                blocked_queries: None
+            })
         };
     }
 
@@ -99,42 +124,40 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
         (true, true) => clients.sort_by(|a, b| a.blocked_count.cmp(&b.blocked_count))
     }
 
-    // Take into account the limit if specified
+    // Take into account the limit
     if limit < clients.len() {
         clients.split_off(limit);
     }
 
     // Map the clients into the output format
-    let top_clients: Vec<JsonValue> = clients
+    let top_clients: Vec<TopClientItemReply> = clients
         .into_iter()
         .map(|client| {
-            let name = client.get_name(&strings).unwrap_or_default();
-            let ip = client.get_ip(&strings);
+            let name = client.get_name(&strings).unwrap_or_default().to_owned();
+            let ip = client.get_ip(&strings).to_owned();
             let count = if blocked {
                 client.blocked_count
             } else {
                 client.query_count
-            };
+            } as usize;
 
-            json!({
-                "name": name,
-                "ip": ip,
-                "count": count
-            })
+            TopClientItemReply { name, ip, count }
         })
         .collect();
 
     // Output format changes when getting top blocked clients
     if blocked {
-        reply_data(json!({
-            "top_clients": top_clients,
-            "blocked_queries": counters.blocked_queries
-        }))
+        Ok(TopClientsReply {
+            top_clients,
+            total_queries: None,
+            blocked_queries: Some(counters.blocked_queries as usize)
+        })
     } else {
-        reply_data(json!({
-            "top_clients": top_clients,
-            "total_queries": counters.total_queries
-        }))
+        Ok(TopClientsReply {
+            top_clients,
+            total_queries: Some(counters.total_queries as usize),
+            blocked_queries: None
+        })
     }
 }
 
