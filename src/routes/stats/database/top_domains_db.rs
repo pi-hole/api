@@ -169,8 +169,7 @@ fn execute_top_domains_query(
     let db_query = if blocked {
         db_query.filter(status.eq_any(&BLOCKED_STATUSES))
     } else {
-        // If not blocked, use all queries
-        db_query
+        db_query.filter(status.ne_all(&BLOCKED_STATUSES))
     };
 
     // Execute query
