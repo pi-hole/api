@@ -16,7 +16,7 @@ use crate::{
         stats::common::{remove_excluded_clients, remove_hidden_clients}
     },
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
-    util::{reply_data, Error, Reply}
+    util::{reply_result, Error, Reply}
 };
 use rocket::{request::Form, State};
 
@@ -28,7 +28,7 @@ pub fn top_clients(
     env: State<Env>,
     params: Form<TopClientParams>
 ) -> Reply {
-    reply_data(get_top_clients(&ftl_memory, &env, params.into_inner())?)
+    reply_result(get_top_clients(&ftl_memory, &env, params.into_inner()))
 }
 
 /// Represents the possible GET parameters on `/stats/top_clients`

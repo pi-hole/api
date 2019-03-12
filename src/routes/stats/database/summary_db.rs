@@ -20,7 +20,7 @@ use crate::{
         }
     },
     settings::{ConfigEntry, SetupVarsEntry},
-    util::{reply_data, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::prelude::*;
 use failure::ResultExt;
@@ -35,12 +35,12 @@ pub fn get_summary_db(
     db: FtlDatabase,
     env: State<Env>
 ) -> Reply {
-    reply_data(get_summary_impl(
+    reply_result(get_summary_impl(
         from,
         until,
         &db as &SqliteConnection,
         &env
-    )?)
+    ))
 }
 
 /// Implementation of [`get_summary_db`]

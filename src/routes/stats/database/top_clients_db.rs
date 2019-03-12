@@ -22,7 +22,7 @@ use crate::{
         }
     },
     settings::ValueType,
-    util::{reply_data, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt};
 use failure::ResultExt;
@@ -38,13 +38,13 @@ pub fn top_clients_db(
     until: u64,
     params: Form<TopClientParams>
 ) -> Reply {
-    reply_data(top_clients_db_impl(
+    reply_result(top_clients_db_impl(
         &env,
         &db as &SqliteConnection,
         from,
         until,
         params.into_inner()
-    )?)
+    ))
 }
 
 /// Get the top clients

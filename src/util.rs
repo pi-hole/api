@@ -28,10 +28,10 @@ pub type Reply = Result<SetStatus<JsonValue>, Error>;
 
 /// The most general reply builder. It takes in data/errors and status to
 /// construct the JSON reply.
-pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
+pub fn reply<D: Serialize>(data: Result<D, Error>, status: Status) -> Reply {
     let json_data = match data {
-        ReplyType::Data(d) => json!(d),
-        ReplyType::Error(e) => {
+        Ok(d) => json!(d),
+        Err(e) => {
             // Only print out the error if it's not a common error
             match e.kind() {
                 ErrorKind::Unauthorized | ErrorKind::NotFound => (),
@@ -54,29 +54,36 @@ pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
     Ok(SetStatus(json_data, status))
 }
 
+/// Create a reply from a Result of serializable data or an error. If the Result
+/// is Ok, [`reply_data`] will be used. If the Result is Err, [`reply_error`]
+/// will be used.
+///
+/// [`reply_data`]: fn.reply_data.html
+/// [`reply_error`]: fn.reply_error.html
+pub fn reply_result<D: Serialize>(data: Result<D, Error>) -> Reply {
+    match data {
+        Ok(data) => reply_data(data),
+        Err(error) => reply_error(error)
+    }
+}
+
 /// Create a reply from some serializable data. The reply will have a status
 /// code of 200.
 pub fn reply_data<D: Serialize>(data: D) -> Reply {
-    reply(ReplyType::Data(data), Status::Ok)
+    reply(Ok(data), Status::Ok)
 }
 
 /// Create a reply with an error. The status will taken from `error.status()`.
 pub fn reply_error<E: Into<Error>>(error: E) -> Reply {
     let error = error.into();
     let status = error.status();
-    reply::<()>(ReplyType::Error(error), status)
+    reply::<()>(Err(error), status)
 }
 
 /// Create a reply with a successful status. There are no errors and the status
 /// is 200.
 pub fn reply_success() -> Reply {
-    reply(ReplyType::Data(json!({ "status": "success" })), Status::Ok)
-}
-
-/// The type of reply which should be sent.
-pub enum ReplyType<D: Serialize> {
-    Data(D),
-    Error(Error)
+    reply(Ok(json!({ "status": "success" })), Status::Ok)
 }
 
 /// Wraps `ErrorKind` to provide context via `Context`.

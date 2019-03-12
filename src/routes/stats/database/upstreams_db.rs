@@ -18,7 +18,7 @@ use crate::{
             upstreams::{UpstreamItemReply, UpstreamsReply}
         }
     },
-    util::{reply_data, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, sqlite::SqliteConnection};
 use failure::ResultExt;
@@ -27,7 +27,7 @@ use std::collections::HashMap;
 /// Get upstream data from the database
 #[get("/stats/database/upstreams?<from>&<until>")]
 pub fn upstreams_db(from: u64, until: u64, _auth: User, db: FtlDatabase) -> Reply {
-    reply_data(upstreams_db_impl(from, until, &db as &SqliteConnection)?)
+    reply_result(upstreams_db_impl(from, until, &db as &SqliteConnection))
 }
 
 /// Get upstream data from the database

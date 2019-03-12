@@ -11,26 +11,26 @@
 use crate::{
     env::Env,
     routes::dns::list::List,
-    util::{reply_data, Reply}
+    util::{reply_result, Reply}
 };
 use rocket::State;
 
 /// Get the Whitelist domains
 #[get("/dns/whitelist")]
 pub fn get_whitelist(env: State<Env>) -> Reply {
-    reply_data(List::White.get(&env)?)
+    reply_result(List::White.get(&env))
 }
 
 /// Get the Blacklist domains
 #[get("/dns/blacklist")]
 pub fn get_blacklist(env: State<Env>) -> Reply {
-    reply_data(List::Black.get(&env)?)
+    reply_result(List::Black.get(&env))
 }
 
 /// Get the Regex list domains
 #[get("/dns/regexlist")]
 pub fn get_regexlist(env: State<Env>) -> Reply {
-    reply_data(List::Regex.get(&env)?)
+    reply_result(List::Regex.get(&env))
 }
 
 #[cfg(test)]

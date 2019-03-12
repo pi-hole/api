@@ -16,7 +16,7 @@ use crate::{
         stats::common::{remove_excluded_clients, remove_hidden_clients}
     },
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
-    util::{reply_data, Error, Reply}
+    util::{reply_result, Error, Reply}
 };
 use rocket::{request::Form, State};
 
@@ -28,7 +28,7 @@ pub fn clients(
     env: State<Env>,
     params: Form<ClientParams>
 ) -> Reply {
-    reply_data(get_clients(&ftl_memory, &env, params.into_inner())?)
+    reply_result(get_clients(&ftl_memory, &env, params.into_inner()))
 }
 
 /// The possible GET parameters for `/stats/clients`
