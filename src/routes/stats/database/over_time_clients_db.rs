@@ -21,7 +21,7 @@ use crate::{
         }
     },
     settings::ValueType,
-    util::{reply_data, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, SqliteConnection};
 use failure::ResultExt;
@@ -38,13 +38,13 @@ pub fn over_time_clients_db(
     db: FtlDatabase,
     env: State<Env>
 ) -> Reply {
-    reply_data(over_time_clients_db_impl(
+    reply_result(over_time_clients_db_impl(
         from,
         until,
         interval.unwrap_or(600),
         &db as &SqliteConnection,
         &env
-    )?)
+    ))
 }
 
 /// Get the clients queries over time data from the database

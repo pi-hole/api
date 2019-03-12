@@ -12,7 +12,7 @@ use crate::{
     databases::ftl::FtlDatabase,
     ftl::FtlQueryType,
     routes::{auth::User, stats::query_types::QueryTypeReply},
-    util::{reply_data, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, sqlite::SqliteConnection};
 use failure::ResultExt;
@@ -21,7 +21,7 @@ use std::collections::HashMap;
 /// Get query type counts from the database
 #[get("/stats/database/query_types?<from>&<until>")]
 pub fn query_types_db(from: u64, until: u64, _auth: User, db: FtlDatabase) -> Reply {
-    reply_data(query_types_db_impl(from, until, &db as &SqliteConnection)?)
+    reply_result(query_types_db_impl(from, until, &db as &SqliteConnection))
 }
 
 /// Get query type counts from the database

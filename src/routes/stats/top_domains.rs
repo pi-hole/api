@@ -16,7 +16,7 @@ use crate::{
         stats::common::{remove_excluded_domains, remove_hidden_domains}
     },
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
-    util::{reply_data, Error, Reply}
+    util::{reply_result, Error, Reply}
 };
 use rocket::{request::Form, State};
 
@@ -28,7 +28,7 @@ pub fn top_domains(
     env: State<Env>,
     params: Form<TopDomainParams>
 ) -> Reply {
-    reply_data(get_top_domains(&ftl_memory, &env, params.into_inner())?)
+    reply_result(get_top_domains(&ftl_memory, &env, params.into_inner()))
 }
 
 /// Represents the possible GET parameters for top (blocked) domains requests

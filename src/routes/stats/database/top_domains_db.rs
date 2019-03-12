@@ -23,7 +23,7 @@ use crate::{
             top_domains::{TopDomainItemReply, TopDomainParams, TopDomainsReply}
         }
     },
-    util::{reply_data, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, sqlite::SqliteConnection};
 use failure::ResultExt;
@@ -39,13 +39,13 @@ pub fn top_domains_db(
     until: u64,
     params: Form<TopDomainParams>
 ) -> Reply {
-    reply_data(top_domains_db_impl(
+    reply_result(top_domains_db_impl(
         &env,
         &db as &SqliteConnection,
         from,
         until,
         params.into_inner()
-    )?)
+    ))
 }
 
 /// Return the top domains
