@@ -3,7 +3,7 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// Top Domains/Blocked Endpoints
+// Top Domains/Blocked Endpoint
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
@@ -16,11 +16,9 @@ use crate::{
         stats::common::{remove_excluded_domains, remove_hidden_domains}
     },
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
-    util::{reply_data, Reply}
+    util::{reply_data, Error, Reply}
 };
 use rocket::{request::Form, State};
-use rocket_contrib::json::JsonValue;
-use std::io::{BufRead, BufReader};
 
 /// Return the top domains
 #[get("/stats/top_domains?<params..>")]
@@ -28,22 +26,45 @@ pub fn top_domains(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
-    params: Form<TopParams>
+    params: Form<TopDomainParams>
 ) -> Reply {
-    get_top_domains(&ftl_memory, &env, params.into_inner())
+    reply_data(get_top_domains(&ftl_memory, &env, params.into_inner())?)
 }
 
-/// Represents the possible GET parameters on `/stats/top_domains`
-#[derive(FromForm)]
-pub struct TopParams {
-    limit: Option<usize>,
-    audit: Option<bool>,
-    ascending: Option<bool>,
-    blocked: Option<bool>
+/// Represents the possible GET parameters for top (blocked) domains requests
+#[derive(FromForm, Default)]
+pub struct TopDomainParams {
+    pub limit: Option<usize>,
+    pub audit: Option<bool>,
+    pub ascending: Option<bool>,
+    pub blocked: Option<bool>
+}
+
+/// Represents the reply structure for top (blocked) domains
+#[derive(Serialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct TopDomainsReply {
+    pub top_domains: Vec<TopDomainItemReply>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_queries: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked_queries: Option<usize>
+}
+
+/// Represents the reply structure for a top (blocked) domain item
+#[derive(Serialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct TopDomainItemReply {
+    pub domain: String,
+    pub count: usize
 }
 
 /// Get the top domains (blocked or not)
-fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Reply {
+fn get_top_domains(
+    ftl_memory: &FtlMemory,
+    env: &Env,
+    params: TopDomainParams
+) -> Result<TopDomainsReply, Error> {
     // Resolve the parameters
     let limit = params.limit.unwrap_or(10);
     let audit = params.audit.unwrap_or(false);
@@ -52,47 +73,25 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
 
     let lock = ftl_memory.lock()?;
     let counters = ftl_memory.counters(&lock)?;
-    let display_setting = SetupVarsEntry::ApiQueryLogShow.read(env)?;
 
-    // Check if we are allowed to share this data (even the number of queries)
-    if display_setting == "nothing"
-        || (display_setting == "permittedonly" && blocked)
-        || (display_setting == "blockedonly" && !blocked)
-    {
-        if blocked {
-            return reply_data(json!({
-                "top_domains": [],
-                "blocked_queries": 0
-            }));
-        } else {
-            return reply_data(json!({
-                "top_domains": [],
-                // If they requested permitted queries but they only want to
-                // see blocked queries (and not nothing), then share the number
-                // of blocked queries (total - permitted)
-                "total_queries": if display_setting == "nothing" {
-                    0
-                } else {
-                    counters.blocked_queries
-                }
-            }));
-        }
+    // Check if we are allowed to share the top domains
+    if let Some(reply) = check_query_log_show_top_domains(env, blocked)? {
+        // We can not share any of the domains, so use the reply returned by the
+        // function
+        return Ok(reply);
     }
 
+    let total_count = if blocked {
+        counters.blocked_queries
+    } else {
+        counters.total_queries
+    } as usize;
+
     // Check if the domain details are private
-    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)? >= FtlPrivacyLevel::HideDomains
-    {
-        if blocked {
-            return reply_data(json!({
-                "top_domains": [],
-                "blocked_queries": counters.blocked_queries
-            }));
-        } else {
-            return reply_data(json!({
-                "top_domains": [],
-                "total_queries": counters.total_queries
-            }));
-        }
+    if let Some(reply) = check_privacy_level_top_domains(env, blocked, total_count)? {
+        // We can not share any of the domains, so use the reply returned by the
+        // function
+        return Ok(reply);
     }
 
     let domains = ftl_memory.domains(&lock)?;
@@ -117,9 +116,7 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
 
     // If audit flag is true, only include unaudited domains
     if audit {
-        let audit_file = BufReader::new(env.read_file(PiholeFile::AuditLog)?);
-        let audited_domains: Vec<String> =
-            audit_file.lines().filter_map(|line| line.ok()).collect();
+        let audited_domains = env.read_file_lines(PiholeFile::AuditLog)?;
 
         // Get a vector of references to strings, to better compare with the domains
         let audited_domains: Vec<&str> = audited_domains.iter().map(String::as_str).collect();
@@ -145,35 +142,96 @@ fn get_top_domains(ftl_memory: &FtlMemory, env: &Env, params: TopParams) -> Repl
     }
 
     // Map the domains into the output format
-    let top_domains: Vec<JsonValue> = domains
+    let top_domains: Vec<TopDomainItemReply> = domains
         .iter()
         .map(|domain| {
-            let name = domain.get_domain(&strings);
+            let name = domain.get_domain(&strings).to_owned();
             let count = if blocked {
                 domain.blocked_count
             } else {
                 domain.query_count - domain.blocked_count
-            };
+            } as usize;
 
-            json!({
-                "domain": name,
-                "count": count
-            })
+            TopDomainItemReply {
+                domain: name,
+                count
+            }
         })
         .collect();
 
     // Output format changes when getting top blocked domains
     if blocked {
-        reply_data(json!({
-            "top_domains": top_domains,
-            "blocked_queries": counters.blocked_queries
-        }))
+        Ok(TopDomainsReply {
+            top_domains,
+            total_queries: None,
+            blocked_queries: Some(counters.blocked_queries as usize)
+        })
     } else {
-        reply_data(json!({
-            "top_domains": top_domains,
-            "total_queries": counters.total_queries
-        }))
+        Ok(TopDomainsReply {
+            top_domains,
+            total_queries: Some(counters.total_queries as usize),
+            blocked_queries: None
+        })
     }
+}
+
+/// Check the `API_QUERY_LOG_SHOW` setting with the requested top domains type
+/// to see if any data can be shown. If no data can be shown (ex. the setting
+/// equals `permittedonly` but top blocked domains are requested) then a reply
+/// is returned which should be used as the endpoint reply.
+pub fn check_query_log_show_top_domains(
+    env: &Env,
+    blocked: bool
+) -> Result<Option<TopDomainsReply>, Error> {
+    let display_setting = SetupVarsEntry::ApiQueryLogShow.read(env)?;
+
+    if display_setting == "nothing"
+        || (display_setting == "permittedonly" && blocked)
+        || (display_setting == "blockedonly" && !blocked)
+    {
+        if blocked {
+            return Ok(Some(TopDomainsReply {
+                top_domains: Vec::new(),
+                total_queries: None,
+                blocked_queries: Some(0)
+            }));
+        } else {
+            return Ok(Some(TopDomainsReply {
+                top_domains: Vec::new(),
+                total_queries: Some(0),
+                blocked_queries: None
+            }));
+        }
+    }
+
+    Ok(None)
+}
+
+/// Check the privacy level to see if domains are allowed to be shared. If not,
+/// then only return the relevant count (total or blocked queries).
+pub fn check_privacy_level_top_domains(
+    env: &Env,
+    blocked: bool,
+    count: usize
+) -> Result<Option<TopDomainsReply>, Error> {
+    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)? >= FtlPrivacyLevel::HideDomains
+    {
+        if blocked {
+            return Ok(Some(TopDomainsReply {
+                top_domains: Vec::new(),
+                total_queries: None,
+                blocked_queries: Some(count)
+            }));
+        } else {
+            return Ok(Some(TopDomainsReply {
+                top_domains: Vec::new(),
+                total_queries: Some(count),
+                blocked_queries: None
+            }));
+        }
+    }
+
+    Ok(None)
 }
 
 #[cfg(test)]

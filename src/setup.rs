@@ -163,6 +163,8 @@ fn setup(
             stats::database::over_time_clients_db,
             stats::database::over_time_history_db,
             stats::database::query_types_db,
+            stats::database::top_clients_db,
+            stats::database::top_domains_db,
             stats::database::upstreams_db,
             dns::get_whitelist,
             dns::get_blacklist,
