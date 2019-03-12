@@ -3,7 +3,7 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// Top Clients Endpoints
+// Top Clients Endpoint
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
@@ -16,10 +16,9 @@ use crate::{
         stats::common::{remove_excluded_clients, remove_hidden_clients}
     },
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
-    util::{reply_data, Reply}
+    util::{reply_data, Error, Reply}
 };
 use rocket::{request::Form, State};
-use rocket_contrib::json::JsonValue;
 
 /// Get the top clients
 #[get("/stats/top_clients?<params..>")]
@@ -29,20 +28,44 @@ pub fn top_clients(
     env: State<Env>,
     params: Form<TopClientParams>
 ) -> Reply {
-    get_top_clients(&ftl_memory, &env, params.into_inner())
+    reply_data(get_top_clients(&ftl_memory, &env, params.into_inner())?)
 }
 
 /// Represents the possible GET parameters on `/stats/top_clients`
-#[derive(FromForm)]
+#[derive(FromForm, Default)]
 pub struct TopClientParams {
-    limit: Option<usize>,
-    inactive: Option<bool>,
-    ascending: Option<bool>,
-    blocked: Option<bool>
+    pub limit: Option<usize>,
+    pub inactive: Option<bool>,
+    pub ascending: Option<bool>,
+    pub blocked: Option<bool>
+}
+
+/// Represents the reply structure for top (blocked) clients
+#[derive(Serialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct TopClientsReply {
+    pub top_clients: Vec<TopClientItemReply>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_queries: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked_queries: Option<usize>
+}
+
+/// Represents the reply structure for a top (blocked) client item
+#[derive(Serialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct TopClientItemReply {
+    pub name: String,
+    pub ip: String,
+    pub count: usize
 }
 
 /// Get the top clients according to the parameters
-fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -> Reply {
+fn get_top_clients(
+    ftl_memory: &FtlMemory,
+    env: &Env,
+    params: TopClientParams
+) -> Result<TopClientsReply, Error> {
     // Resolve the parameters
     let limit = params.limit.unwrap_or(10);
     let inactive = params.inactive.unwrap_or(false);
@@ -52,21 +75,17 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
     let lock = ftl_memory.lock()?;
     let counters = ftl_memory.counters(&lock)?;
 
+    let total_count = if blocked {
+        counters.blocked_queries
+    } else {
+        counters.total_queries
+    } as usize;
+
     // Check if the client details are private
-    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)?
-        >= FtlPrivacyLevel::HideDomainsAndClients
-    {
-        return if blocked {
-            reply_data(json!({
-                "top_clients": [],
-                "blocked_queries": counters.blocked_queries
-            }))
-        } else {
-            reply_data(json!({
-                "top_clients": [],
-                "total_queries": counters.total_queries
-            }))
-        };
+    if let Some(reply) = check_privacy_level_top_clients(env, blocked, total_count)? {
+        // We can not share any of the clients, so use the reply returned by the
+        // function
+        return Ok(reply);
     }
 
     let strings = ftl_memory.strings(&lock)?;
@@ -99,43 +118,69 @@ fn get_top_clients(ftl_memory: &FtlMemory, env: &Env, params: TopClientParams) -
         (true, true) => clients.sort_by(|a, b| a.blocked_count.cmp(&b.blocked_count))
     }
 
-    // Take into account the limit if specified
+    // Take into account the limit
     if limit < clients.len() {
         clients.split_off(limit);
     }
 
     // Map the clients into the output format
-    let top_clients: Vec<JsonValue> = clients
+    let top_clients: Vec<TopClientItemReply> = clients
         .into_iter()
         .map(|client| {
-            let name = client.get_name(&strings).unwrap_or_default();
-            let ip = client.get_ip(&strings);
+            let name = client.get_name(&strings).unwrap_or_default().to_owned();
+            let ip = client.get_ip(&strings).to_owned();
             let count = if blocked {
                 client.blocked_count
             } else {
                 client.query_count
-            };
+            } as usize;
 
-            json!({
-                "name": name,
-                "ip": ip,
-                "count": count
-            })
+            TopClientItemReply { name, ip, count }
         })
         .collect();
 
     // Output format changes when getting top blocked clients
     if blocked {
-        reply_data(json!({
-            "top_clients": top_clients,
-            "blocked_queries": counters.blocked_queries
-        }))
+        Ok(TopClientsReply {
+            top_clients,
+            total_queries: None,
+            blocked_queries: Some(counters.blocked_queries as usize)
+        })
     } else {
-        reply_data(json!({
-            "top_clients": top_clients,
-            "total_queries": counters.total_queries
-        }))
+        Ok(TopClientsReply {
+            top_clients,
+            total_queries: Some(counters.total_queries as usize),
+            blocked_queries: None
+        })
     }
+}
+
+/// Check the privacy level to see if clients are allowed to be shared. If not,
+/// then only return the relevant count (total or blocked queries).
+pub fn check_privacy_level_top_clients(
+    env: &Env,
+    blocked: bool,
+    count: usize
+) -> Result<Option<TopClientsReply>, Error> {
+    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)?
+        >= FtlPrivacyLevel::HideDomainsAndClients
+    {
+        return if blocked {
+            Ok(Some(TopClientsReply {
+                top_clients: Vec::new(),
+                total_queries: None,
+                blocked_queries: Some(count)
+            }))
+        } else {
+            Ok(Some(TopClientsReply {
+                top_clients: Vec::new(),
+                total_queries: Some(count),
+                blocked_queries: None
+            }))
+        };
+    }
+
+    Ok(None)
 }
 
 #[cfg(test)]

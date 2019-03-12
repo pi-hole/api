@@ -153,7 +153,7 @@ fn execute_top_domains_query(
         .filter(domain.ne_all(ignored_domains))
         // Group queries by domain
         .group_by(domain)
-        // Take into account limit
+        // Take into account the limit
         .limit(limit as i64)
         // Box the query so we can conditionally modify it
         .into_boxed();
