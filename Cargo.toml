@@ -33,7 +33,7 @@ shmem = "0.2.0"
 libc = "0.2.42"
 nix = "0.13"
 base64 = "0.10"
-task_scheduler = { git = "https://github.com/Mcat12/task_scheduler.git", branch = "fix/mutable-api" }
+task_scheduler = "0.2.0"
 
 [dependencies.rocket_contrib]
 version = "0.4"
