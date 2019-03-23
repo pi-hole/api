@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -8,12 +8,14 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use rocket::http::{Cookie, Cookies};
-use rocket::outcome::IntoOutcome;
-use rocket::request::{self, FromRequest, Request, State};
-use rocket::Outcome;
+use crate::util::{reply_success, Error, ErrorKind, Reply};
+use rocket::{
+    http::{Cookie, Cookies},
+    outcome::IntoOutcome,
+    request::{self, FromRequest, Request, State},
+    Outcome
+};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use util::{reply_success, Error, ErrorKind, Reply};
 
 const USER_ATTR: &str = "user_id";
 const AUTH_HEADER: &str = "X-Pi-hole-Authenticate";
@@ -30,6 +32,8 @@ pub struct AuthData {
 }
 
 impl User {
+    /// Try to authenticate the user using `input_key`. If it succeeds, a new
+    /// cookie will be created.
     fn authenticate(request: &Request, input_key: &str) -> request::Outcome<Self, Error> {
         let auth_data: State<AuthData> = match request.guard().succeeded() {
             Some(auth_data) => auth_data,
@@ -38,9 +42,14 @@ impl User {
 
         if auth_data.key_matches(input_key) {
             let user = auth_data.create_user();
-            request
-                .cookies()
-                .add_private(Cookie::new(USER_ATTR, user.id.to_string()));
+
+            // Set a new encrypted cookie with the user's ID
+            request.cookies().add_private(
+                Cookie::build(USER_ATTR, user.id.to_string())
+                    // Allow the web interface to read the cookie
+                    .http_only(false)
+                    .finish()
+            );
 
             Outcome::Success(user)
         } else {
@@ -48,6 +57,8 @@ impl User {
         }
     }
 
+    /// Try to get the user ID from cookies. An error is returned if none are
+    /// found.
     fn check_cookies(mut cookies: Cookies) -> request::Outcome<Self, Error> {
         cookies
             .get_private(USER_ATTR)
@@ -59,6 +70,7 @@ impl User {
             ))
     }
 
+    /// Log the user out by removing the cookie
     fn logout(&self, mut cookies: Cookies) {
         cookies.remove_private(Cookie::named(USER_ATTR));
     }
@@ -122,11 +134,13 @@ pub fn logout(user: User, cookies: Cookies) -> Reply {
 
 #[cfg(test)]
 mod test {
+    use crate::testing::TestBuilder;
     use rocket::http::{Header, Status};
-    use testing::TestBuilder;
+    use serde_json::Value;
 
+    /// Providing the correct authentication should authorize the request
     #[test]
-    fn test_authenticated() {
+    fn authenticated() {
         TestBuilder::new()
             .endpoint("/admin/api/auth")
             .should_auth(true)
@@ -136,8 +150,9 @@ mod test {
             .test()
     }
 
+    /// Providing no authorization should not authorize the request
     #[test]
-    fn test_unauthenticated() {
+    fn unauthenticated() {
         TestBuilder::new()
             .endpoint("/admin/api/auth")
             .should_auth(false)
@@ -145,14 +160,16 @@ mod test {
             .expect_json(json!({
                 "error": {
                     "key": "unauthorized",
-                    "message": "Unauthorized"
+                    "message": "Unauthorized",
+                    "data": Value::Null
                 }
             }))
             .test()
     }
 
+    /// Providing incorrect authorization should not authorize the request
     #[test]
-    fn test_wrong_password() {
+    fn wrong_password() {
         TestBuilder::new()
             .endpoint("/admin/api/auth")
             .should_auth(false)
@@ -164,7 +181,8 @@ mod test {
             .expect_json(json!({
                 "error": {
                     "key": "unauthorized",
-                    "message": "Unauthorized"
+                    "message": "Unauthorized",
+                    "data": Value::Null
                 }
             }))
             .test();

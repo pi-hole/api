@@ -34,13 +34,20 @@ version: 2
 
           echo "Using the $branch branch"
 
+          # If web directory already exists, empty it out
+          rm -rf web
           # Uncompress the files to the "web" folder
           curl "$root/$branch/$file" -o web.tar.gz
           mkdir web
           tar -xzf web.tar.gz -C web
     - run:
-        name: "Code Style Lint"
-        command: cargo fmt -- --check
+        name: "Code Style Check"
+        command: |
+          [[ "$CIRCLE_JOB" != "x86_64" ]] || cargo fmt -- --check
+    - run:
+        name: "Code Lint Check"
+        command: |
+          [[ "$CIRCLE_JOB" != "x86_64" ]] || cargo clippy --release --all-targets --all-features -- -D clippy::all
     - run:
         name: "Build"
         command: |
@@ -51,14 +58,23 @@ version: 2
         command: |
           [[ "$CIRCLE_JOB" != "x86_64" ]] || time cargo test --release --target $TARGET
     - run:
+        name: "Build DEB"
+        command: |
+          export DEB_BUILD_OPTIONS=nostrip
+          dpkg-buildpackage -b -a $DEB_ARCH
+          mv ../pihole-api*.deb .
+          [[ "$CIRCLE_JOB" != "arm" ]] || for file in pihole-api*.deb; do mv $file ${file//armhf/arm}; done
+    - run:
         name: "Upload"
         command: |
+          [ -z "$FTL_SECRET" ] && exit 0
           sha1sum ${BIN_NAME} > ${BIN_NAME}.sha1
           cat ${BIN_NAME}.sha1
           curl https://ftl.pi-hole.net:8080/FTL-client -o FTL-client
           chmod +x ./FTL-client
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}" "${FTL_SECRET}"
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}.sha1" "${FTL_SECRET}"
+          [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" pihole-api*.deb "${FTL_SECRET}"
           rm ./FTL-client
     - save_cache:
         key: v3-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
@@ -72,36 +88,42 @@ jobs:
     environment:
       BIN_NAME: "pihole-API-arm-linux-gnueabi"
       TARGET: "arm-unknown-linux-gnueabi"
+      DEB_ARCH: "armhf"
 
   armhf:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-arm-linux-gnueabihf"
-      TARGET: "arm-unknown-linux-gnueabihf"
+      TARGET: "armv7-unknown-linux-gnueabihf"
+      DEB_ARCH: "armhf"
 
   aarch64:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-aarch64-linux-gnu"
       TARGET: "aarch64-unknown-linux-gnu"
+      DEB_ARCH: "arm64"
 
   x86_64:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-linux-x86_64"
       TARGET: "x86_64-unknown-linux-gnu"
+      DEB_ARCH: "amd64"
 
   x86_64-musl:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-musl-linux-x86_64"
       TARGET: "x86_64-unknown-linux-musl"
+      DEB_ARCH: "musl-linux-amd64"
 
   x86_32:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-linux-x86_32"
       TARGET: "i686-unknown-linux-gnu"
+      DEB_ARCH: "i386"
 
 workflows:
   version: 2

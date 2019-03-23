@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -8,18 +8,25 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::Env;
+use crate::{
+    env::Env,
+    routes::dns::list::List,
+    util::{Error, ErrorKind}
+};
 use failure::ResultExt;
+use nix::{
+    sys::signal::{kill, Signal},
+    unistd::Pid
+};
 use regex::Regex;
-use routes::dns::list::List;
 use std::process::{Command, Stdio};
-use util::{Error, ErrorKind};
 
 /// Check if a domain is valid
 pub fn is_valid_domain(domain: &str) -> bool {
     let valid_chars_regex = Regex::new(
         "^((-|_)*[a-z0-9]((-|_)*[a-z0-9])*(-|_)*)(\\.(-|_)*([a-z0-9]((-|_)*[a-z0-9])*))*$"
-    ).unwrap();
+    )
+    .unwrap();
     let total_length_regex = Regex::new("^.{1,253}$").unwrap();
     let label_length_regex = Regex::new("^[^\\.]{1,63}(\\.[^\\.]{1,63})*$").unwrap();
 
@@ -48,7 +55,7 @@ pub fn reload_gravity(list: List, env: &Env) -> Result<(), Error> {
         .arg(match list {
             List::White => "--whitelist-only",
             List::Black => "--blacklist-only",
-            _ => return Err(ErrorKind::Unknown.into())
+            _ => return Err(Error::from(ErrorKind::Unknown))
         })
         // Ignore stdin, stdout, and stderr
         .stdin(Stdio::null())
@@ -61,6 +68,38 @@ pub fn reload_gravity(list: List, env: &Env) -> Result<(), Error> {
     if status.success() {
         Ok(())
     } else {
-        Err(ErrorKind::GravityError.into())
+        Err(Error::from(ErrorKind::GravityError))
     }
+}
+
+/// Reload the DNS server to activate config changes
+pub fn reload_dns(env: &Env) -> Result<(), Error> {
+    // Don't actually reload the DNS server during testing
+    if env.is_test() {
+        return Ok(());
+    }
+
+    // Get the PID of FTLDNS. There doesn't seem to be a better way than to run
+    // pidof in a shell.
+    let output = Command::new("pidof")
+        .arg("pihole-FTL")
+        .output()
+        .context(ErrorKind::ReloadDnsError)?;
+
+    // Check if it returned successfully
+    if !output.status.success() {
+        return Err(Error::from(ErrorKind::ReloadDnsError));
+    }
+
+    // Parse the output for the PID
+    let pid_str = String::from_utf8_lossy(&output.stdout);
+    let pid = pid_str
+        .trim()
+        .parse::<usize>()
+        .context(ErrorKind::ReloadDnsError)?;
+
+    // Send SIGHUP to FTLDNS so it reloads the lists
+    kill(Pid::from_raw(pid as libc::pid_t), Signal::SIGHUP).context(ErrorKind::ReloadDnsError)?;
+
+    Ok(())
 }

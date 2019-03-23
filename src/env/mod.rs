@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -9,9 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 mod config;
-mod env;
+mod env_impl;
 mod file;
 
-pub use self::config::Config;
-pub use self::env::Env;
-pub use self::file::PiholeFile;
+pub use self::{config::Config, env_impl::Env, file::PiholeFile};

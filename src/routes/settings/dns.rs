@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -8,13 +8,14 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use env::Env;
+use crate::{
+    env::Env,
+    routes::{auth::User, settings::common::restart_dns},
+    settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry},
+    util::{reply_data, reply_success, Error, ErrorKind, Reply}
+};
 use rocket::State;
-use rocket_contrib::Json;
-use routes::settings::common::restart_dns;
-use settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry};
-use util::{reply_data, reply_success, Error, ErrorKind, Reply};
+use rocket_contrib::json::Json;
 
 #[derive(Serialize, Deserialize)]
 pub struct DnsSettings {
@@ -29,7 +30,8 @@ impl DnsSettings {
         self.upstream_dns
             .iter()
             .all(|dns| SetupVarsEntry::PiholeDns(0).is_valid(dns))
-            && self.options.is_valid() && self.conditional_forwarding.is_valid()
+            && self.options.is_valid()
+            && self.conditional_forwarding.is_valid()
     }
 }
 
@@ -60,6 +62,11 @@ pub struct DnsConditionalForwarding {
 impl DnsConditionalForwarding {
     /// Check if the conditional forwarding options are valid
     fn is_valid(&self) -> bool {
+        // If conditional forwarding is turned on, no setting may be empty
+        if self.enabled && (self.router_ip.is_empty() || self.domain.is_empty()) {
+            return false;
+        }
+
         // `enabled` is already known to be valid because it was already parsed into
         // a boolean
         SetupVarsEntry::DhcpRouter.is_valid(&self.router_ip)
@@ -90,13 +97,13 @@ pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
     let dns_settings = DnsSettings {
         upstream_dns: get_upstream_dns(&env)?,
         options: DnsOptions {
-            fqdn_required: SetupVarsEntry::DnsFqdnRequired.read_as(&env)?,
-            bogus_priv: SetupVarsEntry::DnsBogusPriv.read_as(&env)?,
-            dnssec: SetupVarsEntry::Dnssec.read_as(&env)?,
+            fqdn_required: SetupVarsEntry::DnsFqdnRequired.is_true(&env)?,
+            bogus_priv: SetupVarsEntry::DnsBogusPriv.is_true(&env)?,
+            dnssec: SetupVarsEntry::Dnssec.is_true(&env)?,
             listening_type: SetupVarsEntry::DnsmasqListening.read(&env)?
         },
         conditional_forwarding: DnsConditionalForwarding {
-            enabled: SetupVarsEntry::ConditionalForwarding.read_as(&env)?,
+            enabled: SetupVarsEntry::ConditionalForwarding.is_true(&env)?,
             router_ip: SetupVarsEntry::ConditionalForwardingIp.read(&env)?,
             domain: SetupVarsEntry::ConditionalForwardingDomain.read(&env)?
         }
@@ -111,7 +118,7 @@ pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
     let settings: DnsSettings = data.into_inner();
 
     if !settings.is_valid() {
-        return Err(ErrorKind::InvalidSettingValue.into());
+        return Err(Error::from(ErrorKind::InvalidSettingValue));
     }
 
     // Delete previous upstream DNS entries
@@ -132,7 +139,7 @@ pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
         let address_segments: Vec<&str> = settings
             .conditional_forwarding
             .router_ip
-            .split(".")
+            .split('.')
             .take(3)
             .collect();
         let reverse_address = format!(
@@ -160,9 +167,8 @@ pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
+    use crate::{env::PiholeFile, testing::TestBuilder};
     use rocket::http::Method;
-    use testing::TestBuilder;
 
     /// Basic test for reported settings
     #[test]
@@ -230,7 +236,7 @@ mod test {
                     "bogus_priv": true,
                     "dnssec": false,
                     "fqdn_required": true,
-                    "listening_type": "single"
+                    "listening_type": "local"
                 },
                 "upstream_dns": []
             }))
@@ -269,6 +275,8 @@ mod test {
                     ################################################################\n\
                     \n\
                     localise-queries\n\
+                    local-ttl=2\n\
+                    cache-size=10000\n\
                     server=8.8.8.8\n\
                     server=8.8.4.4\n\
                     addn-hosts=/etc/pihole/gravity.list\n\

@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -8,14 +8,17 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use env::Env;
-use ftl::FtlConnectionType;
+use crate::{
+    env::Env,
+    ftl::FtlConnectionType,
+    routes::{
+        auth::User,
+        dns::{common::reload_gravity, list::List}
+    },
+    util::{reply_success, Reply}
+};
 use rocket::State;
-use rocket_contrib::Json;
-use routes::dns::common::reload_gravity;
-use routes::dns::list::List;
-use util::{reply_success, Reply};
+use rocket_contrib::json::Json;
 
 /// Represents an API input containing a domain
 #[derive(Deserialize)]
@@ -71,9 +74,11 @@ pub fn add_regexlist(
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
+    use crate::{
+        env::PiholeFile,
+        testing::{write_eom, TestBuilder}
+    };
     use rocket::http::Method;
-    use testing::{write_eom, TestBuilder};
 
     #[test]
     fn test_add_whitelist() {

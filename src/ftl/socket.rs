@@ -1,30 +1,35 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// FTL Communication Utilities
+// FTL Socket Communication
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use crate::util::{Error, ErrorKind};
 use failure::{Fail, ResultExt};
 use rmp::{
     decode::{self, DecodeStringError, ValueReadError},
     Marker
 };
+use std::{
+    io::{prelude::*, BufReader},
+    os::unix::net::UnixStream
+};
+
+#[cfg(test)]
 use std::collections::HashMap;
-use std::io::prelude::*;
-use std::io::{BufReader, Cursor};
-use std::os::unix::net::UnixStream;
-use util::{Error, ErrorKind};
+#[cfg(test)]
+use std::io::Cursor;
 
 /// The location of the FTL socket
-const SOCKET_LOCATION: &'static str = "/var/run/pihole/FTL.sock";
+const SOCKET_LOCATION: &str = "/var/run/pihole/FTL.sock";
 
 /// A wrapper around the FTL socket to easily read in data. It takes a
 /// Box<Read> so that it can be tested with fake data from a Vec<u8>
-pub struct FtlConnection<'test>(Box<Read + 'test>);
+pub struct FtlConnection<'test>(Box<dyn Read + 'test>);
 
 /// A marker for the type of FTL connection to make.
 ///
@@ -33,6 +38,7 @@ pub struct FtlConnection<'test>(Box<Read + 'test>);
 /// data to be processed.   The map in Test maps FTL commands to data.
 pub enum FtlConnectionType {
     Socket,
+    #[cfg(test)]
     Test(HashMap<String, Vec<u8>>)
 }
 
@@ -45,7 +51,7 @@ impl FtlConnectionType {
                 // Try to connect to FTL
                 let mut stream = match UnixStream::connect(SOCKET_LOCATION) {
                     Ok(s) => s,
-                    Err(_) => return Err(ErrorKind::FtlConnectionFail.into())
+                    Err(_) => return Err(Error::from(ErrorKind::FtlConnectionFail))
                 };
 
                 // Send the command
@@ -56,13 +62,14 @@ impl FtlConnectionType {
                 // Return the connection so the API can read the response
                 Ok(FtlConnection(Box::new(BufReader::new(stream))))
             }
+            #[cfg(test)]
             FtlConnectionType::Test(ref map) => {
                 // Return a connection reading the testing data
                 Ok(FtlConnection(Box::new(Cursor::new(
                     // Try to get the testing data for this command
                     match map.get(command) {
                         Some(data) => data,
-                        None => return Err(ErrorKind::FtlConnectionFail.into())
+                        None => return Err(Error::from(ErrorKind::FtlConnectionFail))
                     }
                 ))))
             }
@@ -76,11 +83,11 @@ impl<'test> FtlConnection<'test> {
             if let ValueReadError::TypeMismatch(marker) = e {
                 if marker == Marker::Reserved {
                     // Received EOM
-                    return e.context(ErrorKind::FtlEomError).into();
+                    return Error::from(e.context(ErrorKind::FtlEomError));
                 }
             }
 
-            e.context(ErrorKind::FtlReadError).into()
+            Error::from(e.context(ErrorKind::FtlReadError))
         })
     }
 
@@ -89,11 +96,11 @@ impl<'test> FtlConnection<'test> {
             if let DecodeStringError::TypeMismatch(ref marker) = e {
                 if *marker == Marker::Reserved {
                     // Received EOM
-                    return ErrorKind::FtlEomError.into();
+                    return Error::from(ErrorKind::FtlEomError);
                 }
             }
 
-            ErrorKind::FtlReadError.into()
+            Error::from(ErrorKind::FtlReadError)
         })
     }
 
@@ -105,31 +112,15 @@ impl<'test> FtlConnection<'test> {
         // Read exactly 1 byte
         match self.0.read_exact(&mut buffer) {
             Ok(_) => (),
-            Err(e) => return Err(e.context(ErrorKind::FtlReadError).into())
+            Err(e) => return Err(Error::from(e.context(ErrorKind::FtlReadError)))
         }
 
         // Check if it was the EOM byte
         if buffer[0] != 0xc1 {
-            return Err(ErrorKind::FtlReadError.into());
+            return Err(Error::from(ErrorKind::FtlReadError));
         }
 
         Ok(())
-    }
-
-    /// Read in a bool value
-    pub fn read_bool(&mut self) -> Result<bool, Error> {
-        FtlConnection::handle_eom_value(decode::read_bool(&mut self.0))
-    }
-
-    /// Read in a u8 (unsigned byte) value
-    pub fn read_u8(&mut self) -> Result<u8, Error> {
-        FtlConnection::handle_eom_value(decode::read_u8(&mut self.0))
-    }
-
-    /// Read in a u64 (unsigned long int) value
-    #[allow(unused)]
-    pub fn read_u64(&mut self) -> Result<u64, Error> {
-        FtlConnection::handle_eom_value(decode::read_u64(&mut self.0))
     }
 
     /// Read in an i32 (signed int) value
@@ -138,23 +129,12 @@ impl<'test> FtlConnection<'test> {
     }
 
     /// Read in an i64 (signed long int) value
-    #[allow(unused)]
     pub fn read_i64(&mut self) -> Result<i64, Error> {
         FtlConnection::handle_eom_value(decode::read_i64(&mut self.0))
-    }
-
-    /// Read in an f32 (float) value
-    pub fn read_f32(&mut self) -> Result<f32, Error> {
-        FtlConnection::handle_eom_value(decode::read_f32(&mut self.0))
     }
 
     /// Read in a string using the buffer
     pub fn read_str<'a>(&mut self, buffer: &'a mut [u8]) -> Result<&'a str, Error> {
         FtlConnection::handle_eom_str(decode::read_str(&mut self.0, buffer))
-    }
-
-    /// Read in the length of the upcoming map (unsigned int)
-    pub fn read_map_len(&mut self) -> Result<u32, Error> {
-        FtlConnection::handle_eom_value(decode::read_map_len(&mut self.0))
     }
 }

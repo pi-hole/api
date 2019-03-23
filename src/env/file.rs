@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -18,13 +18,18 @@ pub enum PiholeFile {
     SetupVars,
     FtlConfig,
     LocalVersions,
-    LocalBranches
+    LocalBranches,
+    AuditLog,
+    Gravity,
+    GravityBackup,
+    BlackList,
+    BlackListBackup
 }
 
 impl PiholeFile {
     /// Get the default location of the file
-    pub fn default_location(&self) -> &'static str {
-        match *self {
+    pub fn default_location(self) -> &'static str {
+        match self {
             PiholeFile::DnsmasqConfig => "/etc/dnsmasq.d/pihole.conf",
             PiholeFile::Whitelist => "/etc/pihole/whitelist.txt",
             PiholeFile::Blacklist => "/etc/pihole/blacklist.txt",
@@ -32,7 +37,12 @@ impl PiholeFile {
             PiholeFile::SetupVars => "/etc/pihole/setupVars.conf",
             PiholeFile::FtlConfig => "/etc/pihole/pihole-FTL.conf",
             PiholeFile::LocalVersions => "/etc/pihole/localversions",
-            PiholeFile::LocalBranches => "/etc/pihole/localbranches"
+            PiholeFile::LocalBranches => "/etc/pihole/localbranches",
+            PiholeFile::AuditLog => "/etc/pihole/auditlog.list",
+            PiholeFile::Gravity => "/etc/pihole/gravity.list",
+            PiholeFile::GravityBackup => "/etc/pihole/gravity.list.bck",
+            PiholeFile::BlackList => "/etc/pihole/black.list",
+            PiholeFile::BlackListBackup => "/etc/pihole/black.list.bck"
         }
     }
 }

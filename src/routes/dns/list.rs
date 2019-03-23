@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -8,12 +8,13 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::{Env, PiholeFile};
+use crate::{
+    env::{Env, PiholeFile},
+    routes::dns::common::{is_valid_domain, is_valid_regex},
+    util::{Error, ErrorKind}
+};
 use failure::ResultExt;
-use routes::dns::common::{is_valid_domain, is_valid_regex};
-use std::io::prelude::*;
-use std::io::{BufReader, BufWriter};
-use util::{Error, ErrorKind};
+use std::io::{prelude::*, BufWriter};
 
 pub enum List {
     White,
@@ -41,8 +42,8 @@ impl List {
 
     /// Read in the domains from the list
     pub fn get(&self, env: &Env) -> Result<Vec<String>, Error> {
-        let file = match env.read_file(self.file()) {
-            Ok(f) => f,
+        let domains = match env.read_file_lines(self.file()) {
+            Ok(domains) => domains,
             Err(e) => {
                 if e.kind() == ErrorKind::NotFound {
                     // If the file is not found, then the list is empty
@@ -53,10 +54,9 @@ impl List {
             }
         };
 
-        Ok(BufReader::new(file)
-            .lines()
-            .filter_map(|line| line.ok())
-            .filter(|line| line.len() != 0)
+        Ok(domains
+            .into_iter()
+            .filter(|domain| !domain.is_empty())
             .collect())
     }
 
@@ -64,12 +64,12 @@ impl List {
     pub fn add(&self, domain: &str, env: &Env) -> Result<(), Error> {
         // Check if it's a valid domain before doing anything
         if !self.accepts(domain) {
-            return Err(ErrorKind::InvalidDomain.into());
+            return Err(Error::from(ErrorKind::InvalidDomain));
         }
 
         // Check if the domain is already in the list
         if self.get(env)?.contains(&domain.to_owned()) {
-            return Err(ErrorKind::AlreadyExists.into());
+            return Err(Error::from(ErrorKind::AlreadyExists));
         }
 
         // Open the list file in append mode (and create it if it doesn't exist)
@@ -88,7 +88,7 @@ impl List {
     pub fn try_remove(&self, domain: &str, env: &Env) -> Result<(), Error> {
         match self.remove(domain, env) {
             // Pass through successful results
-            Ok(ok) => Ok(ok),
+            Ok(_) => Ok(()),
             Err(e) => {
                 // Ignore NotFound errors
                 if e.kind() == ErrorKind::NotFound {
@@ -104,13 +104,13 @@ impl List {
     pub fn remove(&self, domain: &str, env: &Env) -> Result<(), Error> {
         // Check if it's a valid domain before doing anything
         if !self.accepts(domain) {
-            return Err(ErrorKind::InvalidDomain.into());
+            return Err(Error::from(ErrorKind::InvalidDomain));
         }
 
         // Check if the domain is not in the list
         let domains = self.get(env)?;
         if !domains.contains(&domain.to_owned()) {
-            return Err(ErrorKind::NotFound.into());
+            return Err(Error::from(ErrorKind::NotFound));
         }
 
         // Open the list file (and create it if it doesn't exist). This will truncate

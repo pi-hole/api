@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -8,84 +8,86 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use ftl::{FtlConnection, FtlConnectionType};
+use crate::{
+    ftl::FtlMemory,
+    routes::stats::common::get_current_over_time_slot,
+    util::{reply_data, Reply}
+};
 use rocket::State;
-use util::{reply_data, Error, Reply};
 
 /// Get the query history over time (separated into blocked and not blocked)
 #[get("/stats/overTime/history")]
-pub fn over_time_history(ftl: State<FtlConnectionType>) -> Reply {
-    let mut con = ftl.connect("overTime")?;
+pub fn over_time_history(ftl_memory: State<FtlMemory>) -> Reply {
+    let lock = ftl_memory.lock()?;
+    let over_time = ftl_memory.over_time(&lock)?;
 
-    let domains_over_time = get_over_time_data(&mut con)?;
-    let blocked_over_time = get_over_time_data(&mut con)?;
+    let over_time_data: Vec<OverTimeItem> = over_time.iter()
+        // Take all of the slots including the current slot
+        .take(get_current_over_time_slot(&over_time) + 1)
+        // Skip the overTime slots without any data
+        .skip_while(|time| {
+            (time.total_queries <= 0 && time.blocked_queries <= 0)
+        })
+        .map(|time| {
+            OverTimeItem {
+                timestamp: time.timestamp as u64,
+                total_queries: time.total_queries as usize,
+                blocked_queries: time.blocked_queries as usize
+            }
+        })
+        .collect();
 
-    reply_data(json!({
-        "domains_over_time": domains_over_time,
-        "blocked_over_time": blocked_over_time
-    }))
-}
-
-/// Read in some time data (represented by FTL as a map of ints to ints)
-fn get_over_time_data(ftl: &mut FtlConnection) -> Result<Vec<TimeStep>, Error> {
-    // Read in the length of the data to optimize memory usage
-    let map_len = ftl.read_map_len()? as usize;
-
-    // Create the data
-    let mut over_time = Vec::with_capacity(map_len);
-
-    // Read in the data
-    for _ in 0..map_len {
-        let key = ftl.read_i32()?;
-        let value = ftl.read_i32()?;
-        over_time.push(TimeStep {
-            timestamp: key,
-            count: value
-        });
-    }
-
-    Ok(over_time)
+    reply_data(over_time_data)
 }
 
 #[derive(Serialize)]
-struct TimeStep {
-    timestamp: i32,
-    count: i32
+#[cfg_attr(test, derive(PartialEq, Debug))]
+pub struct OverTimeItem {
+    pub timestamp: u64,
+    pub total_queries: usize,
+    pub blocked_queries: usize
 }
 
 #[cfg(test)]
 mod test {
-    use rmp::encode;
-    use testing::{write_eom, TestBuilder};
+    use crate::{
+        ftl::{FtlCounters, FtlMemory, FtlOverTime, FtlSettings},
+        testing::TestBuilder
+    };
+    use std::collections::HashMap;
 
+    /// Data for testing over_time_history
+    fn test_data() -> FtlMemory {
+        FtlMemory::Test {
+            over_time: vec![
+                FtlOverTime::new(1, 1, 0, 0, 1, [0; 7]),
+                FtlOverTime::new(2, 1, 1, 1, 0, [0; 7]),
+                FtlOverTime::new(3, 0, 1, 0, 0, [0; 7]),
+            ],
+            counters: FtlCounters {
+                ..FtlCounters::default()
+            },
+            clients: Vec::new(),
+            upstreams: Vec::new(),
+            strings: HashMap::new(),
+            domains: Vec::new(),
+            queries: Vec::new(),
+            settings: FtlSettings::default()
+        }
+    }
+
+    /// Default params will skip overTime slots until it finds the first slot
+    /// with queries.
     #[test]
-    fn test_over_time_history() {
-        let mut data = Vec::new();
-        encode::write_map_len(&mut data, 2).unwrap();
-        encode::write_i32(&mut data, 1520126228).unwrap();
-        encode::write_i32(&mut data, 10).unwrap();
-        encode::write_i32(&mut data, 1520126406).unwrap();
-        encode::write_i32(&mut data, 20).unwrap();
-        encode::write_map_len(&mut data, 2).unwrap();
-        encode::write_i32(&mut data, 1520126228).unwrap();
-        encode::write_i32(&mut data, 5).unwrap();
-        encode::write_i32(&mut data, 1520126406).unwrap();
-        encode::write_i32(&mut data, 5).unwrap();
-        write_eom(&mut data);
-
+    fn default_params() {
         TestBuilder::new()
             .endpoint("/admin/api/stats/overTime/history")
-            .ftl("overTime", data)
-            .expect_json(json!({
-                "domains_over_time": [
-                    { "timestamp": 1520126228, "count": 10 },
-                    { "timestamp": 1520126406, "count": 20 }
-                ],
-                "blocked_over_time": [
-                    { "timestamp": 1520126228, "count": 5 },
-                    { "timestamp": 1520126406, "count": 5 }
-                ]
-            }))
+            .ftl_memory(test_data())
+            .expect_json(json!([
+                { "timestamp": 1, "total_queries": 1, "blocked_queries": 0 },
+                { "timestamp": 2, "total_queries": 1, "blocked_queries": 1 },
+                { "timestamp": 3, "total_queries": 0, "blocked_queries": 1 }
+            ]))
             .test();
     }
 }

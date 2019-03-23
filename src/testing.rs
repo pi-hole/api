@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -8,15 +8,17 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-extern crate serde_json;
-
-use env::PiholeFile;
+use crate::{
+    env::PiholeFile,
+    ftl::{FtlCounters, FtlMemory, FtlSettings},
+    setup
+};
 use rocket::http::{ContentType, Header, Method, Status};
-use setup;
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::SeekFrom;
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{prelude::*, SeekFrom}
+};
 use tempfile::NamedTempFile;
 
 /// Add the end of message byte to the data
@@ -139,9 +141,11 @@ pub struct TestBuilder {
     should_auth: bool,
     body_data: Option<serde_json::Value>,
     ftl_data: HashMap<String, Vec<u8>>,
+    ftl_memory: FtlMemory,
     test_config_builder: TestEnvBuilder,
     expected_json: serde_json::Value,
-    expected_status: Status
+    expected_status: Status,
+    needs_database: bool
 }
 
 impl TestBuilder {
@@ -153,12 +157,24 @@ impl TestBuilder {
             should_auth: true,
             body_data: None,
             ftl_data: HashMap::new(),
+            ftl_memory: FtlMemory::Test {
+                clients: Vec::new(),
+                domains: Vec::new(),
+                over_time: Vec::new(),
+                queries: Vec::new(),
+                upstreams: Vec::new(),
+                strings: HashMap::new(),
+                counters: FtlCounters::default(),
+                settings: FtlSettings::default()
+            },
             test_config_builder: TestEnvBuilder::new(),
             expected_json: json!({
                 "data": [],
                 "errors": []
-            }),
-            expected_status: Status::Ok
+            })
+            .into(),
+            expected_status: Status::Ok,
+            needs_database: false
         }
     }
 
@@ -182,13 +198,18 @@ impl TestBuilder {
         self
     }
 
-    pub fn body(mut self, body: serde_json::Value) -> Self {
-        self.body_data = Some(body);
+    pub fn body<T: Into<serde_json::Value>>(mut self, body: T) -> Self {
+        self.body_data = Some(body.into());
         self
     }
 
     pub fn ftl(mut self, command: &str, data: Vec<u8>) -> Self {
         self.ftl_data.insert(command.to_owned(), data);
+        self
+    }
+
+    pub fn ftl_memory(mut self, ftl_memory: FtlMemory) -> Self {
+        self.ftl_memory = ftl_memory;
         self
     }
 
@@ -209,8 +230,8 @@ impl TestBuilder {
         self
     }
 
-    pub fn expect_json(mut self, expected_json: serde_json::Value) -> Self {
-        self.expected_json = expected_json;
+    pub fn expect_json<T: Into<serde_json::Value>>(mut self, expected_json: T) -> Self {
+        self.expected_json = expected_json.into();
         self
     }
 
@@ -219,13 +240,23 @@ impl TestBuilder {
         self
     }
 
+    pub fn need_database(mut self, need_database: bool) -> Self {
+        self.needs_database = need_database;
+        self
+    }
+
     pub fn test(self) {
         // Save the files for verification
         let test_files = self.test_config_builder.get_test_files();
 
         // Start the test client
-        let config_data = self.test_config_builder.build();
-        let client = setup::test(self.ftl_data, config_data);
+        let env_data = self.test_config_builder.build();
+        let client = setup::test(
+            self.ftl_data,
+            self.ftl_memory,
+            env_data,
+            self.needs_database
+        );
 
         // Create the request
         let mut request = client.req(self.method, self.endpoint);

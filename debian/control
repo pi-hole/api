@@ -1,0 +1,11 @@
+Source: pihole-api
+Priority: optional
+Maintainer: The Pi-hole Team <adblock@pi-hole.net>
+Build-Depends: debhelper (>= 10), dh-systemd (>= 1.5)
+
+Package: pihole-api
+Architecture: any
+Depends: libsqlite3-0, libcap2-bin, ${shlibs:Depends}, ${misc:Depends}
+Description: The Pi-hole API, including the Web Interface
+ The Pi-hole API provides a RESTful service for the web interface. The web
+ interface is embedded into the API and exposed under /admin.

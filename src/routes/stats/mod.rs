@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 mod clients;
-mod forward_destinations;
+mod common;
 mod history;
 mod over_time_clients;
 mod over_time_history;
@@ -18,16 +18,11 @@ mod recent_blocked;
 mod summary;
 mod top_clients;
 mod top_domains;
-mod unknown_queries;
+mod upstreams;
 
-pub use self::clients::*;
-pub use self::forward_destinations::*;
-pub use self::history::*;
-pub use self::over_time_clients::*;
-pub use self::over_time_history::*;
-pub use self::query_types::*;
-pub use self::recent_blocked::*;
-pub use self::summary::*;
-pub use self::top_clients::*;
-pub use self::top_domains::*;
-pub use self::unknown_queries::*;
+pub mod database;
+
+pub use self::{
+    clients::*, history::*, over_time_clients::*, over_time_history::*, query_types::*,
+    recent_blocked::*, summary::*, top_clients::*, top_domains::*, upstreams::*
+};

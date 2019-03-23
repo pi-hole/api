@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -8,30 +8,39 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::{self, AuthData};
-use env::{Config, Env, PiholeFile};
-use ftl::FtlConnectionType;
-use rocket;
+use crate::{
+    databases::{ftl::FtlDatabase, load_databases},
+    env::{Config, Env},
+    ftl::{FtlConnectionType, FtlMemory},
+    routes::{
+        auth::{self, AuthData},
+        dns, settings, stats, version, web
+    },
+    settings::{ConfigEntry, SetupVarsEntry},
+    util::{Error, ErrorKind}
+};
 use rocket::config::{ConfigBuilder, Environment};
-use rocket::local::Client;
 use rocket_cors::Cors;
-use routes::{dns, settings, stats, version, web};
-use settings::{ConfigEntry, SetupVarsEntry};
+
+#[cfg(test)]
+use crate::{databases::load_test_databases, env::PiholeFile};
+#[cfg(test)]
+use rocket::{config::LoggingLevel, local::Client};
+#[cfg(test)]
 use std::collections::HashMap;
+#[cfg(test)]
 use tempfile::NamedTempFile;
-use toml;
-use util::{Error, ErrorKind};
 
-const CONFIG_LOCATION: &'static str = "/etc/pihole/API.toml";
+const CONFIG_LOCATION: &str = "/etc/pihole/API.toml";
 
-#[error(404)]
+#[catch(404)]
 fn not_found() -> Error {
-    ErrorKind::NotFound.into()
+    Error::from(ErrorKind::NotFound)
 }
 
-#[error(401)]
+#[catch(401)]
 fn unauthorized() -> Error {
-    ErrorKind::Unauthorized.into()
+    Error::from(ErrorKind::Unauthorized)
 }
 
 /// Run the API normally (connect to FTL over the socket)
@@ -45,61 +54,93 @@ pub fn start() -> Result<(), Error> {
             ConfigBuilder::new(Environment::Production)
                 .address(env.config().address())
                 .port(env.config().port() as u16)
-                .log_level(env.config().log_level())
+                .log_level(env.config().log_level()?)
+                .extra("databases", load_databases(&env)?)
                 .finalize()
-                .unwrap(),
-            // TODO: Add option to turn off logs
-            true
+                .unwrap()
         ),
         FtlConnectionType::Socket,
+        FtlMemory::production(),
         env,
-        key
-    ).launch();
+        key,
+        true
+    )
+    .launch();
 
     Ok(())
 }
 
 /// Setup the API with the testing data and return a Client to test with
+#[cfg(test)]
 pub fn test(
     ftl_data: HashMap<String, Vec<u8>>,
-    env_data: HashMap<PiholeFile, NamedTempFile>
+    ftl_memory: FtlMemory,
+    env_data: HashMap<PiholeFile, NamedTempFile>,
+    needs_database: bool
 ) -> Client {
+    use toml;
+
     Client::new(setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Development)
+                .log_level(LoggingLevel::Debug)
+                .extra("databases", load_test_databases())
                 .finalize()
-                .unwrap(),
-            false
+                .unwrap()
         ),
         FtlConnectionType::Test(ftl_data),
+        ftl_memory,
         Env::Test(toml::from_str("").unwrap(), env_data),
-        "test_key".to_owned()
-    )).unwrap()
+        "test_key".to_owned(),
+        needs_database
+    ))
+    .unwrap()
 }
 
 /// General server setup
-fn setup<'a>(
+fn setup(
     server: rocket::Rocket,
-    connection_type: FtlConnectionType,
+    ftl_socket: FtlConnectionType,
+    ftl_memory: FtlMemory,
     env: Env,
-    api_key: String
+    api_key: String,
+    needs_database: bool
 ) -> rocket::Rocket {
-    // Setup CORS
-    let mut cors = Cors::default();
-    cors.allow_credentials = true;
+    // Set up CORS
+    let cors = Cors {
+        allow_credentials: true,
+        ..Cors::default()
+    };
 
-    // Start up the server
+    // Attach the databases if required
+    let server = if needs_database {
+        server.attach(FtlDatabase::fairing())
+    } else {
+        server
+    };
+
+    // Create a scheduler for scheduling work (ex. disable for 10 minutes)
+    let scheduler = task_scheduler::Scheduler::new();
+
+    // Set up the server
     server
         // Attach CORS handler
         .attach(cors)
-        // Manage the connection type configuration
-        .manage(connection_type)
+        // Add custom error handlers
+        .register(catchers![not_found, unauthorized])
+        // Manage the FTL socket configuration
+        .manage(ftl_socket)
+        // Manage the FTL shared memory configuration
+        .manage(ftl_memory)
         // Manage the environment
         .manage(env)
         // Manage the API key
         .manage(AuthData::new(api_key))
+        // Manage the scheduler
+        .manage(scheduler)
         // Mount the web interface
         .mount("/", routes![
+            web::web_interface_redirect,
             web::web_interface_index,
             web::web_interface
         ])
@@ -110,25 +151,26 @@ fn setup<'a>(
             auth::logout,
             stats::get_summary,
             stats::top_domains,
-            stats::top_domains_params,
-            stats::top_blocked,
-            stats::top_blocked_params,
             stats::top_clients,
-            stats::top_clients_params,
-            stats::forward_destinations,
+            stats::upstreams,
             stats::query_types,
             stats::history,
-            stats::history_params,
             stats::recent_blocked,
-            stats::recent_blocked_params,
             stats::clients,
-            stats::unknown_queries,
             stats::over_time_history,
             stats::over_time_clients,
+            stats::database::get_summary_db,
+            stats::database::over_time_clients_db,
+            stats::database::over_time_history_db,
+            stats::database::query_types_db,
+            stats::database::top_clients_db,
+            stats::database::top_domains_db,
+            stats::database::upstreams_db,
             dns::get_whitelist,
             dns::get_blacklist,
             dns::get_regexlist,
             dns::status,
+            dns::change_status,
             dns::add_whitelist,
             dns::add_blacklist,
             dns::add_regexlist,
@@ -136,12 +178,13 @@ fn setup<'a>(
             dns::delete_blacklist,
             dns::delete_regexlist,
             settings::get_dhcp,
+            settings::put_dhcp,
             settings::get_dns,
             settings::put_dns,
             settings::get_ftldb,
             settings::get_ftl,
-            settings::get_network
+            settings::get_network,
+            settings::get_web,
+            settings::put_web
         ])
-        // Add custom error handlers
-        .catch(errors![not_found, unauthorized])
 }

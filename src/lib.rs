@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -8,31 +8,23 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-#![feature(plugin, custom_derive)]
-#![plugin(rocket_codegen)]
+#![feature(proc_macro_hygiene, decl_macro)]
+#![allow(clippy::cast_lossless)]
 
-extern crate regex;
-extern crate rmp;
-extern crate rocket;
 #[macro_use]
-extern crate rocket_contrib;
-extern crate rocket_cors;
-extern crate serde;
+extern crate diesel;
+#[macro_use]
+extern crate rocket;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
-extern crate rust_embed;
-extern crate failure;
-extern crate toml;
+extern crate rocket_contrib;
 #[macro_use]
-extern crate failure_derive;
-extern crate get_if_addrs;
-extern crate hostname;
-extern crate tempfile;
+extern crate rust_embed;
 
-pub use setup::*;
+pub use crate::setup::start;
 
-mod auth;
+mod databases;
 mod env;
 mod ftl;
 mod routes;

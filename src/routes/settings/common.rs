@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -8,15 +8,16 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use env::Env;
+use crate::{
+    env::Env,
+    util::{Error, ErrorKind}
+};
 use failure::ResultExt;
-use std::process::Command;
-use std::process::Stdio;
-use util::Error;
-use util::ErrorKind;
+use std::process::{Command, Stdio};
 
 /// Restart the DNS server (via `pihole restartdns`)
 pub fn restart_dns(env: &Env) -> Result<(), Error> {
+    // Don't actually run anything during a test
     if env.is_test() {
         return Ok(());
     }
@@ -33,6 +34,6 @@ pub fn restart_dns(env: &Env) -> Result<(), Error> {
     if status.success() {
         Ok(())
     } else {
-        Err(ErrorKind::RestartDnsError.into())
+        Err(Error::from(ErrorKind::RestartDnsError))
     }
 }

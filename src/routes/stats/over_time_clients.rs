@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -8,108 +8,188 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use ftl::FtlConnectionType;
+use crate::{
+    env::Env,
+    ftl::{ClientReply, FtlMemory},
+    routes::{
+        auth::User,
+        stats::{
+            clients::{filter_ftl_clients, ClientParams},
+            common::get_current_over_time_slot
+        }
+    },
+    settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
+    util::{reply_data, Reply}
+};
 use rocket::State;
-use routes::stats::clients::get_clients;
-use util::{reply_data, reply_error, ErrorKind, Reply};
+use std::cmp::Ordering;
 
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
-pub fn over_time_clients(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
-    let mut over_time = Vec::new();
-    let clients = get_clients(&ftl)?;
-
-    // Don't open another FTL connection until the connection from `get_clients` is
-    // done! Otherwise FTL's global lock mechanism will cause a deadlock.
-    let mut con = ftl.connect("ClientsoverTime")?;
-
-    loop {
-        // Get the timestamp, unless we are at the end of the list
-        let timestamp = match con.read_i32() {
-            Ok(timestamp) => timestamp,
-            Err(e) => {
-                // Check if we received the EOM
-                if e.kind() == ErrorKind::FtlEomError {
-                    break;
-                }
-
-                // Unknown read error
-                return reply_error(e);
-            }
-        };
-
-        // Create a new step in the graph (stores the value of each client usage at
-        // that time)
-        let mut step = Vec::new();
-
-        // Get all the data for this step
-        loop {
-            let client = con.read_i32()?;
-
-            // Marker for the end of this step
-            if client == -1 {
-                break;
-            }
-
-            step.push(client);
-        }
-
-        over_time.push(TimeStep {
-            timestamp,
-            data: step
+pub fn over_time_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
+    // Check if client details are private
+    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)?
+        >= FtlPrivacyLevel::HideDomainsAndClients
+    {
+        return reply_data(OverTimeClients {
+            over_time: Vec::new(),
+            clients: Vec::new()
         });
     }
 
-    reply_data(json!({
-        "over_time": over_time,
-        "clients": clients
-    }))
+    // Load FTL shared memory
+    let lock = ftl_memory.lock()?;
+    let strings = ftl_memory.strings(&lock)?;
+    let over_time = ftl_memory.over_time(&lock)?;
+    let ftl_clients = ftl_memory.clients(&lock)?;
+
+    // Filter out clients which should not be considered
+    let clients = filter_ftl_clients(
+        &ftl_memory,
+        &lock,
+        &ftl_clients,
+        &env,
+        ClientParams::default()
+    )?;
+
+    // Get the valid over time slots (Skip while the slots are empty).
+    // Then, combine with the client overTime data to get the final overTime
+    // output.
+    let over_time: Vec<OverTimeClientItem> = over_time
+        .iter()
+        // Take all of the slots including the current slot
+        .take(get_current_over_time_slot(&over_time) + 1)
+        .enumerate()
+        // Skip the overTime slots without any data
+        .skip_while(|(_, time)| {
+            time.total_queries <= 0 && time.blocked_queries <= 0
+        })
+        .map(|(i, time)| {
+            // Get the client data for this time slot
+            let data: Vec<usize> = clients
+                .iter()
+                // Each client data is indexed according to the overTime index
+                .map(|client| *client.over_time.get(i).unwrap_or(&0) as usize)
+                .collect();
+
+            OverTimeClientItem {
+                timestamp: time.timestamp as u64,
+                data
+            }
+        })
+        .collect();
+
+    // Convert clients into the output format
+    let clients: Vec<ClientReply> = clients
+        .into_iter()
+        .map(|client| client.as_reply(&strings))
+        .collect();
+
+    reply_data(OverTimeClients { over_time, clients })
 }
 
+/// Represents an overTime client item, which holds time and client data for an
+/// overTime interval
+#[derive(Serialize, PartialEq, Eq)]
+#[cfg_attr(test, derive(Debug))]
+pub struct OverTimeClientItem {
+    pub timestamp: u64,
+    pub data: Vec<usize>
+}
+
+impl PartialOrd for OverTimeClientItem {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(
+            self.timestamp
+                .cmp(&other.timestamp)
+                .then(self.data.cmp(&other.data))
+        )
+    }
+}
+
+impl Ord for OverTimeClientItem {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+/// Represents the reply format for the overTime clients endpoint
 #[derive(Serialize)]
-struct TimeStep {
-    timestamp: i32,
-    data: Vec<i32>
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct OverTimeClients {
+    pub over_time: Vec<OverTimeClientItem>,
+    pub clients: Vec<ClientReply>
 }
 
 #[cfg(test)]
 mod test {
-    use rmp::encode;
-    use testing::{write_eom, TestBuilder};
+    use crate::{
+        env::PiholeFile,
+        ftl::{FtlClient, FtlCounters, FtlMemory, FtlOverTime, FtlSettings},
+        testing::TestBuilder
+    };
+    use std::collections::HashMap;
 
+    /// There are 6 clients, two inactive, one hidden, and two with names.
+    /// There are 3 overTime slots, with corresponding client overTime data
+    fn test_data() -> FtlMemory {
+        let mut strings = HashMap::new();
+        strings.insert(1, "10.1.1.1".to_owned());
+        strings.insert(2, "client1".to_owned());
+        strings.insert(3, "10.1.1.2".to_owned());
+        strings.insert(4, "10.1.1.3".to_owned());
+        strings.insert(5, "client3".to_owned());
+        strings.insert(6, "10.1.1.4".to_owned());
+        strings.insert(7, "10.1.1.5".to_owned());
+        strings.insert(8, "0.0.0.0".to_owned());
+
+        FtlMemory::Test {
+            clients: vec![
+                FtlClient::new(1, 0, 1, Some(2)).with_over_time(vec![0, 1, 0, 0]),
+                FtlClient::new(1, 0, 3, None).with_over_time(vec![0, 1, 0, 0]),
+                FtlClient::new(1, 0, 4, Some(5)).with_over_time(vec![0, 1, 0, 0]),
+                FtlClient::new(1, 0, 6, None).with_over_time(vec![0, 0, 1, 0]),
+                FtlClient::new(1, 0, 7, None).with_over_time(vec![0, 0, 1, 0]),
+                FtlClient::new(0, 0, 8, None).with_over_time(vec![0, 0, 0, 0]),
+            ],
+            domains: Vec::new(),
+            over_time: vec![
+                FtlOverTime::new(0, 0, 0, 0, 0, [0; 7]),
+                FtlOverTime::new(1, 2, 2, 0, 0, [0; 7]),
+                FtlOverTime::new(2, 3, 0, 2, 1, [0; 7]),
+                FtlOverTime::new(3, 0, 0, 1, 0, [0; 7]),
+            ],
+            strings,
+            upstreams: Vec::new(),
+            queries: Vec::new(),
+            counters: FtlCounters {
+                total_clients: 6,
+                ..FtlCounters::default()
+            },
+            settings: FtlSettings::default()
+        }
+    }
+
+    /// Default params will show overTime data from all non-hidden, active, and
+    /// non-excluded clients, and will initially skip overTime slots with no
+    /// queries.
     #[test]
-    fn test_over_time_clients() {
-        let mut over_time = Vec::new();
-        encode::write_i32(&mut over_time, 1520126228).unwrap();
-        encode::write_i32(&mut over_time, 7).unwrap();
-        encode::write_i32(&mut over_time, 3).unwrap();
-        encode::write_i32(&mut over_time, -1).unwrap();
-        encode::write_i32(&mut over_time, 1520126406).unwrap();
-        encode::write_i32(&mut over_time, 6).unwrap();
-        encode::write_i32(&mut over_time, 4).unwrap();
-        encode::write_i32(&mut over_time, -1).unwrap();
-        write_eom(&mut over_time);
-
-        let mut clients = Vec::new();
-        encode::write_str(&mut clients, "client1").unwrap();
-        encode::write_str(&mut clients, "10.1.1.1").unwrap();
-        encode::write_str(&mut clients, "").unwrap();
-        encode::write_str(&mut clients, "10.1.1.2").unwrap();
-        write_eom(&mut clients);
-
+    fn default_params() {
         TestBuilder::new()
             .endpoint("/admin/api/stats/overTime/clients")
-            .ftl("ClientsoverTime", over_time)
-            .ftl("client-names", clients)
+            .ftl_memory(test_data())
+            .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=client1")
             .expect_json(json!({
-                "over_time": [
-                    { "timestamp": 1520126228, "data": [7, 3] },
-                    { "timestamp": 1520126406, "data": [6, 4] }
-                ],
                 "clients": [
-                    { "name": "client1", "ip": "10.1.1.1" },
-                    { "name": "",        "ip": "10.1.1.2" }
+                    { "name": "",        "ip": "10.1.1.2" },
+                    { "name": "client3", "ip": "10.1.1.3" },
+                    { "name": "",        "ip": "10.1.1.4" },
+                    { "name": "",        "ip": "10.1.1.5" }
+                ],
+                "over_time": [
+                    { "timestamp": 1, "data": [1, 1, 0, 0] },
+                    { "timestamp": 2, "data": [0, 0, 1, 1] },
+                    { "timestamp": 3, "data": [0, 0, 0, 0] },
                 ]
             }))
             .test();

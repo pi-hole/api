@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -8,86 +8,103 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use ftl::FtlConnectionType;
+use crate::{
+    ftl::{FtlMemory, FtlQueryType},
+    routes::auth::User,
+    util::{reply_result, Error, Reply}
+};
 use rocket::State;
-use util::{reply_data, reply_error, ErrorKind, Reply};
 
 /// Get the query types
 #[get("/stats/query_types")]
-pub fn query_types(_auth: User, ftl: State<FtlConnectionType>) -> Reply {
-    let mut con = ftl.connect("querytypes")?;
-
-    // Create a 4KiB string buffer
-    let mut str_buffer = [0u8; 4096];
-    let mut query_types = Vec::new();
-
-    loop {
-        // Read in the name, unless we are at the end of the list
-        let name = match con.read_str(&mut str_buffer) {
-            Ok(name) => name.to_string(),
-            Err(e) => {
-                // Check if we received the EO
-                // Check if we received the EOM
-                if e.kind() == ErrorKind::FtlEomError {
-                    break;
-                }
-
-                // Unknown read error
-                return reply_error(e);
-            }
-        };
-
-        let percent = con.read_f32()?;
-
-        query_types.push(QueryType { name, percent });
-    }
-
-    reply_data(query_types)
+pub fn query_types(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
+    reply_result(query_types_impl(&ftl_memory))
 }
 
+/// Get the query types
+fn query_types_impl(ftl_memory: &FtlMemory) -> Result<Vec<QueryTypeReply>, Error> {
+    let lock = ftl_memory.lock()?;
+    let counters = ftl_memory.counters(&lock)?;
+
+    Ok(FtlQueryType::variants()
+        .iter()
+        .map(|&variant| QueryTypeReply {
+            name: variant.get_name(),
+            count: counters.query_type(variant)
+        })
+        .collect())
+}
+
+/// Represents the reply structure for returning query type data
 #[derive(Serialize)]
-struct QueryType {
-    name: String,
-    percent: f32
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct QueryTypeReply {
+    pub name: String,
+    pub count: usize
 }
 
 #[cfg(test)]
 mod test {
-    use rmp::encode;
-    use testing::{write_eom, TestBuilder};
+    use super::query_types_impl;
+    use crate::{
+        ftl::{FtlCounters, FtlMemory, FtlSettings},
+        routes::stats::query_types::QueryTypeReply
+    };
+    use std::collections::HashMap;
 
+    fn test_data() -> FtlMemory {
+        FtlMemory::Test {
+            counters: FtlCounters {
+                query_type_counters: [2, 2, 1, 1, 1, 2, 1],
+                total_queries: 10,
+                ..FtlCounters::default()
+            },
+            domains: Vec::new(),
+            over_time: Vec::new(),
+            strings: HashMap::new(),
+            upstreams: Vec::new(),
+            queries: Vec::new(),
+            clients: Vec::new(),
+            settings: FtlSettings::default()
+        }
+    }
+
+    /// Simple test to validate output
     #[test]
-    fn test_query_types() {
-        let mut data = Vec::new();
-        encode::write_str(&mut data, "A (IPv4)").unwrap();
-        encode::write_f32(&mut data, 0.1).unwrap();
-        encode::write_str(&mut data, "AAAA (IPv6)").unwrap();
-        encode::write_f32(&mut data, 0.2).unwrap();
-        encode::write_str(&mut data, "ANY").unwrap();
-        encode::write_f32(&mut data, 0.3).unwrap();
-        encode::write_str(&mut data, "SRV").unwrap();
-        encode::write_f32(&mut data, 0.4).unwrap();
-        encode::write_str(&mut data, "SOA").unwrap();
-        encode::write_f32(&mut data, 0.5).unwrap();
-        encode::write_str(&mut data, "PTR").unwrap();
-        encode::write_f32(&mut data, 0.6).unwrap();
-        encode::write_str(&mut data, "TXT").unwrap();
-        encode::write_f32(&mut data, 0.7).unwrap();
-        write_eom(&mut data);
+    fn query_types() {
+        let expected = vec![
+            QueryTypeReply {
+                name: "A".to_owned(),
+                count: 2
+            },
+            QueryTypeReply {
+                name: "AAAA".to_owned(),
+                count: 2
+            },
+            QueryTypeReply {
+                name: "ANY".to_owned(),
+                count: 1
+            },
+            QueryTypeReply {
+                name: "SRV".to_owned(),
+                count: 1
+            },
+            QueryTypeReply {
+                name: "SOA".to_owned(),
+                count: 1
+            },
+            QueryTypeReply {
+                name: "PTR".to_owned(),
+                count: 2
+            },
+            QueryTypeReply {
+                name: "TXT".to_owned(),
+                count: 1
+            },
+        ];
 
-        TestBuilder::new()
-            .endpoint("/admin/api/stats/query_types")
-            .ftl("querytypes", data)
-            .expect_json(json!([
-                { "name": "A (IPv4)", "percent": 0.10000000149011612 },
-                { "name": "AAAA (IPv6)", "percent": 0.20000000298023225 },
-                { "name": "ANY", "percent": 0.30000001192092898 },
-                { "name": "SRV", "percent": 0.4000000059604645 },
-                { "name": "SOA", "percent": 0.5 },
-                { "name": "PTR", "percent": 0.6000000238418579 },
-                { "name": "TXT", "percent": 0.699999988079071 }
-            ]))
-            .test();
+        let actual = query_types_impl(&test_data()).unwrap();
+
+        assert_eq!(actual, expected);
     }
 }

@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -8,11 +8,13 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use auth::User;
-use env::Env;
+use crate::{
+    env::Env,
+    routes::auth::User,
+    settings::{ConfigEntry, FtlConfEntry},
+    util::{reply_data, Reply}
+};
 use rocket::State;
-use settings::{ConfigEntry, FtlConfEntry};
-use util::{reply_data, Reply};
 
 /// Read FTL's settings
 #[get("/settings/ftl")]
@@ -31,7 +33,7 @@ pub fn get_ftl(env: State<Env>, _auth: User) -> Reply {
     let privacy_level: i32 = FtlConfEntry::PrivacyLevel.read_as(&env)?;
     let ignore_local_host = FtlConfEntry::IgnoreLocalHost.read(&env)?;
     let blocking_mode = FtlConfEntry::BlockingMode.read(&env)?;
-    let regex_debug_mode: bool = FtlConfEntry::RegexDebugMode.read_as(&env)?;
+    let regex_debug_mode = FtlConfEntry::RegexDebugMode.is_true(&env)?;
 
     reply_data(json!({
         "socket_listening": socket_listening,
@@ -53,8 +55,7 @@ pub fn get_ftl(env: State<Env>, _auth: User) -> Reply {
 
 #[cfg(test)]
 mod test {
-    use env::PiholeFile;
-    use testing::TestBuilder;
+    use crate::{env::PiholeFile, testing::TestBuilder};
 
     /// Test that correct settings are reported from populated file
     #[test]

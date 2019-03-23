@@ -1,5 +1,5 @@
 // Pi-hole: A black hole for Internet advertisements
-// (c) 2018 Pi-hole, LLC (https://pi-hole.net)
+// (c) 2019 Pi-hole, LLC (https://pi-hole.net)
 // Network-wide ad blocking via your own hardware.
 //
 // API
@@ -9,65 +9,81 @@
 // Please see LICENSE file for your rights under this license.
 
 use failure::{Backtrace, Context, Fail};
-use rocket::http::Status;
-use rocket::request;
-use rocket::response::{self, Responder, Response};
-use rocket::{Outcome, Request};
-use rocket_contrib::{Json, Value};
+use rocket::{
+    http::Status,
+    request,
+    response::{self, Responder, Response},
+    Outcome, Request
+};
+use rocket_contrib::json::JsonValue;
 use serde::Serialize;
-use std::env;
-use std::fmt::{self, Display};
+use shmem;
+use std::{
+    env,
+    fmt::{self, Display}
+};
 
 /// Type alias for the most common return type of the API methods
-pub type Reply = Result<SetStatus<Json<Value>>, Error>;
+pub type Reply = Result<SetStatus<JsonValue>, Error>;
 
 /// The most general reply builder. It takes in data/errors and status to
 /// construct the JSON reply.
-pub fn reply<D: Serialize>(data: ReplyType<D>, status: Status) -> Reply {
+pub fn reply<D: Serialize>(data: Result<D, Error>, status: Status) -> Reply {
     let json_data = match data {
-        ReplyType::Data(d) => json!(d),
-        ReplyType::Error(e) => {
+        Ok(d) => json!(d),
+        Err(e) => {
             // Only print out the error if it's not a common error
             match e.kind() {
                 ErrorKind::Unauthorized | ErrorKind::NotFound => (),
                 _ => e.print_stacktrace()
             }
 
+            // Get the extra error data, or null if there is none
+            let data = e.data().unwrap_or_default();
+
             json!({
                 "error": {
                     "key": e.key(),
-                    "message": format!("{}", e)
+                    "message": format!("{}", e),
+                    "data": data
                 }
             })
         }
     };
 
-    Ok(SetStatus(Json(json_data), status))
+    Ok(SetStatus(json_data, status))
+}
+
+/// Create a reply from a Result of serializable data or an error. If the Result
+/// is Ok, [`reply_data`] will be used. If the Result is Err, [`reply_error`]
+/// will be used.
+///
+/// [`reply_data`]: fn.reply_data.html
+/// [`reply_error`]: fn.reply_error.html
+pub fn reply_result<D: Serialize>(data: Result<D, Error>) -> Reply {
+    match data {
+        Ok(data) => reply_data(data),
+        Err(error) => reply_error(error)
+    }
 }
 
 /// Create a reply from some serializable data. The reply will have a status
 /// code of 200.
 pub fn reply_data<D: Serialize>(data: D) -> Reply {
-    reply(ReplyType::Data(data), Status::Ok)
+    reply(Ok(data), Status::Ok)
 }
 
 /// Create a reply with an error. The status will taken from `error.status()`.
 pub fn reply_error<E: Into<Error>>(error: E) -> Reply {
     let error = error.into();
     let status = error.status();
-    reply::<()>(ReplyType::Error(error), status)
+    reply::<()>(Err(error), status)
 }
 
 /// Create a reply with a successful status. There are no errors and the status
 /// is 200.
 pub fn reply_success() -> Reply {
-    reply(ReplyType::Data(json!({ "status": "success" })), Status::Ok)
-}
-
-/// The type of reply which should be sent.
-pub enum ReplyType<D: Serialize> {
-    Data(D),
-    Error(Error)
+    reply(Ok(json!({ "status": "success" })), Status::Ok)
 }
 
 /// Wraps `ErrorKind` to provide context via `Context`.
@@ -84,7 +100,7 @@ pub struct Error {
 pub enum ErrorKind {
     #[fail(display = "Unknown error")]
     Unknown,
-    #[fail(display = "Gravity failed to form")]
+    #[fail(display = "Failed to create the blocklist")]
     GravityError,
     #[fail(display = "Failed to connect to FTL")]
     FtlConnectionFail,
@@ -112,8 +128,27 @@ pub enum ErrorKind {
     InvalidSettingValue,
     #[fail(display = "Failed to restart the DNS server")]
     RestartDnsError,
+    #[fail(display = "Failed to reload the DNS server")]
+    ReloadDnsError,
     #[fail(display = "Error generating the dnsmasq config")]
-    DnsmasqConfigWrite
+    DnsmasqConfigWrite,
+    /// `shmem::Error` does not implement `std::error::Error`, so we can not use
+    /// `.context()` on a `Result<T, shmem::Error>`. It also does not implement
+    /// `Eq` or `PartialEq`, so the best we can do is have the error message
+    /// stored here.
+    #[fail(display = "Failed to open shared memory: {}", _0)]
+    SharedMemoryOpen(String),
+    #[fail(display = "Failed to read from shared memory")]
+    SharedMemoryRead,
+    #[fail(display = "Failed to lock shared memory")]
+    SharedMemoryLock,
+    #[fail(
+        display = "Incompatible version of shared memory. Found {}, expected {}",
+        _0, _1
+    )]
+    SharedMemoryVersion(usize, usize),
+    #[fail(display = "Error while interacting with the FTL database")]
+    FtlDatabase
 }
 
 impl Error {
@@ -130,7 +165,7 @@ impl Error {
         }
 
         // Print out each cause
-        for (i, cause) in self.causes().skip(1).enumerate() {
+        for (i, cause) in Fail::iter_causes(self).enumerate() {
             eprintln!("Cause #{}: {}", i + 1, cause);
 
             if backtrace_enabled {
@@ -146,6 +181,13 @@ impl Error {
     /// [`ErrorKind`]: enum.ErrorKind.html
     pub fn kind(&self) -> ErrorKind {
         self.inner.get_context().clone()
+    }
+
+    /// Get extra data about the error from the [`ErrorKind`]
+    ///
+    /// [`ErrorKind`]: enum.ErrorKind.html
+    fn data(&self) -> Option<JsonValue> {
+        self.inner.get_context().data()
     }
 
     /// See [`ErrorKind::key`]
@@ -171,7 +213,7 @@ impl ErrorKind {
     /// Get the error key. This should be used by clients to determine the
     /// error type instead of using the message because it will not change.
     pub fn key(&self) -> &'static str {
-        match *self {
+        match self {
             ErrorKind::Unknown => "unknown",
             ErrorKind::GravityError => "gravity_error",
             ErrorKind::FtlConnectionFail => "ftl_connection_fail",
@@ -187,35 +229,56 @@ impl ErrorKind {
             ErrorKind::ConfigParsingError => "config_parsing_error",
             ErrorKind::InvalidSettingValue => "invalid_setting_value",
             ErrorKind::RestartDnsError => "restart_dns_error",
-            ErrorKind::DnsmasqConfigWrite => "dnsmasq_config_write"
+            ErrorKind::ReloadDnsError => "reload_dns_error",
+            ErrorKind::DnsmasqConfigWrite => "dnsmasq_config_write",
+            ErrorKind::SharedMemoryOpen(_) => "shared_memory_open",
+            ErrorKind::SharedMemoryRead => "shared_memory_read",
+            ErrorKind::SharedMemoryLock => "shared_memory_lock",
+            ErrorKind::SharedMemoryVersion(_, _) => "shared_memory_version",
+            ErrorKind::FtlDatabase => "ftl_database"
         }
     }
 
     /// Get the error HTTP status. This will be used when calling `reply_error`
     pub fn status(&self) -> Status {
-        match *self {
-            ErrorKind::Unknown => Status::InternalServerError,
-            ErrorKind::GravityError => Status::InternalServerError,
-            ErrorKind::FtlConnectionFail => Status::InternalServerError,
-            ErrorKind::FtlReadError => Status::InternalServerError,
-            ErrorKind::FtlEomError => Status::InternalServerError,
+        match self {
             ErrorKind::NotFound => Status::NotFound,
             ErrorKind::AlreadyExists => Status::Conflict,
-            ErrorKind::InvalidDomain => Status::BadRequest,
-            ErrorKind::BadRequest => Status::BadRequest,
+            ErrorKind::InvalidDomain | ErrorKind::BadRequest | ErrorKind::InvalidSettingValue => {
+                Status::BadRequest
+            }
             ErrorKind::Unauthorized => Status::Unauthorized,
-            ErrorKind::FileRead(_) => Status::InternalServerError,
-            ErrorKind::FileWrite(_) => Status::InternalServerError,
-            ErrorKind::ConfigParsingError => Status::InternalServerError,
-            ErrorKind::InvalidSettingValue => Status::BadRequest,
-            ErrorKind::RestartDnsError => Status::InternalServerError,
-            ErrorKind::DnsmasqConfigWrite => Status::InternalServerError
+            ErrorKind::Unknown
+            | ErrorKind::GravityError
+            | ErrorKind::FtlConnectionFail
+            | ErrorKind::FtlReadError
+            | ErrorKind::FtlEomError
+            | ErrorKind::FileRead(_)
+            | ErrorKind::FileWrite(_)
+            | ErrorKind::ConfigParsingError
+            | ErrorKind::RestartDnsError
+            | ErrorKind::ReloadDnsError
+            | ErrorKind::DnsmasqConfigWrite
+            | ErrorKind::SharedMemoryOpen(_)
+            | ErrorKind::SharedMemoryRead
+            | ErrorKind::SharedMemoryLock
+            | ErrorKind::SharedMemoryVersion(_, _)
+            | ErrorKind::FtlDatabase => Status::InternalServerError
+        }
+    }
+
+    /// Get extra data about the error, to be used in the JSON error object
+    fn data(&self) -> Option<JsonValue> {
+        match self {
+            ErrorKind::FileRead(file) => Some(json!({ "file": file })),
+            ErrorKind::FileWrite(file) => Some(json!({ "file": file })),
+            _ => None
         }
     }
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -241,6 +304,18 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Error {
         Error { inner }
+    }
+}
+
+impl From<shmem::Error> for Error {
+    /// Converts `shmem::Error` into an `Error` of kind
+    /// [`ErrorKind::SharedMemoryOpen`]. See the comment on
+    /// [`ErrorKind::SharedMemoryOpen`] for more information.
+    ///
+    /// [`ErrorKind::SharedMemoryOpen`]:
+    /// enum.ErrorKind.html#variant.SharedMemoryOpen
+    fn from(e: shmem::Error) -> Self {
+        Error::from(ErrorKind::SharedMemoryOpen(format!("{:?}", e)))
     }
 }
 

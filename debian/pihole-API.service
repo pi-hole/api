@@ -1,0 +1,13 @@
+[Unit]
+Description="The Pi-hole API, including the Web Interface"
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pihole
+Group=pihole
+Environment=RUST_BACKTRACE=1
+ExecStart=/usr/bin/pihole-API
+
+[Install]
+WantedBy=multi-user.target
