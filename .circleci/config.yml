@@ -80,7 +80,7 @@ version: 2
     - persist_to_workspace:
         root: .
         paths:
-          - target/$TARGET/release/pihole_api
+          - target/*/release/pihole_api
           - Makefile
           - LICENSE
           - debian/pihole-API.service
