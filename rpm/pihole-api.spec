@@ -7,7 +7,6 @@ License:        EUPL-1.2
 URL:            https://pi-hole.net
 
 BuildRequires:  systemd
-Requires:       sqlite-libs
 Requires:       libcap
 %{?systemd_requires}
 
