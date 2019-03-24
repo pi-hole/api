@@ -172,7 +172,7 @@ jobs:
     <<: *rpm_template
     environment:
       TARGET: "x86_64-unknown-linux-musl"
-      RPM_ARCH: "musl-linux-amd64"
+      RPM_ARCH: "musl"
 
   x86_32:
     <<: *job_template
