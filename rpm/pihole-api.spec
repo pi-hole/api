@@ -38,7 +38,7 @@ install -m 644 debian/pihole-API.service %{buildroot}%{_unitdir}
 # Only add the user when installing
 if [ $1 -eq 1 ]; then
     # Create a pihole user and group if they don't already exist
-    adduser --system --group --quiet pihole
+    adduser --system --user-group pihole &>/dev/null
 fi
 
 # Give the API permission to bind to low ports
