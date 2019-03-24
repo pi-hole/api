@@ -110,7 +110,7 @@ version: 2
           [ -z "$FTL_SECRET" ] && exit 0
           curl https://ftl.pi-hole.net:8080/FTL-client -o FTL-client
           chmod +x ./FTL-client
-          [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" /root/rpmbuild/RPMS/aarch64/pihole-api*.rpm "${FTL_SECRET}"
+          [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" /root/rpmbuild/RPMS/$RPM_ARCH/pihole-api*.rpm "${FTL_SECRET}"
           rm ./FTL-client
 
 jobs:
