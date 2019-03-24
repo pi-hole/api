@@ -1,6 +1,6 @@
 Name:           pihole-api
 Version:        0.1.0
-Release:        1%{?dist}
+Release:        1
 Summary:        The Pi-hole API, including the Web Interface
 
 License:        EUPL-1.2
