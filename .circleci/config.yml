@@ -76,11 +76,43 @@ version: 2
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}.sha1" "${FTL_SECRET}"
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" pihole-api*.deb "${FTL_SECRET}"
           rm ./FTL-client
+      # Save the files necessary for building the RPM
+    - persist_to_workspace:
+        root: .
+        paths:
+          - target/$TARGET/release/pihole_api
+          - Makefile
+          - LICENSE
+          - debian/pihole-API.service
+          - rpm/pihole-api.spec
     - save_cache:
         key: v3-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
         paths:
           - target
           - /root/.cargo
+
+.rpm_template: &rpm_template
+  docker:
+    - image: pihole/rpm-builder
+  steps:
+    - attach_workspace:
+        at: .
+    - run:
+        name: "Build RPM"
+        command: |
+          mkdir -p ~/rpmbuild/{SOURCES,SPECS}
+          mv rpm/pihole-api.spec ~/rpmbuild/SPECS
+          mv * ~/rpmbuild/SOURCES
+          rpmbuild -bb ~/rpmbuild/SPECS/pihole-api.spec --target $RPM_ARCH
+    - run:
+        name: "Upload"
+        command: |
+          [ -z "$FTL_SECRET" ] && exit 0
+          RPM_PATH=~/rpmbuild/RPMS/$RPM_ARCH/pihole-api*.rpm
+          curl https://ftl.pi-hole.net:8080/FTL-client -o FTL-client
+          chmod +x ./FTL-client
+          [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${RPM_PATH}" "${FTL_SECRET}"
+          rm ./FTL-client
 
 jobs:
   arm:
@@ -97,12 +129,24 @@ jobs:
       TARGET: "armv7-unknown-linux-gnueabihf"
       DEB_ARCH: "armhf"
 
+  armhf-rpm:
+    <<: *rpm_template
+    environment:
+      TARGET: "armv7-unknown-linux-gnueabihf"
+      RPM_ARCH: "armhfp"
+
   aarch64:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-aarch64-linux-gnu"
       TARGET: "aarch64-unknown-linux-gnu"
       DEB_ARCH: "arm64"
+
+  aarch64-rpm:
+    <<: *rpm_template
+    environment:
+      TARGET: "aarch64-unknown-linux-gnu"
+      RPM_ARCH: "aarch64"
 
   x86_64:
     <<: *job_template
@@ -111,12 +155,24 @@ jobs:
       TARGET: "x86_64-unknown-linux-gnu"
       DEB_ARCH: "amd64"
 
+  x86_64-rpm:
+    <<: *rpm_template
+    environment:
+      TARGET: "x86_64-unknown-linux-gnu"
+      RPM_ARCH: "x86_64"
+
   x86_64-musl:
     <<: *job_template
     environment:
       BIN_NAME: "pihole-API-musl-linux-x86_64"
       TARGET: "x86_64-unknown-linux-musl"
       DEB_ARCH: "musl-linux-amd64"
+
+  x86_64-musl-rpm:
+    <<: *rpm_template
+    environment:
+      TARGET: "x86_64-unknown-linux-musl"
+      RPM_ARCH: "musl-linux-amd64"
 
   x86_32:
     <<: *job_template
@@ -125,13 +181,34 @@ jobs:
       TARGET: "i686-unknown-linux-gnu"
       DEB_ARCH: "i386"
 
+  x86_32-rpm:
+    <<: *rpm_template
+    environment:
+      TARGET: "i686-unknown-linux-gnu"
+      RPM_ARCH: "i386"
+
 workflows:
   version: 2
   build:
     jobs:
       - arm
       - armhf
+      - armhf-rpm:
+          requires:
+            - armhf
       - aarch64
+      - aarch64-rpm:
+          requires:
+            - aarch64
       - x86_64
+      - x86_64-rpm:
+          requires:
+            - x86_64
       - x86_64-musl
+      - x86_64-musl-rpm:
+          requires:
+            - x86_64-musl
       - x86_32
+      - x86_32-rpm:
+          requires:
+            - x86_32
