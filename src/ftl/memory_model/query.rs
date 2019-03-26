@@ -8,16 +8,18 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use crate::ftl::FtlQueryType;
+use crate::{ftl::FtlQueryType, settings::FtlPrivacyLevel};
 use libc;
 use rocket::{http::RawStr, request::FromFormValue};
 
 /// A list of query statuses which mark a query as blocked
-pub const BLOCKED_STATUSES: [i32; 4] = [
+pub const BLOCKED_STATUSES: [i32; 6] = [
     FtlQueryStatus::Gravity as i32,
     FtlQueryStatus::Wildcard as i32,
     FtlQueryStatus::Blacklist as i32,
-    FtlQueryStatus::ExternalBlock as i32
+    FtlQueryStatus::ExternalBlockIp as i32,
+    FtlQueryStatus::ExternalBlockNull as i32,
+    FtlQueryStatus::ExternalBlockNxdomainRa as i32
 ];
 
 /// The query struct stored in shared memory
@@ -36,13 +38,12 @@ pub struct FtlQuery {
     pub database_id: i64,
     pub id: libc::c_int,
     pub is_complete: bool,
-    pub is_private: bool,
+    pub privacy_level: FtlPrivacyLevel,
     /// Saved in units of 1/10 milliseconds (1 = 0.1ms, 2 = 0.2ms,
     /// 2500 = 250.0ms, etc.)
     pub response_time: libc::c_ulong,
     pub reply_type: FtlQueryReplyType,
-    pub dnssec_type: FtlDnssecType,
-    pub ad_bit: bool
+    pub dnssec_type: FtlDnssecType
 }
 
 impl FtlQuery {
@@ -63,7 +64,9 @@ pub enum FtlQueryStatus {
     Cache,
     Wildcard,
     Blacklist,
-    ExternalBlock
+    ExternalBlockIp,
+    ExternalBlockNull,
+    ExternalBlockNxdomainRa
 }
 
 impl FtlQueryStatus {
@@ -76,7 +79,9 @@ impl FtlQueryStatus {
             3 => Some(FtlQueryStatus::Cache),
             4 => Some(FtlQueryStatus::Wildcard),
             5 => Some(FtlQueryStatus::Blacklist),
-            6 => Some(FtlQueryStatus::ExternalBlock),
+            6 => Some(FtlQueryStatus::ExternalBlockIp),
+            7 => Some(FtlQueryStatus::ExternalBlockNull),
+            8 => Some(FtlQueryStatus::ExternalBlockNxdomainRa),
             _ => None
         }
     }

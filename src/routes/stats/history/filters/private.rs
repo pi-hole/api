@@ -8,13 +8,13 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use crate::ftl::FtlQuery;
+use crate::{ftl::FtlQuery, settings::FtlPrivacyLevel};
 
 /// Filter out private queries
 pub fn filter_private_queries<'a>(
     queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>
 ) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
-    Box::new(queries_iter.filter(|query| !query.is_private))
+    Box::new(queries_iter.filter(|query| query.privacy_level < FtlPrivacyLevel::Maximum))
 }
 
 #[cfg(test)]

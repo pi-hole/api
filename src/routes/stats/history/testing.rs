@@ -8,9 +8,12 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use crate::ftl::{
-    FtlClient, FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
-    FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlSettings, FtlUpstream, MAGIC_BYTE
+use crate::{
+    ftl::{
+        FtlClient, FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
+        FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlSettings, FtlUpstream, MAGIC_BYTE
+    },
+    settings::FtlPrivacyLevel
 };
 use std::collections::HashMap;
 
@@ -25,7 +28,7 @@ macro_rules! query {
             $client:expr,
             $upstream:expr,
             $timestamp:expr,
-            $private:expr
+            $private:ident
         ) => {
         FtlQuery {
             magic: MAGIC_BYTE,
@@ -42,8 +45,7 @@ macro_rules! query {
             reply_type: FtlQueryReplyType::IP,
             dnssec_type: FtlDnssecType::Unspecified,
             is_complete: true,
-            is_private: $private,
-            ad_bit: false
+            privacy_level: FtlPrivacyLevel::$private
         }
     };
 }
@@ -96,17 +98,16 @@ pub fn test_queries() -> Vec<FtlQuery> {
             reply_type: FtlQueryReplyType::CNAME,
             dnssec_type: FtlDnssecType::Secure,
             is_complete: true,
-            is_private: false,
-            ad_bit: false
+            privacy_level: FtlPrivacyLevel::ShowAll
         },
-        query!(2, 96, AAAA, Forward, 0, 0, 0, 263_582, false),
-        query!(3, 97, PTR, Forward, 0, 0, 0, 263_583, false),
-        query!(4, 98, A, Gravity, 1, 1, 0, 263_583, false),
-        query!(5, 99, AAAA, Cache, 0, 1, 0, 263_584, false),
-        query!(6, 100, AAAA, Wildcard, 2, 1, 0, 263_585, false),
-        query!(7, 101, A, Blacklist, 3, 2, 0, 263_585, false),
-        query!(8, 0, AAAA, ExternalBlock, 4, 2, 1, 263_586, false),
-        query!(9, 0, A, Forward, 5, 3, 0, 263_587, true),
+        query!(2, 96, AAAA, Forward, 0, 0, 0, 263_582, ShowAll),
+        query!(3, 97, PTR, Forward, 0, 0, 0, 263_583, ShowAll),
+        query!(4, 98, A, Gravity, 1, 1, 0, 263_583, ShowAll),
+        query!(5, 99, AAAA, Cache, 0, 1, 0, 263_584, ShowAll),
+        query!(6, 100, AAAA, Wildcard, 2, 1, 0, 263_585, ShowAll),
+        query!(7, 101, A, Blacklist, 3, 2, 0, 263_585, ShowAll),
+        query!(8, 0, AAAA, ExternalBlockIp, 4, 2, 1, 263_586, ShowAll),
+        query!(9, 0, A, Forward, 5, 3, 0, 263_587, Maximum),
     ]
 }
 
