@@ -28,22 +28,22 @@ pub const BLOCKED_STATUSES: [i32; 6] = [
 #[derive(Copy, Clone)]
 pub struct FtlQuery {
     pub magic: libc::c_uchar,
-    pub timestamp: libc::time_t,
-    pub time_index: libc::c_uint,
     pub query_type: FtlQueryType,
     pub status: FtlQueryStatus,
+    pub privacy_level: FtlPrivacyLevel,
+    pub reply_type: FtlQueryReplyType,
+    pub dnssec_type: FtlDnssecType,
+    pub timestamp: libc::time_t,
     pub domain_id: libc::c_int,
     pub client_id: libc::c_int,
     pub upstream_id: libc::c_int,
-    pub database_id: i64,
     pub id: libc::c_int,
-    pub is_complete: bool,
-    pub privacy_level: FtlPrivacyLevel,
     /// Saved in units of 1/10 milliseconds (1 = 0.1ms, 2 = 0.2ms,
     /// 2500 = 250.0ms, etc.)
     pub response_time: libc::c_ulong,
-    pub reply_type: FtlQueryReplyType,
-    pub dnssec_type: FtlDnssecType
+    pub database_id: libc::int64_t,
+    pub time_index: libc::c_uint,
+    pub is_complete: bool
 }
 
 impl FtlQuery {
