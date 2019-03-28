@@ -37,6 +37,7 @@ pub enum ValueType {
     Ipv6,
     Path,
     PortNumber,
+    Regex,
     YesNo,
     WebPassword,
     String(&'static [&'static str]),
@@ -180,6 +181,7 @@ impl ValueType {
                     false
                 }
             }
+            ValueType::Regex => Regex::new(value).is_ok(),
             ValueType::YesNo => match value {
                 "yes" | "no" => true,
                 _ => false
@@ -254,6 +256,7 @@ mod tests {
             ),
             (ValueType::Path, "/tmp/directory/file.ext", true),
             (ValueType::PortNumber, "9000", true),
+            (ValueType::Regex, "^.*example$", true),
             (ValueType::YesNo, "yes", true),
             (ValueType::String(&["boxed", ""]), "boxed", true),
         ];
@@ -309,6 +312,7 @@ mod tests {
             (ValueType::Ipv6, "192.168.0.3", false),
             (ValueType::Path, "~/tmp/directory/file.ext", false),
             (ValueType::PortNumber, "65536", false),
+            (ValueType::Regex, "example\\", false),
             (ValueType::YesNo, "true", false),
             (ValueType::String(&["boxed", ""]), "lan", false),
         ];

@@ -18,27 +18,7 @@ use nix::{
     sys::signal::{kill, Signal},
     unistd::Pid
 };
-use regex::Regex;
 use std::process::{Command, Stdio};
-
-/// Check if a domain is valid
-pub fn is_valid_domain(domain: &str) -> bool {
-    let valid_chars_regex = Regex::new(
-        "^((-|_)*[a-z0-9]((-|_)*[a-z0-9])*(-|_)*)(\\.(-|_)*([a-z0-9]((-|_)*[a-z0-9])*))*$"
-    )
-    .unwrap();
-    let total_length_regex = Regex::new("^.{1,253}$").unwrap();
-    let label_length_regex = Regex::new("^[^\\.]{1,63}(\\.[^\\.]{1,63})*$").unwrap();
-
-    valid_chars_regex.is_match(domain)
-        && total_length_regex.is_match(domain)
-        && label_length_regex.is_match(domain)
-}
-
-/// Check if a regex is valid
-pub fn is_valid_regex(regex_str: &str) -> bool {
-    Regex::new(regex_str).is_ok()
-}
 
 /// Reload Gravity to activate changes in lists
 pub fn reload_gravity(list: List, env: &Env) -> Result<(), Error> {
