@@ -248,12 +248,9 @@ mod test {
         let expected = vec!["127.0.0.1".to_owned()];
 
         let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=10.1.1.1")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=10.1.1.1")
+            .build();
         let actual = get_client_identifiers(FROM_TIMESTAMP, UNTIL_TIMESTAMP, &db, &env).unwrap();
 
         assert_eq!(actual, expected);

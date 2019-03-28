@@ -310,12 +310,9 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=2")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=2")
+            .build();
         let params = TopClientParams::default();
         let actual =
             top_clients_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
@@ -334,12 +331,9 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=2")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=2")
+            .build();
         let params = TopClientParams {
             blocked: Some(true),
             ..TopClientParams::default()
@@ -364,12 +358,9 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=127.0.0.1")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=127.0.0.1")
+            .build();
         let params = TopClientParams::default();
         let actual =
             top_clients_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();

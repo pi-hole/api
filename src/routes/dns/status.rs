@@ -150,7 +150,7 @@ pub struct ChangeStatus {
 mod test {
     use super::{disable, enable};
     use crate::{
-        env::{Config, Env, PiholeFile},
+        env::PiholeFile,
         testing::{TestBuilder, TestEnvBuilder},
         util::ErrorKind
     };
@@ -209,12 +209,9 @@ mod test {
     /// Return an error if blocking is enabled and we try to enable it again
     #[test]
     fn action_enable_error() {
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=true")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=true")
+            .build();
 
         assert_eq!(
             enable(&env).map_err(|e| e.kind()),
@@ -245,12 +242,9 @@ mod test {
     /// Return an error if blocking is disabled and we try to disable it again
     #[test]
     fn action_disable_error() {
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=false")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=false")
+            .build();
 
         assert_eq!(
             disable(&env, None, None).map_err(|e| e.kind()),

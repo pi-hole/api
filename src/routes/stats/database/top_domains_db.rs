@@ -357,12 +357,9 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::AuditLog, "1.ubuntu.pool.ntp.org")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::AuditLog, "1.ubuntu.pool.ntp.org")
+            .build();
         let params = TopDomainParams {
             audit: Some(true),
             limit: Some(2),
@@ -393,15 +390,12 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(
-                    PiholeFile::SetupVars,
-                    "API_EXCLUDE_DOMAINS=1.ubuntu.pool.ntp.org"
-                )
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(
+                PiholeFile::SetupVars,
+                "API_EXCLUDE_DOMAINS=1.ubuntu.pool.ntp.org"
+            )
+            .build();
         let params = TopDomainParams {
             audit: Some(true),
             limit: Some(2),

@@ -23,13 +23,11 @@ use rocket::config::{ConfigBuilder, Environment};
 use rocket_cors::Cors;
 
 #[cfg(test)]
-use crate::{databases::load_test_databases, env::PiholeFile};
+use crate::databases::load_test_databases;
 #[cfg(test)]
 use rocket::{config::LoggingLevel, local::Client};
 #[cfg(test)]
 use std::collections::HashMap;
-#[cfg(test)]
-use tempfile::NamedTempFile;
 
 const CONFIG_LOCATION: &str = "/etc/pihole/API.toml";
 
@@ -75,11 +73,9 @@ pub fn start() -> Result<(), Error> {
 pub fn test(
     ftl_data: HashMap<String, Vec<u8>>,
     ftl_memory: FtlMemory,
-    env_data: HashMap<PiholeFile, NamedTempFile>,
+    env: Env,
     needs_database: bool
 ) -> Client {
-    use toml;
-
     Client::new(setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Development)
@@ -90,7 +86,7 @@ pub fn test(
         ),
         FtlConnectionType::Test(ftl_data),
         ftl_memory,
-        Env::Test(toml::from_str("").unwrap(), env_data),
+        env,
         "test_key".to_owned(),
         needs_database
     ))
