@@ -183,11 +183,10 @@ mod test {
     use super::top_clients_db_impl;
     use crate::{
         databases::ftl::connect_to_test_db,
-        env::{Config, Env, PiholeFile},
+        env::PiholeFile,
         routes::stats::top_clients::{TopClientItemReply, TopClientParams, TopClientsReply},
         testing::TestEnvBuilder
     };
-    use std::collections::HashMap;
 
     const FROM_TIMESTAMP: u64 = 0;
     const UNTIL_TIMESTAMP: u64 = 177_180;
@@ -213,7 +212,10 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopClientParams::default();
         let actual =
             top_clients_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
@@ -232,7 +234,10 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopClientParams {
             blocked: Some(true),
             ..TopClientParams::default()
@@ -257,7 +262,10 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopClientParams {
             limit: Some(1),
             ..TopClientParams::default()
@@ -289,7 +297,10 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopClientParams {
             ascending: Some(true),
             ..TopClientParams::default()
@@ -360,6 +371,7 @@ mod test {
         let db = connect_to_test_db();
         let env = TestEnvBuilder::new()
             .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=127.0.0.1")
+            .file(PiholeFile::FtlConfig, "")
             .build();
         let params = TopClientParams::default();
         let actual =

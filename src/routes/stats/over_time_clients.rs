@@ -179,6 +179,7 @@ mod test {
             .endpoint("/admin/api/stats/overTime/clients")
             .ftl_memory(test_data())
             .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=client1")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "clients": [
                     { "name": "",        "ip": "10.1.1.2" },

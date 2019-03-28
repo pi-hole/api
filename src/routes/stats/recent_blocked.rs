@@ -68,6 +68,7 @@ pub fn get_recent_blocked(ftl_memory: &FtlMemory, env: &Env, num: usize) -> Repl
 #[cfg(test)]
 mod test {
     use crate::{
+        env::PiholeFile,
         ftl::{
             FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
             FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlSettings, MAGIC_BYTE
@@ -159,6 +160,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/recent_blocked")
             .ftl_memory(test_memory())
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!(["domain5.com"]))
             .test();
     }
@@ -169,6 +171,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/recent_blocked?num=3")
             .ftl_memory(test_memory())
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!(["domain5.com", "domain4.com", "domain3.com"]))
             .test();
     }
@@ -179,6 +182,7 @@ mod test {
     fn less_than_requested() {
         TestBuilder::new()
             .endpoint("/admin/api/stats/recent_blocked?num=10")
+            .file(PiholeFile::FtlConfig, "")
             .ftl_memory(test_memory())
             .expect_json(json!([
                 "domain5.com",
