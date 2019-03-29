@@ -226,6 +226,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/history")
             .ftl_memory(ftl_memory)
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .need_database(true)
             .expect_json(json!({
                 "history": history,
@@ -253,6 +255,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/history?limit=5")
             .ftl_memory(ftl_memory)
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .need_database(true)
             .expect_json(json!({
                 "history": history,
@@ -282,6 +286,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/history?from=177180&until=177181")
             .ftl_memory(test_memory())
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .need_database(true)
             .expect_json(json!({
                 "history": [

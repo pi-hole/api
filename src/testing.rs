@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    env::PiholeFile,
+    env::{Config, Env, PiholeFile},
     ftl::{FtlCounters, FtlMemory, FtlSettings},
     setup
 };
@@ -61,9 +61,10 @@ impl TestEnvBuilder {
         self
     }
 
-    /// Build the environment data. This can be used to create a `Env::Test`
-    pub fn build(self) -> HashMap<PiholeFile, NamedTempFile> {
-        let mut config_data = HashMap::new();
+    /// Build the environment. This will create an `Env::Test` with a default
+    /// config.
+    pub fn build(self) -> Env {
+        let mut env_data = HashMap::new();
 
         // Create temporary mock files
         for mut test_file in self.test_files {
@@ -72,14 +73,14 @@ impl TestEnvBuilder {
             test_file.temp_file.seek(SeekFrom::Start(0)).unwrap();
 
             // Save the file for the test
-            config_data.insert(test_file.pihole_file, test_file.temp_file);
+            env_data.insert(test_file.pihole_file, test_file.temp_file);
         }
 
-        config_data
+        Env::Test(Config::default(), env_data)
     }
 
     /// Get a copy of the inner test files for later verification
-    pub fn get_test_files(&self) -> Vec<TestFile<File>> {
+    pub fn clone_test_files(&self) -> Vec<TestFile<File>> {
         let mut test_files = Vec::new();
 
         for test_file in &self.test_files {
@@ -142,7 +143,7 @@ pub struct TestBuilder {
     body_data: Option<serde_json::Value>,
     ftl_data: HashMap<String, Vec<u8>>,
     ftl_memory: FtlMemory,
-    test_config_builder: TestEnvBuilder,
+    test_env_builder: TestEnvBuilder,
     expected_json: serde_json::Value,
     expected_status: Status,
     needs_database: bool
@@ -167,7 +168,7 @@ impl TestBuilder {
                 counters: FtlCounters::default(),
                 settings: FtlSettings::default()
             },
-            test_config_builder: TestEnvBuilder::new(),
+            test_env_builder: TestEnvBuilder::new(),
             expected_json: json!({
                 "data": [],
                 "errors": []
@@ -214,7 +215,7 @@ impl TestBuilder {
     }
 
     pub fn file(mut self, pihole_file: PiholeFile, initial_data: &str) -> Self {
-        self.test_config_builder = self.test_config_builder.file(pihole_file, initial_data);
+        self.test_env_builder = self.test_env_builder.file(pihole_file, initial_data);
         self
     }
 
@@ -224,8 +225,8 @@ impl TestBuilder {
         initial_data: &str,
         expected_data: &str
     ) -> Self {
-        self.test_config_builder =
-            self.test_config_builder
+        self.test_env_builder =
+            self.test_env_builder
                 .file_expect(pihole_file, initial_data, expected_data);
         self
     }
@@ -247,14 +248,13 @@ impl TestBuilder {
 
     pub fn test(self) {
         // Save the files for verification
-        let test_files = self.test_config_builder.get_test_files();
+        let test_files = self.test_env_builder.clone_test_files();
 
         // Start the test client
-        let env_data = self.test_config_builder.build();
         let client = setup::test(
             self.ftl_data,
             self.ftl_memory,
-            env_data,
+            self.test_env_builder.build(),
             self.needs_database
         );
 

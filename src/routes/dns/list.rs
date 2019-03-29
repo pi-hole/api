@@ -43,17 +43,12 @@ impl List {
 
     /// Read in the domains from the list
     pub fn get(&self, env: &Env) -> Result<Vec<String>, Error> {
-        let domains = match env.read_file_lines(self.file()) {
-            Ok(domains) => domains,
-            Err(e) => {
-                if e.kind() == ErrorKind::NotFound {
-                    // If the file is not found, then the list is empty
-                    return Ok(Vec::new());
-                } else {
-                    return Err(e);
-                }
-            }
-        };
+        if !env.file_exists(self.file()) {
+            // If the file is not found, then the list is empty
+            return Ok(Vec::new());
+        }
+
+        let domains = env.read_file_lines(self.file())?;
 
         Ok(domains
             .into_iter()
@@ -127,5 +122,75 @@ impl List {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::List;
+    use crate::testing::TestEnvBuilder;
+
+    /// Populate the list file with the initial data (if it exists), read the
+    /// list, and assert that we got back the expected data.
+    fn get_test(list: List, expected: Vec<String>, initial_data: Option<&str>) {
+        let env = if let Some(initial_data) = initial_data {
+            TestEnvBuilder::new()
+                .file(list.file(), initial_data)
+                .build()
+        } else {
+            TestEnvBuilder::new().build()
+        };
+
+        let actual = list.get(&env).unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    /// The whitelist is retrieved when it exists
+    #[test]
+    fn get_whitelist() {
+        get_test(
+            List::White,
+            vec!["example.com".to_owned(), "example.net".to_owned()],
+            Some("example.com\nexample.net\n")
+        );
+    }
+
+    /// The whitelist is empty when the file does not exist
+    #[test]
+    fn get_whitelist_empty() {
+        get_test(List::White, Vec::new(), None);
+    }
+
+    /// The blacklist is retrieved when it exists
+    #[test]
+    fn get_blacklist() {
+        get_test(
+            List::Black,
+            vec!["example.com".to_owned(), "example.net".to_owned()],
+            Some("example.com\nexample.net\n")
+        );
+    }
+
+    /// The blacklist is empty when the file does not exist
+    #[test]
+    fn get_blacklist_empty() {
+        get_test(List::Black, Vec::new(), None);
+    }
+
+    /// The regexlist is retrieved when it exists
+    #[test]
+    fn get_regexlist() {
+        get_test(
+            List::Regex,
+            vec!["^.*example.com$".to_owned(), "example.net".to_owned()],
+            Some("^.*example.com$\nexample.net\n")
+        );
+    }
+
+    /// The regexlist is empty when the file does not exist
+    #[test]
+    fn get_regexlist_empty() {
+        get_test(List::Regex, Vec::new(), None);
     }
 }

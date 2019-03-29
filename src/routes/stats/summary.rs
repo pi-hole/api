@@ -195,6 +195,7 @@ mod test {
             .endpoint("/admin/api/stats/summary")
             .ftl_memory(test_data())
             .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=true")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "gravity_size": 100_000,
                 "total_queries": {

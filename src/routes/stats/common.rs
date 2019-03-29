@@ -144,7 +144,7 @@ mod tests {
         remove_hidden_domains
     };
     use crate::{
-        env::{Config, Env, PiholeFile},
+        env::PiholeFile,
         ftl::{
             FtlClient, FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch, FtlSettings, ShmLockGuard
         },
@@ -188,15 +188,12 @@ mod tests {
     fn excluded_clients() {
         let ftl_memory = test_data();
 
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(
-                    PiholeFile::SetupVars,
-                    "API_EXCLUDE_CLIENTS=10.1.1.2,client1"
-                )
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(
+                PiholeFile::SetupVars,
+                "API_EXCLUDE_CLIENTS=10.1.1.2,client1"
+            )
+            .build();
 
         let lock_guard = ShmLockGuard::Test;
         let clients = ftl_memory.clients(&lock_guard).unwrap();
@@ -217,15 +214,12 @@ mod tests {
     fn excluded_domains() {
         let ftl_memory = test_data();
 
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(
-                    PiholeFile::SetupVars,
-                    "API_EXCLUDE_DOMAINS=google.com,example.com"
-                )
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(
+                PiholeFile::SetupVars,
+                "API_EXCLUDE_DOMAINS=google.com,example.com"
+            )
+            .build();
 
         let lock_guard = ShmLockGuard::Test;
         let domains = ftl_memory.domains(&lock_guard).unwrap();

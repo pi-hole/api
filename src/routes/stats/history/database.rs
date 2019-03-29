@@ -103,15 +103,17 @@ mod test {
     use super::load_queries_from_database;
     use crate::{
         databases::ftl::connect_to_test_db,
-        env::{Config, Env},
-        routes::stats::history::endpoints::{HistoryCursor, HistoryParams}
+        env::PiholeFile,
+        routes::stats::history::endpoints::{HistoryCursor, HistoryParams},
+        testing::TestEnvBuilder
     };
-    use std::collections::HashMap;
 
     /// Queries are ordered by id, descending
     #[test]
     fn order_by_id() {
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .build();
 
         let (queries, cursor) = load_queries_from_database(
             &connect_to_test_db(),
@@ -130,7 +132,9 @@ mod test {
     /// The max number of queries returned is specified by the limit
     #[test]
     fn limit() {
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .build();
         let expected_cursor = Some(HistoryCursor {
             id: None,
             db_id: Some(1)
