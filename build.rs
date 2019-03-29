@@ -10,23 +10,36 @@
 
 use std::{env, process::Command};
 
+// Read Git data and expose it to the API at compile time
 fn main() {
-    // Read Git data and expose it to the API at compile time
-    let tag_raw = Command::new("git")
-        .args(&["describe", "--tags", "--abbrev=0", "--exact-match"])
-        .output()
-        .map(|output| output.stdout)
-        .unwrap_or_default();
-    let tag = String::from_utf8(tag_raw).unwrap();
+    // Use the CIRCLE_TAG variable if it exists
+    let tag = env::var("CIRCLE_TAG").unwrap_or_else(|_| {
+        // Otherwise read from Git
+        let tag_raw = Command::new("git")
+            .args(&["describe", "--tags", "--abbrev=0", "--exact-match"])
+            .output()
+            .map(|output| output.stdout)
+            .unwrap_or_default();
+        String::from_utf8(tag_raw).unwrap()
+    });
 
     // Use the CIRCLE_BRANCH variable if it exists
     let branch = env::var("CIRCLE_BRANCH").unwrap_or_else(|_| {
+        // Otherwise read from Git
         let branch_raw = Command::new("git")
             .args(&["rev-parse", "--abbrev-ref", "HEAD"])
             .output()
             .map(|output| output.stdout)
             .unwrap_or_default();
-        String::from_utf8(branch_raw).unwrap()
+        let branch = String::from_utf8(branch_raw).unwrap();
+
+        // Check if this is a tag build
+        if !tag.is_empty() && branch == "HEAD" {
+            // Tag builds should have a branch of master
+            "master".to_owned()
+        } else {
+            branch
+        }
     });
 
     let hash_raw = Command::new("git")
