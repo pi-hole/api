@@ -179,7 +179,7 @@ mod test {
     use super::{get_client_identifiers, get_client_over_time, over_time_clients_db_impl};
     use crate::{
         databases::ftl::connect_to_test_db,
-        env::{Config, Env, PiholeFile},
+        env::PiholeFile,
         ftl::ClientReply,
         routes::stats::over_time_clients::{OverTimeClientItem, OverTimeClients},
         testing::TestEnvBuilder
@@ -221,7 +221,9 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .build();
         let actual =
             over_time_clients_db_impl(FROM_TIMESTAMP, UNTIL_TIMESTAMP, INTERVAL, &db, &env)
                 .unwrap();
@@ -236,7 +238,9 @@ mod test {
         let expected = vec!["127.0.0.1".to_owned(), "10.1.1.1".to_owned()];
 
         let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .build();
         let actual = get_client_identifiers(FROM_TIMESTAMP, UNTIL_TIMESTAMP, &db, &env).unwrap();
 
         assert_eq!(actual, expected);
@@ -248,12 +252,9 @@ mod test {
         let expected = vec!["127.0.0.1".to_owned()];
 
         let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=10.1.1.1")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=10.1.1.1")
+            .build();
         let actual = get_client_identifiers(FROM_TIMESTAMP, UNTIL_TIMESTAMP, &db, &env).unwrap();
 
         assert_eq!(actual, expected);

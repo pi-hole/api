@@ -282,6 +282,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains")
             .ftl_memory(test_data())
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "top_domains": [
                     { "domain": "github.com", "count": 20 },
@@ -298,6 +300,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains?limit=1")
             .ftl_memory(test_data())
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "top_domains": [
                     { "domain": "github.com", "count": 20 }
@@ -314,6 +318,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains?blocked=true")
             .ftl_memory(test_data())
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "top_domains": [
                     { "domain": "example.com", "count": 10 },
@@ -331,6 +337,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains?ascending=true")
             .ftl_memory(test_data())
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "top_domains": [
                     { "domain": "example.net", "count": 1 },
@@ -348,6 +356,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains?audit=true")
             .ftl_memory(test_data())
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .file(PiholeFile::AuditLog, "example.net")
             .expect_json(json!({
                 "top_domains": [
@@ -365,6 +375,7 @@ mod test {
             .endpoint("/admin/api/stats/top_domains")
             .ftl_memory(test_data())
             .file(PiholeFile::SetupVars, "API_EXCLUDE_DOMAINS=example.net")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "top_domains": [
                     { "domain": "github.com", "count": 20 }
