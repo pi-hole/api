@@ -12,7 +12,9 @@ use crate::util::{Error, ErrorKind};
 use std::str::FromStr;
 
 /// The privacy levels used by FTL
-#[derive(PartialOrd, PartialEq)]
+#[repr(u8)]
+#[cfg_attr(test, derive(Debug))]
+#[derive(PartialOrd, PartialEq, Copy, Clone)]
 pub enum FtlPrivacyLevel {
     ShowAll,
     HideDomains,

@@ -73,6 +73,7 @@ mod test {
             FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
             FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlSettings, MAGIC_BYTE
         },
+        settings::FtlPrivacyLevel,
         testing::TestBuilder
     };
     use std::collections::HashMap;
@@ -95,8 +96,7 @@ mod test {
                 reply_type: FtlQueryReplyType::IP,
                 dnssec_type: FtlDnssecType::Unspecified,
                 is_complete: true,
-                is_private: false,
-                ad_bit: false
+                privacy_level: FtlPrivacyLevel::ShowAll
             }
         };
     }
@@ -108,7 +108,7 @@ mod test {
             query!(2, Gravity, 1),
             query!(3, Blacklist, 2),
             query!(4, Wildcard, 3),
-            query!(5, ExternalBlock, 4),
+            query!(5, ExternalBlockIp, 4),
             query!(6, Cache, 0),
         ]
     }
