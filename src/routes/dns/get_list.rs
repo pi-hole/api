@@ -32,35 +32,3 @@ pub fn get_blacklist(env: State<Env>) -> Reply {
 pub fn get_regexlist(env: State<Env>) -> Reply {
     reply_result(List::Regex.get(&env))
 }
-
-#[cfg(test)]
-mod test {
-    use crate::{env::PiholeFile, testing::TestBuilder};
-
-    #[test]
-    fn test_get_whitelist() {
-        TestBuilder::new()
-            .endpoint("/admin/api/dns/whitelist")
-            .file(PiholeFile::Whitelist, "example.com\nexample.net\n")
-            .expect_json(json!(["example.com", "example.net"]))
-            .test();
-    }
-
-    #[test]
-    fn test_get_blacklist() {
-        TestBuilder::new()
-            .endpoint("/admin/api/dns/blacklist")
-            .file(PiholeFile::Blacklist, "example.com\nexample.net\n")
-            .expect_json(json!(["example.com", "example.net"]))
-            .test();
-    }
-
-    #[test]
-    fn test_get_regexlist() {
-        TestBuilder::new()
-            .endpoint("/admin/api/dns/regexlist")
-            .file(PiholeFile::Regexlist, "^.*example.com$\nexample.net\n")
-            .expect_json(json!(["^.*example.com$", "example.net"]))
-            .test();
-    }
-}

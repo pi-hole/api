@@ -173,11 +173,11 @@ mod test {
     };
     use crate::{
         databases::ftl::connect_to_test_db,
-        env::{Config, Env},
+        env::PiholeFile,
         ftl::FtlQueryStatus,
-        routes::stats::summary::{ReplyTypes, Summary, TotalQueries}
+        routes::stats::summary::{ReplyTypes, Summary, TotalQueries},
+        testing::TestEnvBuilder
     };
-    use std::collections::HashMap;
 
     const FROM_TIMESTAMP: u64 = 0;
     const UNTIL_TIMESTAMP: u64 = 177_180;
@@ -214,7 +214,9 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .build();
         let actual_summary = get_summary_impl(FROM_TIMESTAMP, UNTIL_TIMESTAMP, &db, &env).unwrap();
 
         assert_eq!(actual_summary, expected_summary);

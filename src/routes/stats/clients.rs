@@ -141,6 +141,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/clients")
             .ftl_memory(test_data())
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!([
                 { "name": "client1", "ip": "10.1.1.1" },
                 { "name": "",        "ip": "10.1.1.2" },
@@ -166,6 +168,8 @@ mod test {
     fn inactive_clients() {
         TestBuilder::new()
             .endpoint("/admin/api/stats/clients?inactive=true")
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .ftl_memory(test_data())
             .expect_json(json!([
                 { "name": "client1", "ip": "10.1.1.1" },
@@ -187,6 +191,7 @@ mod test {
                 PiholeFile::SetupVars,
                 "API_EXCLUDE_CLIENTS=client3,10.1.1.2"
             )
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!([
                 { "name": "client1", "ip": "10.1.1.1" },
                 { "name": "",        "ip": "10.1.1.4" }

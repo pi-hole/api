@@ -183,11 +183,10 @@ mod test {
     use super::top_domains_db_impl;
     use crate::{
         databases::ftl::connect_to_test_db,
-        env::{Config, Env, PiholeFile},
+        env::PiholeFile,
         routes::stats::top_domains::{TopDomainItemReply, TopDomainParams, TopDomainsReply},
         testing::TestEnvBuilder
     };
-    use std::collections::HashMap;
 
     const FROM_TIMESTAMP: u64 = 0;
     const UNTIL_TIMESTAMP: u64 = 177_180;
@@ -244,7 +243,10 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopDomainParams::default();
         let actual =
             top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
@@ -271,7 +273,10 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopDomainParams {
             limit: Some(2),
             ..TopDomainParams::default()
@@ -294,7 +299,10 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopDomainParams {
             blocked: Some(true),
             ..TopDomainParams::default()
@@ -325,7 +333,10 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopDomainParams {
             ascending: Some(true),
             limit: Some(2),
@@ -357,12 +368,11 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::AuditLog, "1.ubuntu.pool.ntp.org")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .file(PiholeFile::AuditLog, "1.ubuntu.pool.ntp.org")
+            .build();
         let params = TopDomainParams {
             audit: Some(true),
             limit: Some(2),
@@ -393,15 +403,14 @@ mod test {
         };
 
         let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(
-                    PiholeFile::SetupVars,
-                    "API_EXCLUDE_DOMAINS=1.ubuntu.pool.ntp.org"
-                )
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(
+                PiholeFile::SetupVars,
+                "API_EXCLUDE_DOMAINS=1.ubuntu.pool.ntp.org"
+            )
+            .file(PiholeFile::FtlConfig, "")
+            .file(PiholeFile::AuditLog, "")
+            .build();
         let params = TopDomainParams {
             audit: Some(true),
             limit: Some(2),

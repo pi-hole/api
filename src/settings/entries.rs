@@ -424,10 +424,7 @@ impl ConfigEntry for FtlConfEntry {
 #[cfg(test)]
 mod tests {
     use super::{ConfigEntry, SetupVarsEntry};
-    use crate::{
-        env::{Config, Env, PiholeFile},
-        testing::TestEnvBuilder
-    };
+    use crate::{env::PiholeFile, testing::TestEnvBuilder};
 
     /// Test to make sure when writing a setting, a similar setting does not
     /// get deleted. Example: Adding PIHOLE_DNS_1 should not delete
@@ -440,8 +437,8 @@ mod tests {
             "PIHOLE_DNS_10=1.1.1.1\n\
              PIHOLE_DNS_1=2.2.2.2\n"
         );
-        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
-        let env = Env::Test(Config::default(), env_builder.build());
+        let mut test_file = env_builder.clone_test_files().into_iter().next().unwrap();
+        let env = env_builder.build();
 
         SetupVarsEntry::PiholeDns(1).write("2.2.2.2", &env).unwrap();
 
@@ -453,8 +450,8 @@ mod tests {
     fn delete_value() {
         let env_builder =
             TestEnvBuilder::new().file_expect(PiholeFile::SetupVars, "PIHOLE_DNS_1=1.2.3.4\n", "");
-        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
-        let env = Env::Test(Config::default(), env_builder.build());
+        let mut test_file = env_builder.clone_test_files().into_iter().next().unwrap();
+        let env = env_builder.build();
 
         SetupVarsEntry::PiholeDns(1).write("", &env).unwrap();
 
@@ -470,8 +467,8 @@ mod tests {
              PIHOLE_DNS_1=1.2.3.4\n",
             "PIHOLE_DNS_1=5.6.7.8\n"
         );
-        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
-        let env = Env::Test(Config::default(), env_builder.build());
+        let mut test_file = env_builder.clone_test_files().into_iter().next().unwrap();
+        let env = env_builder.build();
 
         SetupVarsEntry::PiholeDns(1).write("5.6.7.8", &env).unwrap();
 
@@ -486,8 +483,8 @@ mod tests {
             "PIHOLE_DNS_1=\n",
             "PIHOLE_DNS_1=1.2.3.4\n"
         );
-        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
-        let env = Env::Test(Config::default(), env_builder.build());
+        let mut test_file = env_builder.clone_test_files().into_iter().next().unwrap();
+        let env = env_builder.build();
 
         SetupVarsEntry::PiholeDns(1).write("1.2.3.4", &env).unwrap();
 
@@ -499,8 +496,8 @@ mod tests {
     fn write_to_empty_file() {
         let env_builder =
             TestEnvBuilder::new().file_expect(PiholeFile::SetupVars, "", "PIHOLE_DNS_1=1.1.1.1\n");
-        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
-        let env = Env::Test(Config::default(), env_builder.build());
+        let mut test_file = env_builder.clone_test_files().into_iter().next().unwrap();
+        let env = env_builder.build();
 
         SetupVarsEntry::PiholeDns(1).write("1.1.1.1", &env).unwrap();
 

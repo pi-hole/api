@@ -143,7 +143,7 @@ struct Version {
 mod tests {
     use super::{parse_git_version, parse_web_version, read_ftl_version, Version};
     use crate::{
-        env::{Config, Env, PiholeFile},
+        env::PiholeFile,
         ftl::FtlConnectionType,
         routes::version::read_core_version,
         testing::{write_eom, TestEnvBuilder},
@@ -248,19 +248,16 @@ mod tests {
 
     #[test]
     fn test_read_core_version_valid() {
-        let test_env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(
-                    PiholeFile::LocalVersions,
-                    "v3.3.1-219-g6689e00 v3.3-190-gf7e1a28 vDev-d06deca"
-                )
-                .file(
-                    PiholeFile::LocalBranches,
-                    "development devel tweak/getClientNames"
-                )
-                .build()
-        );
+        let test_env = TestEnvBuilder::new()
+            .file(
+                PiholeFile::LocalVersions,
+                "v3.3.1-219-g6689e00 v3.3-190-gf7e1a28 vDev-d06deca"
+            )
+            .file(
+                PiholeFile::LocalBranches,
+                "development devel tweak/getClientNames"
+            )
+            .build();
 
         assert_eq!(
             read_core_version(&test_env).map_err(|e| e.kind()),
@@ -274,19 +271,16 @@ mod tests {
 
     #[test]
     fn test_read_core_version_invalid() {
-        let test_env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(
-                    PiholeFile::LocalVersions,
-                    "invalid v3.3-190-gf7e1a28 vDev-d06deca"
-                )
-                .file(
-                    PiholeFile::LocalBranches,
-                    "development devel tweak/getClientNames"
-                )
-                .build()
-        );
+        let test_env = TestEnvBuilder::new()
+            .file(
+                PiholeFile::LocalVersions,
+                "invalid v3.3-190-gf7e1a28 vDev-d06deca"
+            )
+            .file(
+                PiholeFile::LocalBranches,
+                "development devel tweak/getClientNames"
+            )
+            .build();
 
         assert_eq!(
             read_core_version(&test_env).map_err(|e| e.kind()),

@@ -96,7 +96,7 @@ mod tests {
     use super::{filter_excluded_clients, filter_excluded_clients_db};
     use crate::{
         databases::ftl::connect_to_test_db,
-        env::{Config, Env, PiholeFile},
+        env::PiholeFile,
         ftl::{FtlQuery, ShmLockGuard},
         routes::stats::history::{
             database::execute_query,
@@ -109,12 +109,9 @@ mod tests {
     /// No queries should be filtered out if `API_EXCLUDE_CLIENTS` is empty
     #[test]
     fn clients_empty() {
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=")
+            .build();
         let queries = test_queries();
         let expected_queries: Vec<&FtlQuery> = queries.iter().collect();
         let filtered_queries: Vec<&FtlQuery> = filter_excluded_clients(
@@ -133,12 +130,9 @@ mod tests {
     /// removed
     #[test]
     fn clients() {
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=192.168.1.11")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=192.168.1.11")
+            .build();
         let queries = test_queries();
         let expected_queries = vec![
             &queries[0],
@@ -166,12 +160,9 @@ mod tests {
     fn clients_db() {
         use crate::databases::ftl::queries::dsl::*;
 
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=127.0.0.1")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=127.0.0.1")
+            .build();
 
         let db_query = filter_excluded_clients_db(queries.into_boxed(), &env).unwrap();
         let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();

@@ -234,6 +234,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_clients")
             .ftl_memory(test_data())
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "top_clients": [
                     { "name": "",        "ip": "10.1.1.4", "count": 40 },
@@ -253,6 +255,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_clients?blocked=true")
             .ftl_memory(test_data())
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "top_clients": [
                     { "name": "client1", "ip": "10.1.1.1", "count": 10 },
@@ -269,6 +273,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_clients?limit=2")
             .ftl_memory(test_data())
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "top_clients": [
                     { "name": "",        "ip": "10.1.1.4", "count": 40 },
@@ -285,6 +291,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_clients?ascending=true")
             .ftl_memory(test_data())
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "top_clients": [
                     { "name": "client3", "ip": "10.1.1.3", "count": 10 },
@@ -332,6 +340,8 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_clients?inactive=true")
             .ftl_memory(test_data())
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "top_clients": [
                     { "name": "",        "ip": "10.1.1.4", "count": 40 },
@@ -355,6 +365,7 @@ mod test {
                 PiholeFile::SetupVars,
                 "API_EXCLUDE_CLIENTS=client3,10.1.1.2"
             )
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "top_clients": [
                     { "name": "",        "ip": "10.1.1.4", "count": 40 },

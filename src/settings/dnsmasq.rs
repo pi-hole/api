@@ -222,7 +222,7 @@ mod tests {
         DNSMASQ_HEADER
     };
     use crate::{
-        env::{Config, Env, PiholeFile},
+        env::{Env, PiholeFile},
         testing::TestEnvBuilder,
         util::Error
     };
@@ -250,8 +250,8 @@ mod tests {
             .file_expect(PiholeFile::DnsmasqConfig, "", expected_config)
             .file(PiholeFile::SetupVars, setup_vars);
 
-        let mut dnsmasq_config = env_builder.get_test_files().into_iter().next().unwrap();
-        let env = Env::Test(Config::default(), env_builder.build());
+        let mut dnsmasq_config = env_builder.clone_test_files().into_iter().next().unwrap();
+        let env = env_builder.build();
         let mut file_writer = open_config(&env).unwrap();
 
         test_fn(&mut file_writer, &env).unwrap();
