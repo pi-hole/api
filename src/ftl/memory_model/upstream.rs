@@ -19,10 +19,10 @@ use crate::ftl::memory_model::MAGIC_BYTE;
 #[derive(Copy, Clone)]
 pub struct FtlUpstream {
     magic: libc::c_uchar,
+    ip_str_id: libc::size_t,
+    name_str_id: libc::size_t,
     pub query_count: libc::c_int,
     pub failed_count: libc::c_int,
-    ip_str_id: libc::c_ulonglong,
-    name_str_id: libc::c_ulonglong,
     is_name_unknown: bool
 }
 
@@ -38,8 +38,8 @@ impl FtlUpstream {
             magic: MAGIC_BYTE,
             query_count: query_count as libc::c_int,
             failed_count: failed_count as libc::c_int,
-            ip_str_id: ip_str_id as libc::c_ulonglong,
-            name_str_id: name_str_id.unwrap_or_default() as libc::c_ulonglong,
+            ip_str_id: ip_str_id as libc::size_t,
+            name_str_id: name_str_id.unwrap_or_default() as libc::size_t,
             is_name_unknown: name_str_id.is_none()
         }
     }

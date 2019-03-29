@@ -39,14 +39,14 @@ pub struct ClientReply {
 #[derive(Copy, Clone)]
 pub struct FtlClient {
     magic: libc::c_uchar,
+    ip_str_id: libc::size_t,
+    name_str_id: libc::size_t,
+    last_query_time: libc::time_t,
     pub query_count: libc::c_int,
     pub blocked_count: libc::c_int,
-    ip_str_id: libc::c_ulonglong,
-    name_str_id: libc::c_ulonglong,
-    is_name_unknown: bool,
     pub over_time: [libc::c_int; OVERTIME_SLOTS],
-    last_query_time: libc::time_t,
-    arp_query_count: libc::c_uint
+    arp_query_count: libc::c_uint,
+    is_name_unknown: bool
 }
 
 impl FtlClient {
@@ -61,8 +61,8 @@ impl FtlClient {
             magic: MAGIC_BYTE,
             query_count: query_count as libc::c_int,
             blocked_count: blocked_count as libc::c_int,
-            ip_str_id: ip_str_id as libc::c_ulonglong,
-            name_str_id: name_str_id.unwrap_or_default() as libc::c_ulonglong,
+            ip_str_id: ip_str_id as libc::size_t,
+            name_str_id: name_str_id.unwrap_or_default() as libc::size_t,
             is_name_unknown: name_str_id.is_none(),
             over_time: [0; OVERTIME_SLOTS],
             last_query_time: 0,
