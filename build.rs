@@ -8,7 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use std::process::Command;
+use std::{env, process::Command};
 
 fn main() {
     // Read Git data and expose it to the API at compile time
@@ -19,12 +19,15 @@ fn main() {
         .unwrap_or_default();
     let tag = String::from_utf8(tag_raw).unwrap();
 
-    let branch_raw = Command::new("git")
-        .args(&["rev-parse", "--abbrev-ref", "HEAD"])
-        .output()
-        .map(|output| output.stdout)
-        .unwrap_or_default();
-    let branch = String::from_utf8(branch_raw).unwrap();
+    // Use the CIRCLE_BRANCH variable if it exists
+    let branch = env::var("CIRCLE_BRANCH").unwrap_or_else(|_| {
+        let branch_raw = Command::new("git")
+            .args(&["rev-parse", "--abbrev-ref", "HEAD"])
+            .output()
+            .map(|output| output.stdout)
+            .unwrap_or_default();
+        String::from_utf8(branch_raw).unwrap()
+    });
 
     let hash_raw = Command::new("git")
         .args(&["rev-parse", "HEAD"])
