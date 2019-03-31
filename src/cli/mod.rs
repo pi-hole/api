@@ -3,16 +3,12 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// Program Main
+// CLI Handling
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use std::process::exit;
+mod args;
+mod handler;
 
-fn main() {
-    if let Err(e) = pihole_api::handle_cli() {
-        e.print_stacktrace();
-        exit(1);
-    }
-}
+pub use self::handler::handle_cli;
