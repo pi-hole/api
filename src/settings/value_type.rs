@@ -37,6 +37,7 @@ pub enum ValueType {
     Ipv6,
     Path,
     PortNumber,
+    Regex,
     YesNo,
     WebPassword,
     String(&'static [&'static str]),
@@ -180,6 +181,7 @@ impl ValueType {
                     false
                 }
             }
+            ValueType::Regex => Regex::new(value).is_ok(),
             ValueType::YesNo => match value {
                 "yes" | "no" => true,
                 _ => false
@@ -226,46 +228,40 @@ mod tests {
             .unwrap_or_else(|| "lo".to_owned());
 
         let tests = vec![
-            (ValueType::Boolean, "false", true),
+            (ValueType::Boolean, "false"),
             (
                 ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
-                "pi.hole,127.0.0.1",
-                true
+                "pi.hole,127.0.0.1"
             ),
             (
                 ValueType::ConditionalForwardingReverse,
-                "1.168.192.in-addr.arpa",
-                true
+                "1.168.192.in-addr.arpa"
             ),
-            (ValueType::Decimal, "3.14", true),
-            (ValueType::Domain, "domain.com", true),
-            (ValueType::Filename, "c3po", true),
-            (ValueType::Hostname, "localhost", true),
-            (ValueType::Integer, "8675309", true),
-            (ValueType::Interface, &available_interface, true),
-            (ValueType::Ipv4, "192.168.2.9", true),
-            (ValueType::IPv4OptionalPort, "192.168.4.5:80", true),
-            (ValueType::IPv4OptionalPort, "192.168.3.3", true),
-            (ValueType::Ipv4Mask, "192.168.0.3/24", true),
-            (
-                ValueType::Ipv6,
-                "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c",
-                true
-            ),
-            (ValueType::Path, "/tmp/directory/file.ext", true),
-            (ValueType::PortNumber, "9000", true),
-            (ValueType::YesNo, "yes", true),
-            (ValueType::String(&["boxed", ""]), "boxed", true),
+            (ValueType::Decimal, "3.14"),
+            (ValueType::Domain, "domain.com"),
+            (ValueType::Filename, "c3po"),
+            (ValueType::Hostname, "localhost"),
+            (ValueType::Integer, "8675309"),
+            (ValueType::Interface, &available_interface),
+            (ValueType::Ipv4, "192.168.2.9"),
+            (ValueType::IPv4OptionalPort, "192.168.4.5:80"),
+            (ValueType::IPv4OptionalPort, "192.168.3.3"),
+            (ValueType::Ipv4Mask, "192.168.0.3/24"),
+            (ValueType::Ipv6, "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c"),
+            (ValueType::Path, "/tmp/directory/file.ext"),
+            (ValueType::PortNumber, "9000"),
+            (ValueType::Regex, "^.*example$"),
+            (ValueType::YesNo, "yes"),
+            (ValueType::String(&["boxed", ""]), "boxed"),
         ];
 
-        for (setting, value, result) in tests {
+        for (setting, value) in tests {
+            let result = setting.is_valid(value);
+
             assert_eq!(
-                setting.is_valid(value),
-                result,
+                result, true,
                 "{:?}.is_valid({:?}) == {}",
-                setting,
-                value,
-                result
+                setting, value, result
             );
         }
     }
@@ -273,54 +269,48 @@ mod tests {
     #[test]
     fn test_value_type_invalid() {
         let tests = vec![
-            (ValueType::Boolean, "yes", false),
+            (ValueType::Boolean, "yes"),
             (
                 ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
-                "123, $test,",
-                false
+                "123, $test,"
             ),
             (
                 ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
-                "123,",
-                false
+                "123,"
             ),
-            (
-                ValueType::ConditionalForwardingReverse,
-                "www.pi-hole.net",
-                false
-            ),
-            (ValueType::Decimal, "3/4", false),
-            (ValueType::Decimal, "3.14.15.26", false),
-            (ValueType::Domain, "D0#A!N", false),
-            (ValueType::Filename, "c3p0/", false),
-            (ValueType::Hostname, ".localhost", false),
-            (ValueType::Hostname, "localhost.", false),
-            (ValueType::Hostname, "127.0.0.1", false),
-            (ValueType::Hostname, "my.ho$t.name", false),
-            (ValueType::Integer, "9.9", false),
-            (ValueType::Integer, "10m3", false),
-            (ValueType::Interface, "/dev/net/ev9d9", false),
-            (ValueType::Ipv4, "192.168.0.3/24", false),
-            (ValueType::Ipv4, "192.168.0.2:53", false),
-            (ValueType::IPv4OptionalPort, "192.168.4.5 port 1000", false),
-            (ValueType::IPv4OptionalPort, "192.168.6.8:arst", false),
-            (ValueType::Ipv4Mask, "192.168.2.9", false),
-            (ValueType::Ipv4Mask, "192.168.1.1/qwfp", false),
-            (ValueType::Ipv6, "192.168.0.3", false),
-            (ValueType::Path, "~/tmp/directory/file.ext", false),
-            (ValueType::PortNumber, "65536", false),
-            (ValueType::YesNo, "true", false),
-            (ValueType::String(&["boxed", ""]), "lan", false),
+            (ValueType::ConditionalForwardingReverse, "www.pi-hole.net"),
+            (ValueType::Decimal, "3/4"),
+            (ValueType::Decimal, "3.14.15.26"),
+            (ValueType::Domain, "D0#A!N"),
+            (ValueType::Filename, "c3p0/"),
+            (ValueType::Hostname, ".localhost"),
+            (ValueType::Hostname, "localhost."),
+            (ValueType::Hostname, "127.0.0.1"),
+            (ValueType::Hostname, "my.ho$t.name"),
+            (ValueType::Integer, "9.9"),
+            (ValueType::Integer, "10m3"),
+            (ValueType::Interface, "/dev/net/ev9d9"),
+            (ValueType::Ipv4, "192.168.0.3/24"),
+            (ValueType::Ipv4, "192.168.0.2:53"),
+            (ValueType::IPv4OptionalPort, "192.168.4.5 port 1000"),
+            (ValueType::IPv4OptionalPort, "192.168.6.8:arst"),
+            (ValueType::Ipv4Mask, "192.168.2.9"),
+            (ValueType::Ipv4Mask, "192.168.1.1/qwfp"),
+            (ValueType::Ipv6, "192.168.0.3"),
+            (ValueType::Path, "~/tmp/directory/file.ext"),
+            (ValueType::PortNumber, "65536"),
+            (ValueType::Regex, "example\\"),
+            (ValueType::YesNo, "true"),
+            (ValueType::String(&["boxed", ""]), "lan"),
         ];
 
-        for (setting, value, result) in tests {
+        for (setting, value) in tests {
+            let result = setting.is_valid(value);
+
             assert_eq!(
-                setting.is_valid(value),
-                result,
+                result, false,
                 "{:?}.is_valid({:?}) == {}",
-                setting,
-                value,
-                result
+                setting, value, result
             );
         }
     }

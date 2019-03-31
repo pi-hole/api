@@ -10,7 +10,7 @@
 
 use crate::{
     env::{Env, PiholeFile},
-    routes::dns::common::{is_valid_domain, is_valid_regex},
+    settings::ValueType,
     util::{Error, ErrorKind}
 };
 use failure::ResultExt;
@@ -35,8 +35,9 @@ impl List {
     /// Check if the list accepts the domain as valid
     fn accepts(&self, domain: &str) -> bool {
         match *self {
-            List::Regex => is_valid_regex(domain),
-            _ => is_valid_domain(domain)
+            List::Regex => ValueType::Regex.is_valid(domain),
+            // Allow hostnames to be white/blacklist-ed
+            _ => ValueType::Hostname.is_valid(domain)
         }
     }
 
