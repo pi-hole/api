@@ -194,7 +194,7 @@ mod test {
                 "ip_end": "",
                 "router_ip": "",
                 "lease_time": 24,
-                "domain": "",
+                "domain": "lan",
                 "ipv6_support": false,
             }))
             .test();
@@ -248,6 +248,7 @@ mod test {
                  dhcp-option=option:router,192.168.1.1\n\
                  dhcp-name-match=set:wpad-ignore,wpad\n\
                  dhcp-ignore-names=tag:wpad-ignore\n\
+                 domain=lan\n\
                  dhcp-option=option6:dns-server,[::]\n\
                  dhcp-range=::100,::1ff,constructor:eth0,ra-names,slaac,24h\n\
                  ra-param=*,0,0\n"
