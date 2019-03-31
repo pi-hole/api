@@ -39,5 +39,8 @@ pub enum CliCommand {
     Branch,
     /// Prints git hash
     #[structopt(name = "hash", author = "", raw(version = "get_version()"))]
-    Hash
+    Hash,
+    /// Generate the dnsmasq configuration
+    #[structopt(name = "generate-dnsmasq", author = "", raw(version = "get_version()"))]
+    GenerateDnsmasq
 }

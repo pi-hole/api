@@ -9,6 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 mod args;
+mod dnsmasq;
 mod handler;
 
 pub use self::handler::handle_cli;

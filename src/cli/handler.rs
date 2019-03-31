@@ -9,7 +9,10 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    cli::args::{CliArgs, CliCommand},
+    cli::{
+        args::{CliArgs, CliCommand},
+        dnsmasq::generate_dnsmasq_cli
+    },
     setup::start,
     util::Error
 };
@@ -27,7 +30,8 @@ pub fn handle_cli() -> Result<(), Error> {
         Some(command) => match command {
             CliCommand::Version => println!("{}", get_version()),
             CliCommand::Branch => println!("{}", get_branch()),
-            CliCommand::Hash => println!("{}", get_hash())
+            CliCommand::Hash => println!("{}", get_hash()),
+            CliCommand::GenerateDnsmasq => generate_dnsmasq_cli()?
         },
         // No command given, start the API
         None => start()?
