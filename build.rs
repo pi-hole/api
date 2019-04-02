@@ -49,8 +49,15 @@ fn main() {
         .unwrap_or_default();
     let hash = String::from_utf8(hash_raw).unwrap();
 
+    let version = if !tag.is_empty() {
+        tag.to_owned()
+    } else {
+        format!("vDev-{}", hash.trim().get(0..7).unwrap_or_default())
+    };
+
     // This lets us use the `env!()` macro to read these variables at compile time
     println!("cargo:rustc-env=GIT_TAG={}", tag.trim());
     println!("cargo:rustc-env=GIT_BRANCH={}", branch.trim());
     println!("cargo:rustc-env=GIT_HASH={}", hash.trim());
+    println!("cargo:rustc-env=GIT_VERSION={}", version);
 }

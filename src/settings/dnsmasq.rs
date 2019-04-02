@@ -191,13 +191,19 @@ fn write_dhcp(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error>
          dhcp-range={},{},{}\n\
          dhcp-option=option:router,{}\n\
          dhcp-name-match=set:wpad-ignore,wpad\n\
-         dhcp-ignore-names=tag:wpad-ignore",
+         dhcp-ignore-names=tag:wpad-ignore\n\
+         domain={}",
         SetupVarsEntry::DhcpStart.read(env)?,
         SetupVarsEntry::DhcpEnd.read(env)?,
         lease_time,
-        SetupVarsEntry::DhcpRouter.read(env)?
+        SetupVarsEntry::DhcpRouter.read(env)?,
+        SetupVarsEntry::PiholeDomain.read(env)?
     )
     .context(ErrorKind::DnsmasqConfigWrite)?;
+
+    if SetupVarsEntry::DhcpRapidCommit.is_true(env)? {
+        writeln!(config_file, "dhcp-rapid-commit").context(ErrorKind::DnsmasqConfigWrite)?;
+    }
 
     // Additional settings for IPv6
     if SetupVarsEntry::DhcpIpv6.is_true(env)? {
@@ -373,7 +379,9 @@ mod tests {
              dhcp-range=192.168.1.50,192.168.1.150,24h\n\
              dhcp-option=option:router,192.168.1.1\n\
              dhcp-name-match=set:wpad-ignore,wpad\n\
-             dhcp-ignore-names=tag:wpad-ignore\n",
+             dhcp-ignore-names=tag:wpad-ignore\n\
+             domain=lan\n\
+             dhcp-rapid-commit\n",
             "PIHOLE_INTERFACE=eth0\n\
              DHCP_ACTIVE=true\n\
              DHCP_START=192.168.1.50\n\
@@ -381,6 +389,7 @@ mod tests {
              DHCP_ROUTER=192.168.1.1\n\
              DHCP_LEASETIME=24\n\
              PIHOLE_DOMAIN=lan\n\
+             DHCP_rapid_commit=true\n\
              DHCP_IPv6=false",
             write_dhcp
         )
@@ -396,6 +405,7 @@ mod tests {
              dhcp-option=option:router,192.168.1.1\n\
              dhcp-name-match=set:wpad-ignore,wpad\n\
              dhcp-ignore-names=tag:wpad-ignore\n\
+             domain=lan\n\
              dhcp-option=option6:dns-server,[::]\n\
              dhcp-range=::100,::1ff,constructor:eth0,ra-names,slaac,24h\n\
              ra-param=*,0,0\n",
@@ -422,6 +432,7 @@ mod tests {
              dhcp-option=option:router,192.168.1.1\n\
              dhcp-name-match=set:wpad-ignore,wpad\n\
              dhcp-ignore-names=tag:wpad-ignore\n\
+             domain=lan\n\
              dhcp-option=option6:dns-server,[::]\n\
              dhcp-range=::100,::1ff,constructor:eth0,ra-names,slaac,infinite\n\
              ra-param=*,0,0\n",

@@ -22,8 +22,9 @@ extern crate rocket_contrib;
 #[macro_use]
 extern crate rust_embed;
 
-pub use crate::setup::start;
+pub use crate::cli::handle_cli;
 
+mod cli;
 mod databases;
 mod env;
 mod ftl;

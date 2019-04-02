@@ -29,8 +29,6 @@ use rocket::{config::LoggingLevel, local::Client};
 #[cfg(test)]
 use std::collections::HashMap;
 
-const CONFIG_LOCATION: &str = "/etc/pihole/API.toml";
-
 #[catch(404)]
 fn not_found() -> Error {
     Error::from(ErrorKind::NotFound)
@@ -43,7 +41,7 @@ fn unauthorized() -> Error {
 
 /// Run the API normally (connect to FTL over the socket)
 pub fn start() -> Result<(), Error> {
-    let config = Config::parse(CONFIG_LOCATION)?;
+    let config = Config::load()?;
     let env = Env::Production(config);
     let key = SetupVarsEntry::WebPassword.read(&env)?;
 

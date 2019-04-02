@@ -23,6 +23,9 @@ use std::{
 };
 use toml;
 
+/// The default config location
+const CONFIG_LOCATION: &str = "/etc/pihole/API.toml";
+
 /// The API config options
 #[derive(Deserialize, Default, Clone)]
 pub struct Config {
@@ -33,7 +36,14 @@ pub struct Config {
 }
 
 impl Config {
-    /// Parse the config from the file located at `config_location`
+    /// Load the config from the default location. If it does not exist, return
+    /// the default config.
+    pub fn load() -> Result<Config, Error> {
+        Self::parse(CONFIG_LOCATION)
+    }
+
+    /// Parse the config from the file located at `config_location`. If it does
+    /// not exist, return the default config.
     pub fn parse(config_location: &str) -> Result<Config, Error> {
         let mut buffer = String::new();
 

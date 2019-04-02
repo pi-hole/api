@@ -34,6 +34,7 @@ libc = "0.2.42"
 nix = "0.13"
 base64 = "0.10"
 task_scheduler = "0.2.0"
+structopt = "0.2.15"
 
 [dependencies.rocket_contrib]
 version = "0.4"
