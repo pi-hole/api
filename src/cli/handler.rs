@@ -31,7 +31,7 @@ pub fn handle_cli() -> Result<(), Error> {
             CliCommand::Version => println!("{}", get_version()),
             CliCommand::Branch => println!("{}", get_branch()),
             CliCommand::Hash => println!("{}", get_hash()),
-            CliCommand::GenerateDnsmasq => generate_dnsmasq_cli()?
+            CliCommand::GenerateDnsConfig => generate_dnsmasq_cli()?
         },
         // No command given, start the API
         None => start()?

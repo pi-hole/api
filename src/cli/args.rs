@@ -11,8 +11,7 @@
 use crate::cli::handler::get_version;
 use structopt::{clap::AppSettings, StructOpt};
 
-/// This defines the arguments that the CLI can be given
-///
+/// This defines the arguments that the CLI can be given.
 /// `AppSettings::VersionlessSubcommands` will remove the `-V` version flag from
 /// sub-commands. All sub-commands in this project have the same version.
 #[derive(StructOpt)]
@@ -40,7 +39,11 @@ pub enum CliCommand {
     /// Prints git hash
     #[structopt(name = "hash", author = "", raw(version = "get_version()"))]
     Hash,
-    /// Generate the dnsmasq configuration
-    #[structopt(name = "generate-dnsmasq", author = "", raw(version = "get_version()"))]
-    GenerateDnsmasq
+    /// Generate the dns server configuration
+    #[structopt(
+        name = "generate-dns-config",
+        author = "",
+        raw(version = "get_version()")
+    )]
+    GenerateDnsConfig
 }
