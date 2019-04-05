@@ -131,8 +131,10 @@ fn setup(
         server
     };
 
-    // The path to mount the API on
-    let api_mount_path = env.config().general.path.to_string_lossy().into_owned();
+    // The path to mount the API on (always <web_root>/api)
+    let mut api_mount_path = env.config().web.path.clone();
+    api_mount_path.push("api");
+    let api_mount_path_str = api_mount_path.to_string_lossy();
 
     // Create a scheduler for scheduling work (ex. disable for 10 minutes)
     let scheduler = task_scheduler::Scheduler::new();
@@ -154,7 +156,7 @@ fn setup(
         // Manage the scheduler
         .manage(scheduler)
         // Mount the API
-        .mount(&api_mount_path, routes![
+        .mount(&api_mount_path_str, routes![
             version::version,
             auth::check,
             auth::logout,

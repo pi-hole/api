@@ -10,7 +10,7 @@
 
 use rocket::logger::LoggingLevel;
 use serde::{Deserialize, Deserializer};
-use std::{net::Ipv4Addr, path::PathBuf, str::FromStr};
+use std::{net::Ipv4Addr, str::FromStr};
 
 /// General config settings
 #[derive(Deserialize, Clone)]
@@ -28,11 +28,7 @@ pub struct General {
         default = "default_log_level",
         deserialize_with = "deserialize_logging_level"
     )]
-    pub log_level: LoggingLevel,
-
-    /// The path to mount the API on
-    #[serde(default = "default_path")]
-    pub path: PathBuf
+    pub log_level: LoggingLevel
 }
 
 impl Default for General {
@@ -40,15 +36,14 @@ impl Default for General {
         General {
             address: default_address(),
             port: default_port(),
-            log_level: default_log_level(),
-            path: default_path()
+            log_level: default_log_level()
         }
     }
 }
 
 impl General {
     pub fn is_valid(&self) -> bool {
-        Ipv4Addr::from_str(&self.address).is_ok() && self.port <= 65535 && self.path.is_absolute()
+        Ipv4Addr::from_str(&self.address).is_ok() && self.port <= 65535
     }
 }
 
@@ -75,14 +70,9 @@ fn default_log_level() -> LoggingLevel {
     LoggingLevel::Critical
 }
 
-fn default_path() -> PathBuf {
-    PathBuf::from("/admin/api")
-}
-
 #[cfg(test)]
 mod test {
     use super::General;
-    use std::path::PathBuf;
 
     /// The default general config is valid
     #[test]
@@ -108,17 +98,6 @@ mod test {
     fn invalid_general_port() {
         let general = General {
             port: 65536,
-            ..General::default()
-        };
-
-        assert!(!general.is_valid());
-    }
-
-    /// Using a non-absolute path makes the config invalid
-    #[test]
-    fn invalid_general_path() {
-        let general = General {
-            path: PathBuf::from("admin/"),
             ..General::default()
         };
 
