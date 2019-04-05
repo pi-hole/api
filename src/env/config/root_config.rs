@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    env::config::{file_locations::Files, general::General},
+    env::config::{file_locations::Files, general::General, web::WebConfig},
     util::{Error, ErrorKind}
 };
 use failure::{Fail, ResultExt};
@@ -27,7 +27,9 @@ pub struct Config {
     #[serde(default)]
     pub general: General,
     #[serde(default)]
-    pub file_locations: Files
+    pub file_locations: Files,
+    #[serde(default)]
+    pub web: WebConfig
 }
 
 impl Config {
@@ -70,7 +72,7 @@ impl Config {
 
     /// Check if the config settings are valid
     pub fn is_valid(&self) -> bool {
-        self.general.is_valid() && self.file_locations.is_valid()
+        self.general.is_valid() && self.file_locations.is_valid() && self.web.is_valid()
     }
 }
 

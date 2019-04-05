@@ -60,14 +60,16 @@ pub fn web_interface_redirect() -> Redirect {
     Redirect::to(uri!(web_interface_index))
 }
 
-/// Return the index page of the web interface
-#[get("/admin")]
+/// Return the index page of the web interface. This handler is mounted on a
+/// route taken from the config, so it must use `/`.
+#[get("/")]
 pub fn web_interface_index<'r>() -> Option<Response<'r>> {
     get_file("index.html")
 }
 
-/// Return the requested page/file, if it exists.
-#[get("/admin/<path..>")]
+/// Return the requested page/file, if it exists. This handler is mounted on a
+/// route taken from the config, so it must use `/`.
+#[get("/<path..>")]
 pub fn web_interface<'r>(path: PathBuf) -> Option<Response<'r>> {
     get_file(&path.display().to_string())
 }

@@ -113,6 +113,27 @@ fn setup(
         server
     };
 
+    // Conditionally enable and mount the web interface
+    let server = if env.config().web.enabled {
+        // Check if the root redirect should be enabled
+        let server = if env.config().web.root_redirect {
+            server.mount("/", routes![web::web_interface_redirect])
+        } else {
+            server
+        };
+
+        // Mount the web interface at the configured route
+        server.mount(
+            &env.config().web.path.to_string_lossy().to_owned(),
+            routes![web::web_interface_index, web::web_interface]
+        )
+    } else {
+        server
+    };
+
+    // The path to mount the API on
+    let api_mount_path = env.config().general.path.to_string_lossy().into_owned();
+
     // Create a scheduler for scheduling work (ex. disable for 10 minutes)
     let scheduler = task_scheduler::Scheduler::new();
 
@@ -132,14 +153,8 @@ fn setup(
         .manage(AuthData::new(api_key))
         // Manage the scheduler
         .manage(scheduler)
-        // Mount the web interface
-        .mount("/", routes![
-            web::web_interface_redirect,
-            web::web_interface_index,
-            web::web_interface
-        ])
         // Mount the API
-        .mount("/admin/api", routes![
+        .mount(&api_mount_path, routes![
             version::version,
             auth::check,
             auth::logout,

@@ -11,5 +11,6 @@
 mod file_locations;
 mod general;
 mod root_config;
+mod web;
 
 pub use self::root_config::Config;
