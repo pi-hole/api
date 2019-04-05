@@ -63,7 +63,7 @@ impl Env {
     /// Get the location of a file
     pub fn file_location(&self, file: PiholeFile) -> &str {
         match self {
-            Env::Production(config) => config.file_location(file),
+            Env::Production(config) => config.file_locations.get(file),
             #[cfg(test)]
             Env::Test(_, _) => file.default_location()
         }

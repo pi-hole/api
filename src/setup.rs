@@ -48,9 +48,9 @@ pub fn start() -> Result<(), Error> {
     setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Production)
-                .address(env.config().address())
-                .port(env.config().port() as u16)
-                .log_level(env.config().log_level()?)
+                .address(env.config().general.address.as_str())
+                .port(env.config().general.port as u16)
+                .log_level(env.config().general.log_level)
                 .extra("databases", load_databases(&env)?)
                 .finalize()
                 .unwrap()
