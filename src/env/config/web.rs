@@ -40,6 +40,11 @@ impl WebConfig {
     pub fn is_valid(&self) -> bool {
         self.path.is_absolute()
     }
+
+    /// Get the web mount path with a trailing slash
+    pub fn path_with_trailing_slash(&self) -> String {
+        self.path.to_string_lossy().into_owned() + "/"
+    }
 }
 
 fn default_enabled() -> bool {

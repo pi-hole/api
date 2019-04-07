@@ -123,8 +123,9 @@ fn setup(
         };
 
         // Mount the web interface at the configured route
+        let web_route = env.config().web.path.to_string_lossy();
         server.mount(
-            &env.config().web.path.to_string_lossy().to_owned(),
+            &web_route,
             routes![web::web_interface_index, web::web_interface]
         )
     } else {
