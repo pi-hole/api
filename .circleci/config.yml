@@ -156,31 +156,18 @@ jobs:
       TARGET: "aarch64-unknown-linux-gnu"
       RPM_ARCH: "aarch64"
 
-  x86_64:
-    <<: *job_template
-    environment:
-      BIN_NAME: "pihole-API-linux-x86_64"
-      TARGET: "x86_64-unknown-linux-gnu"
-      DEB_ARCH: "amd64"
-
-  x86_64-rpm:
-    <<: *rpm_template
-    environment:
-      TARGET: "x86_64-unknown-linux-gnu"
-      RPM_ARCH: "x86_64"
-
   x86_64-musl:
     <<: *job_template
     environment:
-      BIN_NAME: "pihole-API-musl-linux-x86_64"
+      BIN_NAME: "pihole-API-linux-x86_64"
       TARGET: "x86_64-unknown-linux-musl"
-      DEB_ARCH: "musl-linux-amd64"
+      DEB_ARCH: "amd64"
 
   x86_64-musl-rpm:
     <<: *rpm_template
     environment:
       TARGET: "x86_64-unknown-linux-musl"
-      RPM_ARCH: "musl"
+      RPM_ARCH: "x86_64"
 
   x86_32:
     <<: *job_template
@@ -208,10 +195,6 @@ workflows:
       - aarch64-rpm:
           requires:
             - aarch64
-      - x86_64
-      - x86_64-rpm:
-          requires:
-            - x86_64
       - x86_64-musl
       - x86_64-musl-rpm:
           requires:
