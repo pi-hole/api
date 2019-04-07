@@ -43,11 +43,11 @@ version: 2
     - run:
         name: "Code Style Check"
         command: |
-          [[ "$CIRCLE_JOB" != "x86_64" ]] || cargo fmt -- --check
+          [[ "$CIRCLE_JOB" != "x86_64-musl" ]] || cargo fmt -- --check
     - run:
         name: "Code Lint Check"
         command: |
-          [[ "$CIRCLE_JOB" != "x86_64" ]] || cargo clippy --release --all-targets --all-features -- -D clippy::all
+          [[ "$CIRCLE_JOB" != "x86_64-musl" ]] || cargo clippy --release --all-targets --all-features -- -D clippy::all
     - run:
         name: "Build"
         command: |
@@ -56,7 +56,7 @@ version: 2
     - run:
         name: "Test"
         command: |
-          [[ "$CIRCLE_JOB" != "x86_64" ]] || time cargo test --release --target $TARGET
+          [[ "$CIRCLE_JOB" != "x86_64-musl" ]] || time cargo test --release --target $TARGET
     - run:
         name: "Build DEB"
         command: |
@@ -78,7 +78,7 @@ version: 2
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}.sha1" "${FTL_SECRET}"
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" pihole-api*.deb "${FTL_SECRET}"
 
-          if [[ "$CIRCLE_PR_NUMBER" == "" && "$CIRCLE_JOB" == "x86_64" ]]; then
+          if [[ "$CIRCLE_PR_NUMBER" == "" && "$CIRCLE_JOB" == "x86_64-musl" ]]; then
             echo "${CIRCLE_SHA1:0:7}" > API_HASH
             ./FTL-client "${CIRCLE_BRANCH}" API_HASH "${FTL_SECRET}"
           fi
