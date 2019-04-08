@@ -11,4 +11,4 @@ clean:
 
 install:
 	mkdir -p $(DESTDIR)/usr/bin
-	install -m 755 target/$(TARGET)/release/pihole_api $(DESTDIR)/usr/bin/pihole-API
+	install -m 755 target/$(TARGET)/$(TARGET_PROFILE)/pihole_api $(DESTDIR)/usr/bin/pihole-API
