@@ -60,7 +60,7 @@ version: 2
     - run:
         name: "Build DEB"
         command: |
-          export DEB_BUILD_OPTIONS=nostrip
+          export DEB_BUILD_OPTIONS=nostrip TARGET_PROFILE=release
           dpkg-buildpackage -b -a $DEB_ARCH
           mv ../pihole-api*.deb .
           [[ "$CIRCLE_JOB" != "arm" ]] || for file in pihole-api*.deb; do mv $file ${file//armhf/arm}; done
@@ -108,6 +108,7 @@ version: 2
     - run:
         name: "Build RPM"
         command: |
+          export TARGET_PROFILE=release
           mkdir -p ~/rpmbuild/{SOURCES,SPECS}
           mv rpm/pihole-api.spec ~/rpmbuild/SPECS
           mv * ~/rpmbuild/SOURCES
