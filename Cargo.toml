@@ -14,8 +14,9 @@ edition = "2018"
 lto = true
 
 [dependencies]
-diesel = { version = "1.4", features = ["sqlite"]}
+diesel = { version = "1.4", features = ["sqlite"] }
 rocket = "0.4"
+rocket_contrib = { version = "0.4", features = ["diesel_sqlite_pool"] }
 rocket_cors = { version = "0.4", default-features = false }
 serde = "1.0"
 serde_derive = "1.0"
@@ -36,9 +37,8 @@ base64 = "0.10"
 task_scheduler = "0.2.0"
 structopt = "0.2.15"
 
-[dependencies.rocket_contrib]
-version = "0.4"
-features = ["diesel_sqlite_pool"]
+# Statically link SQLite (use the crate version provided by Diesel)
+libsqlite3-sys = { version = "*", features = ["bundled"] }
 
 [dev-dependencies]
 serde_json = "1.0"

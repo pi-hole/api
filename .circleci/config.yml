@@ -43,11 +43,11 @@ version: 2
     - run:
         name: "Code Style Check"
         command: |
-          [[ "$CIRCLE_JOB" != "x86_64" ]] || cargo fmt -- --check
+          [[ "$CIRCLE_JOB" != "x86_64-musl" ]] || cargo fmt -- --check
     - run:
         name: "Code Lint Check"
         command: |
-          [[ "$CIRCLE_JOB" != "x86_64" ]] || cargo clippy --release --all-targets --all-features -- -D clippy::all
+          [[ "$CIRCLE_JOB" != "x86_64-musl" ]] || cargo clippy --release --all-targets --all-features -- -D clippy::all
     - run:
         name: "Build"
         command: |
@@ -56,7 +56,7 @@ version: 2
     - run:
         name: "Test"
         command: |
-          [[ "$CIRCLE_JOB" != "x86_64" ]] || time cargo test --release --target $TARGET
+          [[ "$CIRCLE_JOB" != "x86_64-musl" ]] || time cargo test --release --target $TARGET
     - run:
         name: "Build DEB"
         command: |
@@ -78,7 +78,7 @@ version: 2
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}.sha1" "${FTL_SECRET}"
           [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" pihole-api*.deb "${FTL_SECRET}"
 
-          if [[ "$CIRCLE_PR_NUMBER" == "" && "$CIRCLE_JOB" == "x86_64" ]]; then
+          if [[ "$CIRCLE_PR_NUMBER" == "" && "$CIRCLE_JOB" == "x86_64-musl" ]]; then
             echo "${CIRCLE_SHA1:0:7}" > API_HASH
             ./FTL-client "${CIRCLE_BRANCH}" API_HASH "${FTL_SECRET}"
           fi
@@ -157,31 +157,18 @@ jobs:
       TARGET: "aarch64-unknown-linux-gnu"
       RPM_ARCH: "aarch64"
 
-  x86_64:
-    <<: *job_template
-    environment:
-      BIN_NAME: "pihole-API-linux-x86_64"
-      TARGET: "x86_64-unknown-linux-gnu"
-      DEB_ARCH: "amd64"
-
-  x86_64-rpm:
-    <<: *rpm_template
-    environment:
-      TARGET: "x86_64-unknown-linux-gnu"
-      RPM_ARCH: "x86_64"
-
   x86_64-musl:
     <<: *job_template
     environment:
-      BIN_NAME: "pihole-API-musl-linux-x86_64"
+      BIN_NAME: "pihole-API-linux-x86_64"
       TARGET: "x86_64-unknown-linux-musl"
-      DEB_ARCH: "musl-linux-amd64"
+      DEB_ARCH: "amd64"
 
   x86_64-musl-rpm:
     <<: *rpm_template
     environment:
       TARGET: "x86_64-unknown-linux-musl"
-      RPM_ARCH: "musl"
+      RPM_ARCH: "x86_64"
 
   x86_32:
     <<: *job_template
@@ -209,10 +196,6 @@ workflows:
       - aarch64-rpm:
           requires:
             - aarch64
-      - x86_64
-      - x86_64-rpm:
-          requires:
-            - x86_64
       - x86_64-musl
       - x86_64-musl-rpm:
           requires:
