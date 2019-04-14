@@ -48,9 +48,9 @@ pub fn start() -> Result<(), Error> {
     setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Production)
-                .address(env.config().address())
-                .port(env.config().port() as u16)
-                .log_level(env.config().log_level()?)
+                .address(env.config().general.address.as_str())
+                .port(env.config().general.port as u16)
+                .log_level(env.config().general.log_level)
                 .extra("databases", load_databases(&env)?)
                 .finalize()
                 .unwrap()
@@ -113,6 +113,30 @@ fn setup(
         server
     };
 
+    // Conditionally enable and mount the web interface
+    let server = if env.config().web.enabled {
+        // Check if the root redirect should be enabled
+        let server = if env.config().web.root_redirect {
+            server.mount("/", routes![web::web_interface_redirect])
+        } else {
+            server
+        };
+
+        // Mount the web interface at the configured route
+        let web_route = env.config().web.path.to_string_lossy();
+        server.mount(
+            &web_route,
+            routes![web::web_interface_index, web::web_interface]
+        )
+    } else {
+        server
+    };
+
+    // The path to mount the API on (always <web_root>/api)
+    let mut api_mount_path = env.config().web.path.clone();
+    api_mount_path.push("api");
+    let api_mount_path_str = api_mount_path.to_string_lossy();
+
     // Create a scheduler for scheduling work (ex. disable for 10 minutes)
     let scheduler = task_scheduler::Scheduler::new();
 
@@ -132,14 +156,8 @@ fn setup(
         .manage(AuthData::new(api_key))
         // Manage the scheduler
         .manage(scheduler)
-        // Mount the web interface
-        .mount("/", routes![
-            web::web_interface_redirect,
-            web::web_interface_index,
-            web::web_interface
-        ])
         // Mount the API
-        .mount("/admin/api", routes![
+        .mount(&api_mount_path_str, routes![
             version::version,
             auth::check,
             auth::logout,

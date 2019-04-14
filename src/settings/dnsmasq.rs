@@ -70,6 +70,10 @@ fn write_servers(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Err
             break;
         }
 
+        // Transform addresses with ports into the format dnsmasq understands
+        // Example: 127.0.0.1:5353 -> 127.0.0.1#5353
+        let dns = dns.replace(":", "#");
+
         writeln!(config_file, "server={}", dns).context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
@@ -280,6 +284,16 @@ mod tests {
             "server=8.8.8.8\nserver=8.8.4.4\n",
             "PIHOLE_DNS_1=8.8.8.8\n\
              PIHOLE_DNS_2=8.8.4.4",
+            write_servers
+        );
+    }
+
+    /// A DNS server with a port is written using a #
+    #[test]
+    fn dns_server_with_port() {
+        test_config(
+            "server=127.0.0.1#5353\n",
+            "PIHOLE_DNS_1=127.0.0.1:5353",
             write_servers
         );
     }
