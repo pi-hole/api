@@ -25,7 +25,8 @@ pub struct DhcpSettings {
     router_ip: String,
     lease_time: usize,
     domain: String,
-    ipv6_support: bool
+    ipv6_support: bool,
+    rapid_commit: bool
 }
 
 impl DhcpSettings {
@@ -58,7 +59,8 @@ pub fn get_dhcp(env: State<Env>, _auth: User) -> Reply {
         router_ip: SetupVarsEntry::DhcpRouter.read(&env)?,
         lease_time: SetupVarsEntry::DhcpLeasetime.read_as(&env)?,
         domain: SetupVarsEntry::PiholeDomain.read(&env)?,
-        ipv6_support: SetupVarsEntry::DhcpIpv6.is_true(&env)?
+        ipv6_support: SetupVarsEntry::DhcpIpv6.is_true(&env)?,
+        rapid_commit: SetupVarsEntry::DhcpRapidCommit.is_true(&env)?
     };
 
     reply_data(dhcp_settings)
@@ -80,6 +82,7 @@ pub fn put_dhcp(env: State<Env>, _auth: User, data: Json<DhcpSettings>) -> Reply
     SetupVarsEntry::DhcpLeasetime.write(&settings.lease_time.to_string(), &env)?;
     SetupVarsEntry::PiholeDomain.write(&settings.domain, &env)?;
     SetupVarsEntry::DhcpIpv6.write(&settings.ipv6_support.to_string(), &env)?;
+    SetupVarsEntry::DhcpRapidCommit.write(&settings.rapid_commit.to_string(), &env)?;
 
     generate_dnsmasq_config(&env)?;
     restart_dns(&env)?;
@@ -101,7 +104,8 @@ mod test {
             router_ip: "".to_owned(),
             lease_time: 24,
             domain: "".to_owned(),
-            ipv6_support: false
+            ipv6_support: false,
+            rapid_commit: false
         };
 
         assert_eq!(settings.is_valid(), false);
@@ -117,7 +121,8 @@ mod test {
             router_ip: "".to_owned(),
             lease_time: 24,
             domain: "".to_owned(),
-            ipv6_support: false
+            ipv6_support: false,
+            rapid_commit: false
         };
 
         assert_eq!(settings.is_valid(), true);
@@ -133,7 +138,8 @@ mod test {
             router_ip: "192.168.1.1".to_owned(),
             lease_time: 24,
             domain: "lan".to_owned(),
-            ipv6_support: false
+            ipv6_support: false,
+            rapid_commit: false
         };
 
         assert_eq!(settings.is_valid(), true);
@@ -149,7 +155,8 @@ mod test {
             router_ip: "not an IP".to_owned(),
             lease_time: 24,
             domain: "not a domain".to_owned(),
-            ipv6_support: false
+            ipv6_support: false,
+            rapid_commit: false
         };
 
         assert_eq!(settings.is_valid(), false);
@@ -168,7 +175,8 @@ mod test {
                  DHCP_LEASETIME=24\n\
                  PIHOLE_DOMAIN=lan\n\
                  DHCP_IPv6=false\n\
-                 DHCP_ACTIVE=false\n"
+                 DHCP_ACTIVE=false\n\
+                 DHCP_rapid_commit=true\n"
             )
             .expect_json(json!({
                 "active": false,
@@ -178,6 +186,7 @@ mod test {
                 "lease_time": 24,
                 "domain": "lan",
                 "ipv6_support": false,
+                "rapid_commit": true
             }))
             .test();
     }
@@ -196,6 +205,7 @@ mod test {
                 "lease_time": 24,
                 "domain": "lan",
                 "ipv6_support": false,
+                "rapid_commit": false
             }))
             .test();
     }
@@ -219,7 +229,8 @@ mod test {
                  DHCP_ROUTER=192.168.1.1\n\
                  DHCP_LEASETIME=24\n\
                  PIHOLE_DOMAIN=lan\n\
-                 DHCP_IPv6=true\n"
+                 DHCP_IPv6=true\n\
+                 DHCP_rapid_commit=true\n"
             )
             .file_expect(
                 PiholeFile::DnsmasqConfig,
@@ -249,6 +260,7 @@ mod test {
                  dhcp-name-match=set:wpad-ignore,wpad\n\
                  dhcp-ignore-names=tag:wpad-ignore\n\
                  domain=lan\n\
+                 dhcp-rapid-commit\n\
                  dhcp-option=option6:dns-server,[::]\n\
                  dhcp-range=::100,::1ff,constructor:eth0,ra-names,slaac,24h\n\
                  ra-param=*,0,0\n"
@@ -260,7 +272,8 @@ mod test {
                 "router_ip": "192.168.1.1",
                 "lease_time": 24,
                 "domain": "lan",
-                "ipv6_support": true
+                "ipv6_support": true,
+                "rapid_commit": true
             }))
             .expect_json(json!({
                 "status": "success"
