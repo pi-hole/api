@@ -16,7 +16,7 @@ use crate::{
         auth::User,
         stats::{
             check_privacy_level_top_clients,
-            common::{get_excluded_clients, get_hidden_client_ip},
+            common::{get_excluded_clients, HIDDEN_CLIENT},
             database::{get_blocked_query_count, get_query_type_counts},
             top_clients::{TopClientItemReply, TopClientParams, TopClientsReply}
         }
@@ -123,7 +123,7 @@ fn get_ignored_clients(env: &Env) -> Result<Vec<String>, Error> {
     let mut ignored_clients = get_excluded_clients(env)?;
 
     // Ignore the hidden client IP (due to privacy level)
-    ignored_clients.push(get_hidden_client_ip().to_owned());
+    ignored_clients.push(HIDDEN_CLIENT.to_owned());
 
     Ok(ignored_clients)
 }
