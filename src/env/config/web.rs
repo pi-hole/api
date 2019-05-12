@@ -8,7 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use std::path::PathBuf;
+use std::{ffi::OsStr, path::PathBuf};
 
 /// Configuration settings for hosting the web interface
 #[derive(Deserialize, Clone)]
@@ -43,7 +43,11 @@ impl WebConfig {
 
     /// Get the web mount path with a trailing slash
     pub fn path_with_trailing_slash(&self) -> String {
-        self.path.to_string_lossy().into_owned() + "/"
+        if self.path == OsStr::new("/") {
+            "/".to_owned()
+        } else {
+            self.path.to_string_lossy().into_owned() + "/"
+        }
     }
 }
 

@@ -108,7 +108,7 @@ mod test {
         use crate::databases::ftl::queries::dsl::*;
 
         let expected_queries = vec![FtlDbQuery {
-            id: Some(1),
+            id: 1,
             timestamp: 0,
             query_type: 6,
             status: 3,

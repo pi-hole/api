@@ -15,7 +15,7 @@ use crate::{
     routes::{
         auth::User,
         stats::{
-            common::{get_excluded_clients, get_hidden_client_ip},
+            common::{get_excluded_clients, HIDDEN_CLIENT},
             database::over_time_history_db::align_from_until,
             over_time_clients::{OverTimeClientItem, OverTimeClients}
         }
@@ -127,7 +127,7 @@ fn get_client_identifiers(
 
     // Find clients which should not be used
     let mut ignored_clients = get_excluded_clients(env)?;
-    ignored_clients.push(get_hidden_client_ip().to_owned());
+    ignored_clients.push(HIDDEN_CLIENT.to_owned());
 
     let client_identifiers = queries
         .select(client)

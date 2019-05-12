@@ -19,6 +19,12 @@ use std::{
     time::{SystemTime, UNIX_EPOCH}
 };
 
+/// The designated hidden domain
+pub const HIDDEN_DOMAIN: &str = "hidden";
+
+/// The designated hidden client IP address
+pub const HIDDEN_CLIENT: &str = "0.0.0.0";
+
 /// Remove clients from the `clients` vector if they show up in
 /// [`SetupVarsEntry::ApiExcludeClients`].
 ///
@@ -93,25 +99,13 @@ pub fn get_excluded_domains(env: &Env) -> Result<Vec<String>, Error> {
 /// Remove clients from the `clients` vector if they are marked as hidden due
 /// to the privacy level.
 pub fn remove_hidden_clients(clients: &mut Vec<&FtlClient>, strings: &FtlStrings) {
-    let hidden_client_ip = get_hidden_client_ip();
-    clients.retain(|client| client.get_ip(strings) != hidden_client_ip);
-}
-
-/// Get the hidden client IP address
-pub fn get_hidden_client_ip() -> &'static str {
-    "0.0.0.0"
+    clients.retain(|client| client.get_ip(strings) != HIDDEN_CLIENT);
 }
 
 /// Remove domains from the `domains` vector if they are marked as hidden due
 /// to the privacy level.
 pub fn remove_hidden_domains(domains: &mut Vec<&FtlDomain>, strings: &FtlStrings) {
-    let hidden_domain = get_hidden_domain();
-    domains.retain(|domain| domain.get_domain(strings) != hidden_domain);
-}
-
-/// Get the designated hidden domain
-pub fn get_hidden_domain() -> &'static str {
-    "hidden"
+    domains.retain(|domain| domain.get_domain(strings) != HIDDEN_DOMAIN);
 }
 
 /// Get the current overTime slot index, based on the current time. If all of

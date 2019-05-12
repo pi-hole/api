@@ -38,7 +38,7 @@ table! {
 
 table! {
     queries (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         timestamp -> Integer,
         #[sql_name = "type"]
         query_type -> Integer,
