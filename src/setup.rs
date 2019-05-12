@@ -115,15 +115,16 @@ fn setup(
 
     // Conditionally enable and mount the web interface
     let server = if env.config().web.enabled {
+        let web_route = env.config().web.path.to_string_lossy();
+
         // Check if the root redirect should be enabled
-        let server = if env.config().web.root_redirect {
+        let server = if env.config().web.root_redirect && web_route != "/" {
             server.mount("/", routes![web::web_interface_redirect])
         } else {
             server
         };
 
         // Mount the web interface at the configured route
-        let web_route = env.config().web.path.to_string_lossy();
         server.mount(
             &web_route,
             routes![web::web_interface_index, web::web_interface]
