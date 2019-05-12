@@ -289,7 +289,7 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DhcpIpv6 => "false",
             SetupVarsEntry::DhcpLeasetime => "24",
             SetupVarsEntry::DhcpStart => "",
-            SetupVarsEntry::DhcpRapidCommit => "false",
+            SetupVarsEntry::DhcpRapidCommit => "true",
             SetupVarsEntry::DhcpRouter => "",
             SetupVarsEntry::DnsmasqListening => "local",
             SetupVarsEntry::Dnssec => "false",

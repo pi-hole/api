@@ -420,6 +420,7 @@ mod tests {
              dhcp-name-match=set:wpad-ignore,wpad\n\
              dhcp-ignore-names=tag:wpad-ignore\n\
              domain=lan\n\
+             dhcp-rapid-commit\n\
              dhcp-option=option6:dns-server,[::]\n\
              dhcp-range=::100,::1ff,constructor:eth0,ra-names,slaac,24h\n\
              ra-param=*,0,0\n",
@@ -447,6 +448,7 @@ mod tests {
              dhcp-name-match=set:wpad-ignore,wpad\n\
              dhcp-ignore-names=tag:wpad-ignore\n\
              domain=lan\n\
+             dhcp-rapid-commit\n\
              dhcp-option=option6:dns-server,[::]\n\
              dhcp-range=::100,::1ff,constructor:eth0,ra-names,slaac,infinite\n\
              ra-param=*,0,0\n",
