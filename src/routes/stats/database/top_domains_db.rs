@@ -16,7 +16,7 @@ use crate::{
         auth::User,
         stats::{
             check_privacy_level_top_domains, check_query_log_show_top_domains,
-            common::{get_excluded_domains, get_hidden_domain},
+            common::{get_excluded_domains, HIDDEN_DOMAIN},
             database::{
                 query_types_db::get_query_type_counts, summary_db::get_blocked_query_count
             },
@@ -119,7 +119,7 @@ fn get_ignored_domains(env: &Env, audit: bool) -> Result<Vec<String>, Error> {
     let mut ignored_domains = get_excluded_domains(env)?;
 
     // Ignore the hidden domain (due to privacy level)
-    ignored_domains.push(get_hidden_domain().to_owned());
+    ignored_domains.push(HIDDEN_DOMAIN.to_owned());
 
     // If audit flag is true, only include unaudited domains
     if audit {

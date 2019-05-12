@@ -73,7 +73,7 @@ pub fn load_queries_from_database(
     let cursor = if results.len() == limit + 1 {
         Some(HistoryCursor {
             id: None,
-            db_id: Some(results[limit].id.unwrap() as i64)
+            db_id: Some(results[limit].id as i64)
         })
     } else {
         None

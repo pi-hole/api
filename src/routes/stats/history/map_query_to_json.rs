@@ -10,11 +10,14 @@
 
 use crate::{
     ftl::{FtlMemory, FtlQuery, ShmLockGuard},
+    routes::stats::common::{HIDDEN_CLIENT, HIDDEN_DOMAIN},
+    settings::FtlPrivacyLevel,
     util::Error
 };
 use rocket_contrib::json::JsonValue;
 
-/// Create a function to map `FtlQuery` structs to JSON `Value` structs.
+/// Create a function to map `FtlQuery` structs to JSON `Value` structs. The
+/// queries' privacy levels will be taken into account when exposing their data.
 pub fn map_query_to_json<'a>(
     ftl_memory: &'a FtlMemory,
     ftl_lock: &ShmLockGuard<'a>
@@ -24,13 +27,24 @@ pub fn map_query_to_json<'a>(
     let strings = ftl_memory.strings(ftl_lock)?;
 
     Ok(move |query: &FtlQuery| {
-        let domain = domains[query.domain_id as usize].get_domain(&strings);
-        let client = clients[query.client_id as usize];
+        // Get the domain depending on the privacy level
+        let domain = if query.privacy_level < FtlPrivacyLevel::HideDomains {
+            domains[query.domain_id as usize].get_domain(&strings)
+        } else {
+            HIDDEN_DOMAIN
+        };
 
-        // Try to get the client name first, but if it doesn't exist use the IP
-        let client = client
-            .get_name(&strings)
-            .unwrap_or_else(|| client.get_ip(&strings));
+        // Get the client depending on the privacy level
+        let client = if query.privacy_level < FtlPrivacyLevel::HideDomainsAndClients {
+            let client = clients[query.client_id as usize];
+
+            // Try to get the client name first, but if it doesn't exist use the IP
+            client
+                .get_name(&strings)
+                .unwrap_or_else(|| client.get_ip(&strings))
+        } else {
+            HIDDEN_CLIENT
+        };
 
         // Check if response was received (response time should be smaller than 30min)
         let response_time = if query.response_time < 18_000_000 {
@@ -57,7 +71,8 @@ mod test {
     use super::map_query_to_json;
     use crate::{
         ftl::ShmLockGuard,
-        routes::stats::history::testing::{test_memory, test_queries}
+        routes::stats::history::testing::{test_memory, test_queries},
+        settings::FtlPrivacyLevel
     };
 
     /// Verify that queries are mapped to JSON correctly
@@ -76,6 +91,56 @@ mod test {
                 "status": 2,
                 "domain": "domain1.com",
                 "client": "client1",
+                "dnssec": 1,
+                "reply": 3,
+                "response_time": 1
+            })
+        );
+    }
+
+    /// When the query's privacy level hides domains, hide the domain
+    #[test]
+    fn private_domains() {
+        let mut query = test_queries()[0];
+        let ftl_memory = test_memory();
+        let map_function = map_query_to_json(&ftl_memory, &ShmLockGuard::Test).unwrap();
+
+        query.privacy_level = FtlPrivacyLevel::HideDomains;
+        let mapped_query = map_function(&query);
+
+        assert_eq!(
+            mapped_query,
+            json!({
+                "timestamp": 263_581,
+                "type": 1,
+                "status": 2,
+                "domain": "hidden",
+                "client": "client1",
+                "dnssec": 1,
+                "reply": 3,
+                "response_time": 1
+            })
+        );
+    }
+
+    /// When the query's privacy level hides clients, hide the client
+    #[test]
+    fn private_clients() {
+        let mut query = test_queries()[0];
+        let ftl_memory = test_memory();
+        let map_function = map_query_to_json(&ftl_memory, &ShmLockGuard::Test).unwrap();
+
+        query.privacy_level = FtlPrivacyLevel::HideDomainsAndClients;
+        let mapped_query = map_function(&query);
+
+        assert_eq!(
+            mapped_query,
+            json!({
+                "timestamp": 263_581,
+                "type": 1,
+                "status": 2,
+                "domain": "hidden",
+                "client": "0.0.0.0",
                 "dnssec": 1,
                 "reply": 3,
                 "response_time": 1

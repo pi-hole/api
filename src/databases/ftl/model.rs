@@ -30,7 +30,7 @@ pub enum CounterTableEntry {
 #[cfg_attr(test, derive(PartialEq, Debug))]
 #[derive(Queryable)]
 pub struct FtlDbQuery {
-    pub id: Option<i32>,
+    pub id: i32,
     pub timestamp: i32,
     pub query_type: i32,
     pub status: i32,
