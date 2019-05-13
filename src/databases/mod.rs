@@ -20,6 +20,11 @@ use std::collections::HashMap;
 use crate::databases::ftl::TEST_FTL_DATABASE_PATH;
 #[cfg(test)]
 use crate::databases::gravity::TEST_GRAVITY_DATABASE_PATH;
+#[cfg(test)]
+use diesel::{
+    connection::{Connection, TransactionManager},
+    SqliteConnection
+};
 
 pub mod ftl;
 pub mod gravity;
@@ -53,4 +58,18 @@ pub fn load_test_databases() -> HashMap<&'static str, HashMap<&'static str, Valu
     databases.insert("gravity_database", gravity_database);
 
     databases
+}
+
+/// Start a test transaction so the database does not get modified. If a
+/// transaction is already running, it is rolled back.
+#[cfg(test)]
+fn start_test_transaction(db: &SqliteConnection) {
+    let transaction_manager: &TransactionManager<SqliteConnection> = db.transaction_manager();
+    let depth = transaction_manager.get_transaction_depth();
+
+    if depth > 0 {
+        transaction_manager.rollback_transaction(db).unwrap();
+    }
+
+    db.begin_test_transaction().unwrap();
 }

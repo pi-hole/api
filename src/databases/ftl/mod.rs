@@ -9,6 +9,8 @@
 // Please see LICENSE file for your rights under this license.
 
 #[cfg(test)]
+use crate::databases::start_test_transaction;
+#[cfg(test)]
 use diesel::{
     r2d2::{ConnectionManager, Pool},
     SqliteConnection
@@ -34,5 +36,8 @@ lazy_static! {
 /// Connect to the testing database
 #[cfg(test)]
 pub fn connect_to_ftl_test_db() -> FtlDatabase {
-    FtlDatabase(CONNECTION_POOL.get().unwrap())
+    let db = FtlDatabase(CONNECTION_POOL.get().unwrap());
+    start_test_transaction(&db as &SqliteConnection);
+
+    db
 }
