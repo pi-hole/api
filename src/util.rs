@@ -148,7 +148,9 @@ pub enum ErrorKind {
     )]
     SharedMemoryVersion(usize, usize),
     #[fail(display = "Error while interacting with the FTL database")]
-    FtlDatabase
+    FtlDatabase,
+    #[fail(display = "Error while interacting with the Gravity database")]
+    GravityDatabase
 }
 
 impl Error {
@@ -235,7 +237,8 @@ impl ErrorKind {
             ErrorKind::SharedMemoryRead => "shared_memory_read",
             ErrorKind::SharedMemoryLock => "shared_memory_lock",
             ErrorKind::SharedMemoryVersion(_, _) => "shared_memory_version",
-            ErrorKind::FtlDatabase => "ftl_database"
+            ErrorKind::FtlDatabase => "ftl_database",
+            ErrorKind::GravityDatabase => "gravity_database"
         }
     }
 
@@ -263,7 +266,8 @@ impl ErrorKind {
             | ErrorKind::SharedMemoryRead
             | ErrorKind::SharedMemoryLock
             | ErrorKind::SharedMemoryVersion(_, _)
-            | ErrorKind::FtlDatabase => Status::InternalServerError
+            | ErrorKind::FtlDatabase
+            | ErrorKind::GravityDatabase => Status::InternalServerError
         }
     }
 
