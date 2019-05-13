@@ -18,16 +18,23 @@ use std::collections::HashMap;
 
 #[cfg(test)]
 use crate::databases::ftl::TEST_FTL_DATABASE_PATH;
+#[cfg(test)]
+use crate::databases::gravity::TEST_GRAVITY_DATABASE_PATH;
 
 pub mod ftl;
+pub mod gravity;
 
 /// Load the database URLs from the API config into the Rocket config format
 pub fn load_databases(env: &Env) -> Result<HashMap<&str, HashMap<&str, Value>>, Error> {
     let mut databases = HashMap::new();
     let mut ftl_database = HashMap::new();
+    let mut gravity_database = HashMap::new();
 
     ftl_database.insert("url", Value::from(FtlConfEntry::DbFile.read(env)?));
+    gravity_database.insert("url", Value::from(FtlConfEntry::GravityDb.read(env)?));
+
     databases.insert("ftl_database", ftl_database);
+    databases.insert("gravity_database", gravity_database);
 
     Ok(databases)
 }
@@ -37,9 +44,13 @@ pub fn load_databases(env: &Env) -> Result<HashMap<&str, HashMap<&str, Value>>, 
 pub fn load_test_databases() -> HashMap<&'static str, HashMap<&'static str, Value>> {
     let mut databases = HashMap::new();
     let mut ftl_database = HashMap::new();
+    let mut gravity_database = HashMap::new();
 
     ftl_database.insert("url", Value::from(TEST_FTL_DATABASE_PATH));
+    gravity_database.insert("url", Value::from(TEST_GRAVITY_DATABASE_PATH));
+
     databases.insert("ftl_database", ftl_database);
+    databases.insert("gravity_database", gravity_database);
 
     databases
 }
