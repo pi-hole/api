@@ -10,18 +10,20 @@
 
 use crate::{
     ftl::{FtlMemory, FtlQuery, ShmLockGuard},
-    routes::stats::common::{HIDDEN_CLIENT, HIDDEN_DOMAIN},
+    routes::stats::{
+        common::{HIDDEN_CLIENT, HIDDEN_DOMAIN},
+        QueryReply
+    },
     settings::FtlPrivacyLevel,
     util::Error
 };
-use rocket_contrib::json::JsonValue;
 
 /// Create a function to map `FtlQuery` structs to JSON `Value` structs. The
 /// queries' privacy levels will be taken into account when exposing their data.
 pub fn map_query_to_json<'a>(
     ftl_memory: &'a FtlMemory,
     ftl_lock: &ShmLockGuard<'a>
-) -> Result<impl Fn(&FtlQuery) -> JsonValue + 'a, Error> {
+) -> Result<impl Fn(&FtlQuery) -> QueryReply + 'a, Error> {
     let domains = ftl_memory.domains(ftl_lock)?;
     let clients = ftl_memory.clients(ftl_lock)?;
     let strings = ftl_memory.strings(ftl_lock)?;
@@ -51,18 +53,18 @@ pub fn map_query_to_json<'a>(
             query.response_time
         } else {
             0
-        };
+        } as u32;
 
-        json!({
-            "timestamp": query.timestamp,
-            "type": query.query_type as u8,
-            "status": query.status as u8,
-            "domain": domain,
-            "client": client,
-            "dnssec": query.dnssec_type as u8,
-            "reply": query.reply_type as u8,
-            "response_time": response_time
-        })
+        QueryReply {
+            timestamp: query.timestamp as u64,
+            r#type: query.query_type as u8,
+            status: query.status as u8,
+            domain: domain.to_owned(),
+            client: client.to_owned(),
+            dnssec: query.dnssec_type as u8,
+            reply: query.reply_type as u8,
+            response_time
+        }
     })
 }
 
@@ -71,7 +73,10 @@ mod test {
     use super::map_query_to_json;
     use crate::{
         ftl::ShmLockGuard,
-        routes::stats::history::testing::{test_memory, test_queries},
+        routes::stats::{
+            history::testing::{test_memory, test_queries},
+            QueryReply
+        },
         settings::FtlPrivacyLevel
     };
 
@@ -85,16 +90,16 @@ mod test {
 
         assert_eq!(
             mapped_query,
-            json!({
-                "timestamp": 263_581,
-                "type": 1,
-                "status": 2,
-                "domain": "domain1.com",
-                "client": "client1",
-                "dnssec": 1,
-                "reply": 3,
-                "response_time": 1
-            })
+            QueryReply {
+                timestamp: 263_581,
+                r#type: 1,
+                status: 2,
+                domain: "domain1.com".to_owned(),
+                client: "client1".to_owned(),
+                dnssec: 1,
+                reply: 3,
+                response_time: 1
+            }
         );
     }
 
@@ -110,16 +115,16 @@ mod test {
 
         assert_eq!(
             mapped_query,
-            json!({
-                "timestamp": 263_581,
-                "type": 1,
-                "status": 2,
-                "domain": "hidden",
-                "client": "client1",
-                "dnssec": 1,
-                "reply": 3,
-                "response_time": 1
-            })
+            QueryReply {
+                timestamp: 263_581,
+                r#type: 1,
+                status: 2,
+                domain: "hidden".to_owned(),
+                client: "client1".to_owned(),
+                dnssec: 1,
+                reply: 3,
+                response_time: 1
+            }
         );
     }
 
@@ -135,16 +140,16 @@ mod test {
 
         assert_eq!(
             mapped_query,
-            json!({
-                "timestamp": 263_581,
-                "type": 1,
-                "status": 2,
-                "domain": "hidden",
-                "client": "0.0.0.0",
-                "dnssec": 1,
-                "reply": 3,
-                "response_time": 1
-            })
+            QueryReply {
+                timestamp: 263_581,
+                r#type: 1,
+                status: 2,
+                domain: "hidden".to_owned(),
+                client: "0.0.0.0".to_owned(),
+                dnssec: 1,
+                reply: 3,
+                response_time: 1
+            }
         );
     }
 }

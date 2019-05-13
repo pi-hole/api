@@ -22,7 +22,6 @@ use rocket::{
     request::{Form, FromFormValue},
     State
 };
-use rocket_contrib::json::JsonValue;
 
 /// Get the query history according to the specified parameters
 #[get("/stats/history?<params..>")]
@@ -39,8 +38,21 @@ pub fn history(
 /// The structure returned by the history endpoint
 #[derive(Serialize, PartialEq, Debug)]
 pub struct HistoryReply {
-    pub history: Vec<JsonValue>,
+    pub history: Vec<QueryReply>,
     pub cursor: Option<String>
+}
+
+/// The structure of queries returned by the history endpoint
+#[derive(Serialize, PartialEq, Debug)]
+pub struct QueryReply {
+    pub timestamp: u64,
+    pub r#type: u8,
+    pub status: u8,
+    pub domain: String,
+    pub client: String,
+    pub dnssec: u8,
+    pub reply: u8,
+    pub response_time: u32
 }
 
 /// Represents the possible GET parameters on `/stats/history`

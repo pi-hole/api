@@ -18,11 +18,10 @@ use crate::{
     databases::ftl::FtlDatabase,
     env::Env,
     ftl::{FtlMemory, FtlQuery},
-    routes::stats::{history::database::load_queries_from_database, HistoryReply},
+    routes::stats::{history::database::load_queries_from_database, HistoryReply, QueryReply},
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::Error
 };
-use rocket_contrib::json::JsonValue;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Get the query history according to the specified parameters
@@ -131,7 +130,7 @@ pub fn get_history(
         .or_else(|| params.cursor.map(|cursor| cursor.db_id).unwrap_or(None));
 
     // Map the queries into the output format
-    let history: Vec<JsonValue> = history
+    let history: Vec<QueryReply> = history
             .into_iter()
             // Only take up to the limit this time, not including the last query,
             // because it was just used to get the cursor
@@ -202,11 +201,10 @@ mod test {
                 map_query_to_json::map_query_to_json,
                 testing::{test_memory, test_queries}
             },
-            HistoryParams, HistoryReply
+            HistoryParams, HistoryReply, QueryReply
         },
         testing::TestEnvBuilder
     };
-    use rocket_contrib::json::JsonValue;
 
     /// The default behavior lists the first 100 non-private queries sorted by
     /// most recent
@@ -218,7 +216,7 @@ mod test {
         // The private query should be ignored
         expected_queries.remove(8);
 
-        let history: Vec<JsonValue> = expected_queries
+        let history: Vec<QueryReply> = expected_queries
             .iter()
             .rev()
             .map(map_query_to_json(&ftl_memory, &ShmLockGuard::Test).unwrap())
@@ -254,7 +252,7 @@ mod test {
         // The private query should be ignored
         expected_queries.remove(8);
 
-        let history: Vec<JsonValue> = expected_queries
+        let history: Vec<QueryReply> = expected_queries
             .iter()
             .rev()
             .take(5)
@@ -308,26 +306,26 @@ mod test {
     #[test]
     fn database() {
         let history = vec![
-            json!({
-                "timestamp": 177_180,
-                "type": 6,
-                "status": 2,
-                "domain": "4.4.8.8.in-addr.arpa",
-                "client": "127.0.0.1",
-                "dnssec": 5,
-                "reply": 0,
-                "response_time": 0
-            }),
-            json!({
-                "timestamp": 177_180,
-                "type": 6,
-                "status": 3,
-                "domain": "1.1.1.10.in-addr.arpa",
-                "client": "127.0.0.1",
-                "dnssec": 5,
-                "reply": 0,
-                "response_time": 0
-            }),
+            QueryReply {
+                timestamp: 177_180,
+                r#type: 6,
+                status: 2,
+                domain: "4.4.8.8.in-addr.arpa".to_owned(),
+                client: "127.0.0.1".to_owned(),
+                dnssec: 5,
+                reply: 0,
+                response_time: 0
+            },
+            QueryReply {
+                timestamp: 177_180,
+                r#type: 6,
+                status: 3,
+                domain: "1.1.1.10.in-addr.arpa".to_owned(),
+                client: "127.0.0.1".to_owned(),
+                dnssec: 5,
+                reply: 0,
+                response_time: 0
+            },
         ];
 
         let env = TestEnvBuilder::new()
