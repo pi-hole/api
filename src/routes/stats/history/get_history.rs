@@ -18,9 +18,9 @@ use crate::{
     databases::ftl::FtlDatabase,
     env::Env,
     ftl::{FtlMemory, FtlQuery},
-    routes::stats::history::database::load_queries_from_database,
+    routes::stats::{history::database::load_queries_from_database, HistoryReply},
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
-    util::{reply_data, Reply}
+    util::Error
 };
 use rocket_contrib::json::JsonValue;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -31,15 +31,13 @@ pub fn get_history(
     env: &Env,
     params: HistoryParams,
     db: &FtlDatabase
-) -> Reply {
+) -> Result<HistoryReply, Error> {
     // Check if query details are private
     if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(env)? >= FtlPrivacyLevel::Maximum {
-        // `None::<()>` represents `null` in JSON. It needs the type parameter because
-        // it doesn't know what type of Option it is (`Option<T>`)
-        return reply_data(json!({
-            "cursor": None::<()>,
-            "history": []
-        }));
+        return Ok(HistoryReply {
+            history: Vec::new(),
+            cursor: None
+        });
     }
 
     let lock = ftl_memory.lock()?;
@@ -163,10 +161,10 @@ pub fn get_history(
         history
     };
 
-    reply_data(json!({
-        "cursor": next_cursor,
-        "history": history
-    }))
+    Ok(HistoryReply {
+        history,
+        cursor: next_cursor
+    })
 }
 
 /// Check if the timespan is completely within the last 24 hours
@@ -195,13 +193,18 @@ fn is_within_24_hours(from: Option<u64>, until: Option<u64>) -> bool {
 #[cfg(test)]
 mod test {
     use crate::{
+        databases::ftl::connect_to_ftl_test_db,
         env::PiholeFile,
         ftl::ShmLockGuard,
-        routes::stats::history::{
-            map_query_to_json::map_query_to_json,
-            testing::{test_memory, test_queries}
+        routes::stats::{
+            history::{
+                get_history::get_history,
+                map_query_to_json::map_query_to_json,
+                testing::{test_memory, test_queries}
+            },
+            HistoryParams, HistoryReply
         },
-        testing::TestBuilder
+        testing::TestEnvBuilder
     };
     use rocket_contrib::json::JsonValue;
 
@@ -221,17 +224,25 @@ mod test {
             .map(map_query_to_json(&ftl_memory, &ShmLockGuard::Test).unwrap())
             .collect();
 
-        TestBuilder::new()
-            .endpoint("/admin/api/stats/history")
-            .ftl_memory(ftl_memory)
+        let env = TestEnvBuilder::new()
             .file(PiholeFile::SetupVars, "")
             .file(PiholeFile::FtlConfig, "")
-            .need_database(true)
-            .expect_json(json!({
-                "history": history,
-                "cursor": None::<()>
-            }))
-            .test();
+            .build();
+
+        let expected = HistoryReply {
+            history,
+            cursor: None
+        };
+
+        let actual = get_history(
+            &ftl_memory,
+            &env,
+            HistoryParams::default(),
+            &connect_to_ftl_test_db()
+        )
+        .unwrap();
+
+        assert_eq!(actual, expected);
     }
 
     /// When the limit is specified, only that many queries will be shown
@@ -250,68 +261,93 @@ mod test {
             .map(map_query_to_json(&ftl_memory, &ShmLockGuard::Test).unwrap())
             .collect();
 
-        TestBuilder::new()
-            .endpoint("/admin/api/stats/history?limit=5")
-            .ftl_memory(ftl_memory)
+        let env = TestEnvBuilder::new()
             .file(PiholeFile::SetupVars, "")
             .file(PiholeFile::FtlConfig, "")
-            .need_database(true)
-            .expect_json(json!({
-                "history": history,
-                "cursor": "eyJpZCI6bnVsbCwiZGJfaWQiOjk3fQ=="
-            }))
-            .test();
+            .build();
+
+        let params = HistoryParams {
+            limit: Some(5),
+            ..HistoryParams::default()
+        };
+
+        let expected = HistoryReply {
+            history,
+            cursor: Some("eyJpZCI6bnVsbCwiZGJfaWQiOjk3fQ==".to_owned())
+        };
+
+        let actual = get_history(&ftl_memory, &env, params, &connect_to_ftl_test_db()).unwrap();
+
+        assert_eq!(actual, expected);
     }
 
     /// Maximum privacy shows no queries
     #[test]
     fn privacy_max() {
-        TestBuilder::new()
-            .endpoint("/admin/api/stats/history")
+        let env = TestEnvBuilder::new()
             .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=3")
-            .ftl_memory(test_memory())
-            .need_database(true)
-            .expect_json(json!({
-                "history": [],
-                "cursor": None::<()>
-            }))
-            .test();
+            .build();
+
+        let expected = HistoryReply {
+            history: Vec::new(),
+            cursor: None
+        };
+
+        let actual = get_history(
+            &test_memory(),
+            &env,
+            HistoryParams::default(),
+            &connect_to_ftl_test_db()
+        )
+        .unwrap();
+
+        assert_eq!(actual, expected);
     }
 
     /// Load queries from the database
     #[test]
     fn database() {
-        TestBuilder::new()
-            .endpoint("/admin/api/stats/history?from=177180&until=177181")
-            .ftl_memory(test_memory())
+        let history = vec![
+            json!({
+                "timestamp": 177_180,
+                "type": 6,
+                "status": 2,
+                "domain": "4.4.8.8.in-addr.arpa",
+                "client": "127.0.0.1",
+                "dnssec": 5,
+                "reply": 0,
+                "response_time": 0
+            }),
+            json!({
+                "timestamp": 177_180,
+                "type": 6,
+                "status": 3,
+                "domain": "1.1.1.10.in-addr.arpa",
+                "client": "127.0.0.1",
+                "dnssec": 5,
+                "reply": 0,
+                "response_time": 0
+            }),
+        ];
+
+        let env = TestEnvBuilder::new()
             .file(PiholeFile::SetupVars, "")
             .file(PiholeFile::FtlConfig, "")
-            .need_database(true)
-            .expect_json(json!({
-                "history": [
-                    {
-                        "timestamp": 177_180,
-                        "type": 6,
-                        "status": 2,
-                        "domain": "4.4.8.8.in-addr.arpa",
-                        "client": "127.0.0.1",
-                        "dnssec": 5,
-                        "reply": 0,
-                        "response_time": 0
-                    },
-                    {
-                        "timestamp": 177_180,
-                        "type": 6,
-                        "status": 3,
-                        "domain": "1.1.1.10.in-addr.arpa",
-                        "client": "127.0.0.1",
-                        "dnssec": 5,
-                        "reply": 0,
-                        "response_time": 0
-                    }
-                ],
-                "cursor": None::<()>
-            }))
-            .test();
+            .build();
+
+        let params = HistoryParams {
+            from: Some(177180),
+            until: Some(177181),
+            ..HistoryParams::default()
+        };
+
+        let expected = HistoryReply {
+            history,
+            cursor: None
+        };
+
+        let actual = get_history(&test_memory(), &env, params, &connect_to_ftl_test_db()).unwrap();
+
+        assert_eq!(actual, expected);
     }
 }

@@ -241,6 +241,8 @@ impl TestBuilder {
         self
     }
 
+    // This method is not used for now, but could be in the the future
+    #[allow(unused)]
     pub fn need_database(mut self, need_database: bool) -> Self {
         self.needs_database = need_database;
         self
