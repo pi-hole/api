@@ -21,6 +21,6 @@ pub const TEST_FTL_DATABASE_PATH: &str = "test/FTL.db";
 
 /// Connect to the testing database
 #[cfg(test)]
-pub fn connect_to_test_db() -> SqliteConnection {
+pub fn connect_to_ftl_test_db() -> SqliteConnection {
     SqliteConnection::establish(TEST_FTL_DATABASE_PATH).unwrap()
 }

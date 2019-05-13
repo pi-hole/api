@@ -44,7 +44,7 @@ pub fn filter_status_db<'a>(
 mod test {
     use super::{filter_status, filter_status_db};
     use crate::{
-        databases::ftl::connect_to_test_db,
+        databases::ftl::connect_to_ftl_test_db,
         ftl::{FtlQuery, FtlQueryStatus},
         routes::stats::history::{
             database::execute_query, endpoints::HistoryParams, testing::test_queries
@@ -82,7 +82,7 @@ mod test {
         };
 
         let db_query = filter_status_db(queries.into_boxed(), &params);
-        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+        let filtered_queries = execute_query(&connect_to_ftl_test_db(), db_query).unwrap();
 
         for query in filtered_queries {
             assert_eq!(query.status, expected_status as i32);

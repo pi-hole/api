@@ -102,7 +102,7 @@ pub fn execute_query(
 mod test {
     use super::load_queries_from_database;
     use crate::{
-        databases::ftl::connect_to_test_db,
+        databases::ftl::connect_to_ftl_test_db,
         env::PiholeFile,
         routes::stats::history::endpoints::{HistoryCursor, HistoryParams},
         testing::TestEnvBuilder
@@ -116,7 +116,7 @@ mod test {
             .build();
 
         let (queries, cursor) = load_queries_from_database(
-            &connect_to_test_db(),
+            &connect_to_ftl_test_db(),
             Some(2),
             &HistoryParams::default(),
             &env,
@@ -141,7 +141,7 @@ mod test {
         });
 
         let (queries, cursor) = load_queries_from_database(
-            &connect_to_test_db(),
+            &connect_to_ftl_test_db(),
             Some(3),
             &HistoryParams::default(),
             &env,

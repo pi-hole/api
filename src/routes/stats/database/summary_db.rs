@@ -172,7 +172,7 @@ mod test {
         get_blocked_query_count, get_query_status_count, get_summary_impl, get_unique_domain_count
     };
     use crate::{
-        databases::ftl::connect_to_test_db,
+        databases::ftl::connect_to_ftl_test_db,
         env::PiholeFile,
         ftl::FtlQueryStatus,
         routes::stats::summary::{ReplyTypes, Summary, TotalQueries},
@@ -213,7 +213,7 @@ mod test {
             status: "enabled"
         };
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let env = TestEnvBuilder::new()
             .file(PiholeFile::SetupVars, "")
             .build();
@@ -227,7 +227,7 @@ mod test {
     fn blocked_query_count() {
         let expected = 0;
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let actual = get_blocked_query_count(&db, FROM_TIMESTAMP, UNTIL_TIMESTAMP).unwrap();
 
         assert_eq!(actual, expected);
@@ -238,7 +238,7 @@ mod test {
     fn unique_domain_count() {
         let expected = 11;
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let actual = get_unique_domain_count(&db, FROM_TIMESTAMP, UNTIL_TIMESTAMP).unwrap();
 
         assert_eq!(actual, expected);
@@ -249,7 +249,7 @@ mod test {
     fn query_status_count() {
         let expected = 26;
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let actual = get_query_status_count(
             &db,
             FROM_TIMESTAMP,

@@ -71,7 +71,7 @@ pub fn filter_time_until_db<'a>(
 mod test {
     use super::{filter_time_from, filter_time_from_db, filter_time_until, filter_time_until_db};
     use crate::{
-        databases::ftl::connect_to_test_db,
+        databases::ftl::connect_to_ftl_test_db,
         ftl::FtlQuery,
         routes::stats::history::{
             database::execute_query, endpoints::HistoryParams, testing::test_queries
@@ -125,7 +125,7 @@ mod test {
         };
 
         let db_query = filter_time_from_db(queries.into_boxed(), &params);
-        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+        let filtered_queries = execute_query(&connect_to_ftl_test_db(), db_query).unwrap();
 
         assert!(filtered_queries
             .iter()
@@ -144,7 +144,7 @@ mod test {
         };
 
         let db_query = filter_time_until_db(queries.into_boxed(), &params);
-        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+        let filtered_queries = execute_query(&connect_to_ftl_test_db(), db_query).unwrap();
 
         assert!(filtered_queries
             .iter()

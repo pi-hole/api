@@ -95,7 +95,7 @@ pub fn filter_excluded_clients_db<'a>(
 mod tests {
     use super::{filter_excluded_clients, filter_excluded_clients_db};
     use crate::{
-        databases::ftl::connect_to_test_db,
+        databases::ftl::connect_to_ftl_test_db,
         env::PiholeFile,
         ftl::{FtlQuery, ShmLockGuard},
         routes::stats::history::{
@@ -165,7 +165,7 @@ mod tests {
             .build();
 
         let db_query = filter_excluded_clients_db(queries.into_boxed(), &env).unwrap();
-        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+        let filtered_queries = execute_query(&connect_to_ftl_test_db(), db_query).unwrap();
 
         assert_eq!(filtered_queries.len(), 1);
         assert_eq!(filtered_queries[0].client, "10.1.1.1".to_owned());
