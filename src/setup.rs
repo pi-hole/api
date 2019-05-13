@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    databases::{ftl::FtlDatabase, load_databases},
+    databases::{ftl::FtlDatabase, gravity::GravityDatabase, load_databases},
     env::{Config, Env},
     ftl::{FtlConnectionType, FtlMemory},
     routes::{
@@ -108,7 +108,9 @@ fn setup(
 
     // Attach the databases if required
     let server = if needs_database {
-        server.attach(FtlDatabase::fairing())
+        server
+            .attach(FtlDatabase::fairing())
+            .attach(GravityDatabase::fairing())
     } else {
         server
     };
