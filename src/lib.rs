@@ -22,6 +22,10 @@ extern crate rocket_contrib;
 #[macro_use]
 extern crate rust_embed;
 
+#[cfg(test)]
+#[macro_use]
+extern crate lazy_static;
+
 pub use crate::cli::handle_cli;
 
 mod cli;

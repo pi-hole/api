@@ -22,7 +22,6 @@ use crate::{
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::{reply_data, Reply}
 };
-use diesel::sqlite::SqliteConnection;
 use rocket_contrib::json::JsonValue;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -150,8 +149,7 @@ pub fn get_history(
         && !is_within_24_hours(params.from, params.until)
     {
         // Load queries from the database
-        let (db_queries, cursor) =
-            load_queries_from_database(db as &SqliteConnection, last_db_id, &params, env, limit)?;
+        let (db_queries, cursor) = load_queries_from_database(db, last_db_id, &params, env, limit)?;
 
         // Map the queries into JSON
         let db_queries = db_queries.into_iter().map(Into::into);

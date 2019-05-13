@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    databases::ftl::{queries, FtlDbQuery},
+    databases::ftl::{queries, FtlDatabase, FtlDbQuery},
     env::Env,
     routes::stats::history::{
         endpoints::{HistoryCursor, HistoryParams},
@@ -31,7 +31,7 @@ use failure::ResultExt;
 /// - `params`: Parameters given to the history endpoint (filters)
 /// - `limit`: The maximum number of queries to load
 pub fn load_queries_from_database(
-    db: &SqliteConnection,
+    db: &FtlDatabase,
     start_id: Option<i64>,
     params: &HistoryParams,
     env: &Env,
@@ -89,11 +89,11 @@ pub fn load_queries_from_database(
 /// Execute a database query for DNS queries on an FTL database.
 /// The database could be real, or it could be a test database.
 pub fn execute_query(
-    db: &SqliteConnection,
+    db: &FtlDatabase,
     db_query: queries::BoxedQuery<Sqlite>
 ) -> Result<Vec<FtlDbQuery>, Error> {
     db_query
-        .load(db)
+        .load(db as &SqliteConnection)
         .context(ErrorKind::FtlDatabase)
         .map_err(Error::from)
 }
