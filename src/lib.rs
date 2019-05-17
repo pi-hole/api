@@ -35,6 +35,7 @@ mod cli;
 mod databases;
 mod env;
 mod ftl;
+mod lists;
 mod routes;
 mod settings;
 mod setup;

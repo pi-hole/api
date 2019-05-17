@@ -9,26 +9,24 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    env::Env,
-    routes::dns::list::List,
+    lists::{List, ListRepositoryGuard},
     util::{reply_result, Reply}
 };
-use rocket::State;
 
 /// Get the Whitelist domains
 #[get("/dns/whitelist")]
-pub fn get_whitelist(env: State<Env>) -> Reply {
-    reply_result(List::White.get(&env))
+pub fn get_whitelist(repo: ListRepositoryGuard) -> Reply {
+    reply_result(repo.get(List::White))
 }
 
 /// Get the Blacklist domains
 #[get("/dns/blacklist")]
-pub fn get_blacklist(env: State<Env>) -> Reply {
-    reply_result(List::Black.get(&env))
+pub fn get_blacklist(repo: ListRepositoryGuard) -> Reply {
+    reply_result(repo.get(List::Black))
 }
 
 /// Get the Regex list domains
 #[get("/dns/regexlist")]
-pub fn get_regexlist(env: State<Env>) -> Reply {
-    reply_result(List::Regex.get(&env))
+pub fn get_regexlist(repo: ListRepositoryGuard) -> Reply {
+    reply_result(repo.get(List::Regex))
 }
