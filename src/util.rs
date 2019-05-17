@@ -20,7 +20,8 @@ use serde::Serialize;
 use shmem;
 use std::{
     env,
-    fmt::{self, Display}
+    fmt::{self, Display},
+    sync::Arc
 };
 
 /// Type alias for the most common return type of the API methods
@@ -89,9 +90,9 @@ pub fn reply_success() -> Reply {
 /// Wraps `ErrorKind` to provide context via `Context`.
 ///
 /// See https://boats.gitlab.io/failure/error-errorkind.html
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Error {
-    inner: Context<ErrorKind>
+    inner: Arc<Context<ErrorKind>>
 }
 
 /// The `ErrorKind` enum represents all the possible errors that the API can
@@ -300,14 +301,16 @@ impl Display for Error {
 impl From<ErrorKind> for Error {
     fn from(kind: ErrorKind) -> Error {
         Error {
-            inner: Context::new(kind)
+            inner: Arc::new(Context::new(kind))
         }
     }
 }
 
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Error {
-        Error { inner }
+        Error {
+            inner: Arc::new(inner)
+        }
     }
 }
 
