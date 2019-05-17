@@ -5,7 +5,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates gcc libc-dev git \
         libsqlite3-dev build-essential debhelper dh-systemd && \
     rm -rf /var/lib/apt/lists/* && \
-    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2019-01-09 && \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2019-05-11 && \
     export PATH="/root/.cargo/bin:$PATH"
 
 ENV PATH="/root/.cargo/bin:$PATH"

@@ -7,7 +7,7 @@ RUN dpkg --add-architecture arm64 && \
         gcc libc-dev libsqlite3-dev:arm64 gcc-aarch64-linux-gnu libc-dev-arm64-cross \
         build-essential debhelper dh-systemd && \
     rm -rf /var/lib/apt/lists/* && \
-    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2019-01-09 && \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2019-05-11 && \
     export PATH="/root/.cargo/bin:$PATH" && \
     rustup target add aarch64-unknown-linux-gnu
 
