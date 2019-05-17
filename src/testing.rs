@@ -13,7 +13,11 @@ use crate::{
     ftl::{FtlCounters, FtlMemory, FtlSettings},
     setup
 };
-use rocket::http::{ContentType, Header, Method, Status};
+use rocket::{
+    http::{ContentType, Header, Method, Status},
+    local::Client,
+    Rocket
+};
 use std::{
     collections::HashMap,
     fs::File,
@@ -146,7 +150,8 @@ pub struct TestBuilder {
     test_env_builder: TestEnvBuilder,
     expected_json: serde_json::Value,
     expected_status: Status,
-    needs_database: bool
+    needs_database: bool,
+    rocket_hooks: Vec<Box<dyn FnOnce(Rocket) -> Rocket>>
 }
 
 impl TestBuilder {
@@ -175,7 +180,8 @@ impl TestBuilder {
             })
             .into(),
             expected_status: Status::Ok,
-            needs_database: false
+            needs_database: false,
+            rocket_hooks: Vec::new()
         }
     }
 
@@ -248,17 +254,38 @@ impl TestBuilder {
         self
     }
 
+    pub fn add_rocket_hook(mut self, hook: impl FnOnce(Rocket) -> Rocket + 'static) -> Self {
+        self.rocket_hooks.push(Box::new(hook));
+        self
+    }
+
+    pub fn add_state(self, state: impl Send + Sync + 'static) -> Self {
+        self.add_rocket_hook(move |rocket| rocket.manage(state))
+    }
+
+    pub fn mock_service(self, service: impl Send + Sync + 'static) -> Self {
+        self.add_state(service)
+    }
+
     pub fn test(self) {
         // Save the files for verification
         let test_files = self.test_env_builder.clone_test_files();
 
-        // Start the test client
-        let client = setup::test(
+        // Configure the test server
+        let mut rocket = setup::test(
             self.ftl_data,
             self.ftl_memory,
             self.test_env_builder.build(),
             self.needs_database
         );
+
+        // Execute the Rocket hooks
+        for hook in self.rocket_hooks {
+            rocket = hook(rocket);
+        }
+
+        // Start the test client
+        let client = Client::new(rocket).unwrap();
 
         // Create the request
         let mut request = client.req(self.method, self.endpoint);
