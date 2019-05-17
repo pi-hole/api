@@ -28,6 +28,9 @@ extern crate lazy_static;
 
 pub use crate::cli::handle_cli;
 
+#[macro_use]
+pub mod service;
+
 mod cli;
 mod databases;
 mod env;
