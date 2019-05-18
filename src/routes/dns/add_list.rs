@@ -57,94 +57,48 @@ pub fn add_regexlist(
 #[cfg(test)]
 mod test {
     use crate::{
-        lists::{List, ListRepositoryMock},
-        testing::{write_eom, TestBuilder}
+        lists::{List, ListServiceMock},
+        testing::TestBuilder
     };
     use mock_it::verify;
     use rocket::http::Method;
 
+    /// Test that a successful add returns success
+    fn add_test(list: List, endpoint: &str, domain: &str) {
+        let service = ListServiceMock::new();
+
+        service
+            .add
+            .given((list, domain.to_owned()))
+            .will_return(Ok(()));
+
+        TestBuilder::new()
+            .endpoint(endpoint)
+            .method(Method::Post)
+            .mock_service(service.clone())
+            .body(json!({ "domain": domain }))
+            .expect_json(json!({ "status": "success" }))
+            .test();
+
+        assert!(verify(
+            service.add.was_called_with((list, domain.to_owned()))
+        ));
+    }
+
     #[test]
     fn add_whitelist() {
-        let repo = ListRepositoryMock::new();
-
-        repo.contains
-            .given((List::White, "example.com".to_owned()))
-            .will_return(Ok(false));
-        repo.add
-            .given((List::White, "example.com".to_owned()))
-            .will_return(Ok(()));
-        repo.contains
-            .given((List::Black, "example.com".to_owned()))
-            .will_return(Ok(false));
-
-        TestBuilder::new()
-            .endpoint("/admin/api/dns/whitelist")
-            .method(Method::Post)
-            .mock_service(repo.clone())
-            .body(json!({ "domain": "example.com" }))
-            .expect_json(json!({ "status": "success" }))
-            .test();
-
-        assert!(verify(
-            repo.add
-                .was_called_with((List::White, "example.com".to_owned()))
-        ));
+        add_test(List::White, "/admin/api/dns/whitelist", "example.com");
     }
 
+    /// A successful add returns success
     #[test]
     fn add_blacklist() {
-        let repo = ListRepositoryMock::new();
-
-        repo.contains
-            .given((List::Black, "example.com".to_owned()))
-            .will_return(Ok(false));
-        repo.add
-            .given((List::Black, "example.com".to_owned()))
-            .will_return(Ok(()));
-        repo.contains
-            .given((List::White, "example.com".to_owned()))
-            .will_return(Ok(false));
-
-        TestBuilder::new()
-            .endpoint("/admin/api/dns/blacklist")
-            .method(Method::Post)
-            .mock_service(repo.clone())
-            .body(json!({ "domain": "example.com" }))
-            .expect_json(json!({ "status": "success" }))
-            .test();
-
-        assert!(verify(
-            repo.add
-                .was_called_with((List::Black, "example.com".to_owned()))
-        ));
+        add_test(List::Black, "/admin/api/dns/blacklist", "example.com");
     }
 
+    /// A successful add returns success
     #[test]
     fn test_add_regexlist() {
-        let mut data = Vec::new();
-        write_eom(&mut data);
-
-        let repo = ListRepositoryMock::new();
-
-        repo.contains
-            .given((List::Regex, "^.*example.com$".to_owned()))
-            .will_return(Ok(false));
-        repo.add
-            .given((List::Regex, "^.*example.com$".to_owned()))
-            .will_return(Ok(()));
-
-        TestBuilder::new()
-            .endpoint("/admin/api/dns/regexlist")
-            .method(Method::Post)
-            .ftl("recompile-regex", data)
-            .mock_service(repo.clone())
-            .body(json!({ "domain": "^.*example.com$" }))
-            .expect_json(json!({ "status": "success" }))
-            .test();
-
-        assert!(verify(
-            repo.add
-                .was_called_with((List::Regex, "^.*example.com$".to_owned()))
-        ));
+        add_test(List::Regex, "/admin/api/dns/regexlist", "^.*example.com$");
     }
 }

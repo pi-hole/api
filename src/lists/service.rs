@@ -173,9 +173,9 @@ impl<'r> ListServiceImpl<'r> {
 #[cfg(test)]
 #[derive(Clone)]
 pub struct ListServiceMock {
-    add: Mock<(List, String), Result<(), Error>>,
-    remove: Mock<(List, String), Result<(), Error>>,
-    get: Mock<List, Result<Vec<String>, Error>>
+    pub add: Mock<(List, String), Result<(), Error>>,
+    pub remove: Mock<(List, String), Result<(), Error>>,
+    pub get: Mock<List, Result<Vec<String>, Error>>
 }
 
 #[cfg(test)]
