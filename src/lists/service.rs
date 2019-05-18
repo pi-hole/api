@@ -257,38 +257,70 @@ mod test {
         FtlConnectionType::Test(command_map)
     }
 
-    //    /// The whitelist is retrieved correctly
-    //    #[test]
-    //    fn get_whitelist() {
-    //        let scenario = Scenario::new();
-    //        let repo = scenario.create_mock_for::<ListRepository>();
-    //
-    //        scenario.expect(
-    //            repo.get_call(List::White)
-    //                .and_return(Ok(vec!["whitelist.com".to_owned()]))
-    //        );
-    //
-    //        assert_eq!(
-    //            List::White.get(&repo).unwrap(),
-    //            vec!["whitelist.com".to_owned()]
-    //        );
-    //    }
+    /// Test getting the domains for a list
+    fn get_test(list: List, domain: &str) {
+        let env = TestEnvBuilder::new().build();
+        let ftl = get_ftl();
+        let repo = ListRepositoryMock::new();
 
-    //    /// The blacklist is retrieved correctly
-    //    #[test]
-    //    fn get_blacklist() {
-    //        let db = create_test_db();
-    //
-    //        assert_eq!(List::Black.get(&db).unwrap(), vec!["blacklist.com"]);
-    //    }
-    //
-    //    /// The regexlist is retrieved when it exists
-    //    #[test]
-    //    fn get_regexlist() {
-    //        let db = create_test_db();
-    //
-    //        assert_eq!(List::Regex.get(&db).unwrap(), vec!["regex.com"]);
-    //    }
+        repo.get
+            .given(list)
+            .will_return(Ok(vec![domain.to_owned()]));
+
+        let service = ListServiceImpl {
+            repo: Box::new(repo.clone()),
+            env: &env,
+            ftl: &ftl
+        };
+
+        assert_eq!(service.get(list).unwrap(), vec![domain.to_owned()]);
+
+        assert!(verify(repo.get.was_called_with(list)))
+    }
+
+    /// Test successfully deleting a domain from a list
+    fn delete_test(list: List, domain: &str) {
+        let env = TestEnvBuilder::new().build();
+        let ftl = get_ftl();
+        let repo = ListRepositoryMock::new();
+
+        repo.contains
+            .given((list, domain.to_owned()))
+            .will_return(Ok(true));
+        repo.remove
+            .given((list, domain.to_owned()))
+            .will_return(Ok(()));
+
+        let service = ListServiceImpl {
+            repo: Box::new(repo.clone()),
+            env: &env,
+            ftl: &ftl
+        };
+
+        service.remove(list, domain).unwrap();
+
+        assert!(verify(
+            repo.remove.was_called_with((list, domain.to_owned()))
+        ));
+    }
+
+    /// The whitelist is retrieved correctly
+    #[test]
+    fn get_whitelist() {
+        get_test(List::White, "whitelist.com");
+    }
+
+    /// The blacklist is retrieved correctly
+    #[test]
+    fn get_blacklist() {
+        get_test(List::Black, "blacklist.com");
+    }
+
+    /// The regexlist is retrieved correctly
+    #[test]
+    fn get_regexlist() {
+        get_test(List::Regex, "regex.com");
+    }
 
     /// Adding a domain to the whitelist works when the domain does not exist
     /// in either the whitelist or blacklist
@@ -316,10 +348,10 @@ mod test {
 
         service.add(List::White, "example.com").unwrap();
 
-        verify(
+        assert!(verify(
             repo.add
                 .was_called_with((List::White, "example.com".to_owned()))
-        );
+        ));
     }
 
     /// Adding a domain to the blacklist works when the domain does not exist
@@ -348,10 +380,10 @@ mod test {
 
         service.add(List::Black, "example.com").unwrap();
 
-        verify(
+        assert!(verify(
             repo.add
                 .was_called_with((List::Black, "example.com".to_owned()))
-        );
+        ));
     }
 
     /// Adding a domain to the regex list works when the domain does not already
@@ -377,51 +409,24 @@ mod test {
 
         service.add(List::Regex, "example.com").unwrap();
 
-        verify(
+        assert!(verify(
             repo.add
                 .was_called_with((List::Regex, "example.com".to_owned()))
-        );
+        ));
     }
 
-    //    #[test]
-    //    fn delete_whitelist() {
-    //        let env = TestEnvBuilder::new().build();
-    //        let db = connect_to_gravity_test_db();
-    //        let ftl = get_ftl();
-    //
-    //        List::White.remove("whitelist.com", &env, &db, &ftl).unwrap();
-    //
-    //        assert_eq!(
-    //            List::White.get(&db).unwrap().len(),
-    //            0
-    //        );
-    //    }
-    //
-    //    #[test]
-    //    fn delete_blacklist() {
-    //        let env = TestEnvBuilder::new().build();
-    //        let db = connect_to_gravity_test_db();
-    //        let ftl = get_ftl();
-    //
-    //        List::Black.remove("blacklist.com", &env, &db, &ftl).unwrap();
-    //
-    //        assert_eq!(
-    //            List::Black.get(&db).unwrap().len(),
-    //            0
-    //        );
-    //    }
-    //
-    //    #[test]
-    //    fn delete_regexlist() {
-    //        let env = TestEnvBuilder::new().build();
-    //        let db = connect_to_gravity_test_db();
-    //        let ftl = get_ftl();
-    //
-    //        List::Regex.remove("regex.com", &env, &db, &ftl).unwrap();
-    //
-    //        assert_eq!(
-    //            List::Regex.get(&db).unwrap().len(),
-    //            0
-    //        );
-    //    }
+    #[test]
+    fn delete_whitelist() {
+        delete_test(List::White, "whitelist.com");
+    }
+
+    #[test]
+    fn delete_blacklist() {
+        delete_test(List::Black, "blacklist.com");
+    }
+
+    #[test]
+    fn delete_regexlist() {
+        delete_test(List::Regex, "regex.com");
+    }
 }
