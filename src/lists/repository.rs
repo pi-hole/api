@@ -19,7 +19,7 @@ use rocket::{
     request::{self, FromRequest},
     Outcome, Request
 };
-use std::ops::Deref;
+use std::marker::PhantomData;
 
 #[cfg(test)]
 use mock_it::Mock;
@@ -46,6 +46,118 @@ service!(
     ListRepositoryMock
 );
 
+/// The implementation of `ListRepository`
+pub struct ListRepositoryImpl<'r> {
+    db: GravityDatabase,
+    phantom: PhantomData<&'r ()>
+}
+
+impl<'a, 'r> FromRequest<'a, 'r> for ListRepositoryImpl<'r> {
+    type Error = ();
+
+    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, ()> {
+        let db = request.guard::<GravityDatabase>()?;
+        Outcome::Success(ListRepositoryImpl {
+            db,
+            phantom: PhantomData
+        })
+    }
+}
+
+impl<'r> ListRepository for ListRepositoryImpl<'r> {
+    fn get(&self, list: List) -> Result<Vec<String>, Error> {
+        let db = &self.db as &SqliteConnection;
+
+        match list {
+            List::White => {
+                use crate::databases::gravity::whitelist::dsl::*;
+                whitelist.select(domain).filter(enabled.eq(true)).load(db)
+            }
+            List::Black => {
+                use crate::databases::gravity::blacklist::dsl::*;
+                blacklist.select(domain).filter(enabled.eq(true)).load(db)
+            }
+            List::Regex => {
+                use crate::databases::gravity::regex::dsl::*;
+                regex.select(domain).filter(enabled.eq(true)).load(db)
+            }
+        }
+        .context(ErrorKind::GravityDatabase)
+        .map_err(Error::from)
+    }
+
+    fn contains(&self, list: List, input_domain: &str) -> Result<bool, Error> {
+        let db = &self.db as &SqliteConnection;
+
+        match list {
+            List::White => {
+                use crate::databases::gravity::whitelist::dsl::*;
+                select(exists(whitelist.filter(domain.eq(input_domain)))).get_result(db)
+            }
+            List::Black => {
+                use crate::databases::gravity::blacklist::dsl::*;
+                select(exists(blacklist.filter(domain.eq(input_domain)))).get_result(db)
+            }
+            List::Regex => {
+                use crate::databases::gravity::regex::dsl::*;
+                select(exists(regex.filter(domain.eq(input_domain)))).get_result(db)
+            }
+        }
+        .context(ErrorKind::GravityDatabase)
+        .map_err(Error::from)
+    }
+
+    fn add(&self, list: List, input_domain: &str) -> Result<(), Error> {
+        let db = &self.db as &SqliteConnection;
+
+        match list {
+            List::White => {
+                use crate::databases::gravity::whitelist::dsl::*;
+                insert_into(whitelist)
+                    .values(&domain.eq(input_domain))
+                    .execute(db)
+            }
+            List::Black => {
+                use crate::databases::gravity::blacklist::dsl::*;
+                insert_into(blacklist)
+                    .values(&domain.eq(input_domain))
+                    .execute(db)
+            }
+            List::Regex => {
+                use crate::databases::gravity::regex::dsl::*;
+                insert_into(regex)
+                    .values(&domain.eq(input_domain))
+                    .execute(db)
+            }
+        }
+        .context(ErrorKind::GravityDatabase)?;
+
+        Ok(())
+    }
+
+    fn remove(&self, list: List, input_domain: &str) -> Result<(), Error> {
+        let db = &self.db as &SqliteConnection;
+
+        match list {
+            List::White => {
+                use crate::databases::gravity::whitelist::dsl::*;
+                delete(whitelist.filter(domain.eq(input_domain))).execute(db)
+            }
+            List::Black => {
+                use crate::databases::gravity::blacklist::dsl::*;
+                delete(blacklist.filter(domain.eq(input_domain))).execute(db)
+            }
+            List::Regex => {
+                use crate::databases::gravity::regex::dsl::*;
+                delete(regex.filter(domain.eq(input_domain))).execute(db)
+            }
+        }
+        .context(ErrorKind::GravityDatabase)?;
+
+        Ok(())
+    }
+}
+
 // TODO: add proc macro to mocking library to generate the mock
 #[cfg(test)]
 #[derive(Clone)]
@@ -69,7 +181,7 @@ impl ListRepositoryMock {
 }
 
 #[cfg(test)]
-impl ListRepository for ListRepositoryMock {
+impl<'r> ListRepository for ListRepositoryMock {
     fn get(&self, list: List) -> Result<Vec<String>, Error> {
         self.get.called(list)
     }
@@ -84,124 +196,5 @@ impl ListRepository for ListRepositoryMock {
 
     fn remove(&self, list: List, domain: &str) -> Result<(), Error> {
         self.remove.called((list, domain.to_owned()))
-    }
-}
-
-pub struct ListRepositoryImpl {
-    db: GravityDatabase
-}
-
-impl<'a, 'r> FromRequest<'a, 'r> for ListRepositoryImpl {
-    type Error = ();
-
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, ()> {
-        let db = request.guard::<GravityDatabase>()?;
-        Outcome::Success(ListRepositoryImpl { db })
-    }
-}
-
-impl ListRepository for ListRepositoryImpl {
-    fn get(&self, list: List) -> Result<Vec<String>, Error> {
-        let db = &self.db as &SqliteConnection;
-
-        match list {
-            List::White => {
-                use crate::databases::gravity::whitelist::dsl::*;
-
-                whitelist.select(domain).filter(enabled.eq(true)).load(db)
-            }
-            List::Black => {
-                use crate::databases::gravity::blacklist::dsl::*;
-
-                blacklist.select(domain).filter(enabled.eq(true)).load(db)
-            }
-            List::Regex => {
-                use crate::databases::gravity::regex::dsl::*;
-
-                regex.select(domain).filter(enabled.eq(true)).load(db)
-            }
-        }
-        .context(ErrorKind::GravityDatabase)
-        .map_err(Error::from)
-    }
-
-    fn contains(&self, list: List, input_domain: &str) -> Result<bool, Error> {
-        let db = &self.db as &SqliteConnection;
-
-        match list {
-            List::White => {
-                use crate::databases::gravity::whitelist::dsl::*;
-
-                select(exists(whitelist.filter(domain.eq(input_domain)))).get_result(db)
-            }
-            List::Black => {
-                use crate::databases::gravity::blacklist::dsl::*;
-
-                select(exists(blacklist.filter(domain.eq(input_domain)))).get_result(db)
-            }
-            List::Regex => {
-                use crate::databases::gravity::regex::dsl::*;
-
-                select(exists(regex.filter(domain.eq(input_domain)))).get_result(db)
-            }
-        }
-        .context(ErrorKind::GravityDatabase)
-        .map_err(Error::from)
-    }
-
-    fn add(&self, list: List, input_domain: &str) -> Result<(), Error> {
-        let db = &self.db as &SqliteConnection;
-
-        match list {
-            List::White => {
-                use crate::databases::gravity::whitelist::dsl::*;
-
-                insert_into(whitelist)
-                    .values(&domain.eq(input_domain))
-                    .execute(db)
-            }
-            List::Black => {
-                use crate::databases::gravity::blacklist::dsl::*;
-
-                insert_into(blacklist)
-                    .values(&domain.eq(input_domain))
-                    .execute(db)
-            }
-            List::Regex => {
-                use crate::databases::gravity::regex::dsl::*;
-
-                insert_into(regex)
-                    .values(&domain.eq(input_domain))
-                    .execute(db)
-            }
-        }
-        .context(ErrorKind::GravityDatabase)?;
-
-        Ok(())
-    }
-
-    fn remove(&self, list: List, input_domain: &str) -> Result<(), Error> {
-        let db = &self.db as &SqliteConnection;
-
-        match list {
-            List::White => {
-                use crate::databases::gravity::whitelist::dsl::*;
-
-                delete(whitelist.filter(domain.eq(input_domain))).execute(db)
-            }
-            List::Black => {
-                use crate::databases::gravity::blacklist::dsl::*;
-
-                delete(blacklist.filter(domain.eq(input_domain))).execute(db)
-            }
-            List::Regex => {
-                use crate::databases::gravity::regex::dsl::*;
-
-                delete(regex.filter(domain.eq(input_domain))).execute(db)
-            }
-        }
-        .context(ErrorKind::GravityDatabase)?;
-
-        Ok(())
     }
 }

@@ -9,13 +9,10 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    env::Env,
-    ftl::FtlConnectionType,
-    lists::{List, ListRepositoryGuard},
+    lists::{List, ListServiceGuard},
     routes::auth::User,
     util::{reply_success, Reply}
 };
-use rocket::State;
 use rocket_contrib::json::Json;
 
 /// Represents an API input containing a domain
@@ -28,12 +25,10 @@ pub struct DomainInput {
 #[post("/dns/whitelist", data = "<domain_input>")]
 pub fn add_whitelist(
     _auth: User,
-    env: State<Env>,
-    repo: ListRepositoryGuard,
-    ftl: State<FtlConnectionType>,
+    list_service: ListServiceGuard,
     domain_input: Json<DomainInput>
 ) -> Reply {
-    List::White.add(&domain_input.0.domain, &env, &*repo, &ftl)?;
+    list_service.add(List::White, &domain_input.0.domain)?;
     reply_success()
 }
 
@@ -41,12 +36,10 @@ pub fn add_whitelist(
 #[post("/dns/blacklist", data = "<domain_input>")]
 pub fn add_blacklist(
     _auth: User,
-    env: State<Env>,
-    repo: ListRepositoryGuard,
-    ftl: State<FtlConnectionType>,
+    list_service: ListServiceGuard,
     domain_input: Json<DomainInput>
 ) -> Reply {
-    List::Black.add(&domain_input.0.domain, &env, &*repo, &ftl)?;
+    list_service.add(List::Black, &domain_input.0.domain)?;
     reply_success()
 }
 
@@ -54,12 +47,10 @@ pub fn add_blacklist(
 #[post("/dns/regexlist", data = "<domain_input>")]
 pub fn add_regexlist(
     _auth: User,
-    env: State<Env>,
-    repo: ListRepositoryGuard,
-    ftl: State<FtlConnectionType>,
+    list_service: ListServiceGuard,
     domain_input: Json<DomainInput>
 ) -> Reply {
-    List::Regex.add(&domain_input.0.domain, &env, &*repo, &ftl)?;
+    list_service.add(List::Regex, &domain_input.0.domain)?;
     reply_success()
 }
 

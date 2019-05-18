@@ -8,7 +8,8 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+mod list;
 mod repository;
 mod service;
 
-pub use self::{repository::*, service::*};
+pub use self::{list::*, repository::*, service::*};

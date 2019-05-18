@@ -11,103 +11,129 @@
 use crate::{
     env::Env,
     ftl::FtlConnectionType,
-    lists::ListRepository,
-    settings::ValueType,
+    lists::{List, ListRepository, ListRepositoryGuard},
     util::{Error, ErrorKind}
 };
 use failure::ResultExt;
-use std::process::{Command, Stdio};
+use rocket::{
+    request::{self, FromRequest},
+    Outcome, Request, State
+};
+use std::{
+    ops::Deref,
+    process::{Command, Stdio}
+};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum List {
-    White,
-    Black,
-    Regex
-}
+#[cfg(test)]
+use mock_it::Mock;
 
-impl List {
+/// Describes interactions with the Pi-hole domain lists (whitelist, blacklist,
+/// and regexlist)
+pub trait ListService {
     /// Add a domain to the list and update FTL and other lists accordingly.
     /// Example: when adding to the whitelist, remove from the blacklist.
-    pub fn add(
-        &self,
-        domain: &str,
-        env: &Env,
-        repo: &dyn ListRepository,
-        ftl: &FtlConnectionType
-    ) -> Result<(), Error> {
-        match self {
+    fn add(&self, list: List, domain: &str) -> Result<(), Error>;
+
+    /// Remove a domain from the list and update FTL
+    fn remove(&self, list: List, domain: &str) -> Result<(), Error>;
+}
+
+service!(
+    ListServiceGuard,
+    ListService,
+    ListServiceImpl,
+    ListServiceMock
+);
+
+/// The implementation of `ListService`
+pub struct ListServiceImpl<'r> {
+    repo: Box<dyn Deref<Target = ListRepository + 'r> + 'r>,
+    env: &'r Env,
+    ftl: &'r FtlConnectionType
+}
+
+impl<'a, 'r> FromRequest<'a, 'r> for ListServiceImpl<'r> {
+    type Error = ();
+
+    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
+        let repo = Box::new(request.guard::<ListRepositoryGuard<'r>>()?);
+        let env = request.guard::<State<Env>>()?.inner();
+        let ftl = request.guard::<State<FtlConnectionType>>()?.inner();
+
+        Outcome::Success(ListServiceImpl { repo, env, ftl })
+    }
+}
+
+impl<'r> ListService for ListServiceImpl<'r> {
+    fn add(&self, list: List, domain: &str) -> Result<(), Error> {
+        match list {
             List::White => {
                 // We need to add it to the whitelist and remove it from the
                 // blacklist
-                List::White.add_raw(domain, repo)?;
-                List::Black.try_remove_raw(domain, repo)?;
+                self.add_raw(List::White, domain)?;
+                self.try_remove_raw(List::Black, domain)?;
 
                 // Since we haven't hit an error yet, reload gravity
-                reload_gravity(List::White, env)
+                reload_gravity(List::White, &self.env)
             }
             List::Black => {
                 // We need to add it to the blacklist and remove it from the
                 // whitelist
-                List::Black.add_raw(domain, repo)?;
-                List::White.try_remove_raw(domain, repo)?;
+                self.add_raw(List::Black, domain)?;
+                self.try_remove_raw(List::White, domain)?;
 
                 // Since we haven't hit an error yet, reload gravity
-                reload_gravity(List::Black, env)
+                reload_gravity(List::Black, &self.env)
             }
             List::Regex => {
                 // We only need to add it to the regex list
-                List::Regex.add_raw(domain, repo)?;
+                self.add_raw(List::Regex, domain)?;
 
                 // Since we haven't hit an error yet, tell FTL to recompile
                 // regex
-                ftl.connect("recompile-regex")?.expect_eom()
+                self.ftl.connect("recompile-regex")?.expect_eom()
             }
         }
     }
 
-    /// Remove a domain from the list and update FTL
-    pub fn remove(
-        &self,
-        domain: &str,
-        env: &Env,
-        repo: &dyn ListRepository,
-        ftl: &FtlConnectionType
-    ) -> Result<(), Error> {
-        match self {
+    fn remove(&self, list: List, domain: &str) -> Result<(), Error> {
+        match list {
             List::White => {
-                List::White.remove_raw(domain, repo)?;
-                reload_gravity(List::White, env)
+                self.remove_raw(List::White, domain)?;
+                reload_gravity(List::White, &self.env)
             }
             List::Black => {
-                List::Black.remove_raw(domain, repo)?;
-                reload_gravity(List::Black, env)
+                self.remove_raw(List::Black, domain)?;
+                reload_gravity(List::Black, &self.env)
             }
             List::Regex => {
-                List::Regex.remove_raw(domain, repo)?;
-                ftl.connect("recompile-regex")?.expect_eom()
+                self.remove_raw(List::Regex, domain)?;
+                self.ftl.connect("recompile-regex")?.expect_eom()
             }
         }
     }
+}
 
-    /// Add a domain to the list
-    fn add_raw(&self, domain: &str, repo: &dyn ListRepository) -> Result<(), Error> {
+impl<'r> ListServiceImpl<'r> {
+    /// Simply add a domain to the list
+    fn add_raw(&self, list: List, domain: &str) -> Result<(), Error> {
         // Check if it's a valid domain before doing anything
-        if !self.accepts(domain) {
+        if !list.accepts(domain) {
             return Err(Error::from(ErrorKind::InvalidDomain));
         }
 
         // Check if the domain is already in the list
-        if repo.contains(*self, domain)? {
+        if self.repo.contains(list, domain)? {
             return Err(Error::from(ErrorKind::AlreadyExists));
         }
 
-        repo.add(*self, domain)
+        self.repo.add(list, domain)
     }
 
     /// Try to remove a domain from the list, but it is not an error if the
     /// domain does not exist
-    pub fn try_remove_raw(&self, domain: &str, repo: &dyn ListRepository) -> Result<(), Error> {
-        match self.remove_raw(domain, repo) {
+    fn try_remove_raw(&self, list: List, domain: &str) -> Result<(), Error> {
+        match self.remove_raw(list, domain) {
             // Pass through successful results
             Ok(_) => Ok(()),
             Err(e) => {
@@ -121,28 +147,47 @@ impl List {
         }
     }
 
-    /// Remove a domain from the list
-    pub fn remove_raw(&self, domain: &str, repo: &dyn ListRepository) -> Result<(), Error> {
+    /// Simply remove a domain from the list
+    fn remove_raw(&self, list: List, domain: &str) -> Result<(), Error> {
         // Check if it's a valid domain before doing anything
-        if !self.accepts(domain) {
+        if !list.accepts(domain) {
             return Err(Error::from(ErrorKind::InvalidDomain));
         }
 
         // Check if the domain is not in the list
-        if !repo.contains(*self, domain)? {
+        if !self.repo.contains(list, domain)? {
             return Err(Error::from(ErrorKind::NotFound));
         }
 
-        repo.remove(*self, domain)
+        self.repo.remove(list, domain)
+    }
+}
+
+#[cfg(test)]
+#[derive(Clone)]
+pub struct ListServiceMock {
+    add: Mock<(List, String), Result<(), Error>>,
+    remove: Mock<(List, String), Result<(), Error>>
+}
+
+#[cfg(test)]
+impl ListServiceMock {
+    pub fn new() -> Self {
+        ListServiceMock {
+            add: Mock::new(Ok(())),
+            remove: Mock::new(Ok(()))
+        }
+    }
+}
+
+#[cfg(test)]
+impl ListService for ListServiceMock {
+    fn add(&self, list: List, domain: &str) -> Result<(), Error> {
+        self.add.called((list, domain.to_owned()))
     }
 
-    /// Check if the list accepts the domain as valid
-    fn accepts(&self, domain: &str) -> bool {
-        match self {
-            List::Regex => ValueType::Regex.is_valid(domain),
-            // Allow hostnames to be white/blacklist-ed
-            _ => ValueType::Hostname.is_valid(domain)
-        }
+    fn remove(&self, list: List, domain: &str) -> Result<(), Error> {
+        self.remove.called((list, domain.to_owned()))
     }
 }
 
@@ -183,7 +228,7 @@ mod test {
     use super::List;
     use crate::{
         ftl::FtlConnectionType,
-        lists::ListRepositoryMock,
+        lists::{ListRepositoryMock, ListService, ListServiceImpl},
         testing::{write_eom, TestEnvBuilder}
     };
     use mock_it::verify;
@@ -250,7 +295,13 @@ mod test {
             .given((List::Black, "example.com".to_owned()))
             .will_return(Ok(false));
 
-        List::White.add("example.com", &env, &repo, &ftl).unwrap();
+        let service = ListServiceImpl {
+            repo: Box::new(repo.clone()),
+            env: &env,
+            ftl: &ftl
+        };
+
+        service.add(List::White, "example.com").unwrap();
 
         verify(
             repo.add
@@ -276,7 +327,13 @@ mod test {
             .given((List::White, "example.com".to_owned()))
             .will_return(Ok(false));
 
-        List::Black.add("example.com", &env, &repo, &ftl).unwrap();
+        let service = ListServiceImpl {
+            repo: Box::new(repo.clone()),
+            env: &env,
+            ftl: &ftl
+        };
+
+        service.add(List::Black, "example.com").unwrap();
 
         verify(
             repo.add
@@ -299,7 +356,13 @@ mod test {
             .given((List::Regex, "example.com".to_owned()))
             .will_return(Ok(()));
 
-        List::Regex.add("example.com", &env, &repo, &ftl).unwrap();
+        let service = ListServiceImpl {
+            repo: Box::new(repo.clone()),
+            env: &env,
+            ftl: &ftl
+        };
+
+        service.add(List::Regex, "example.com").unwrap();
 
         verify(
             repo.add

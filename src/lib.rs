@@ -8,7 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+// Features Rocket requires
 #![feature(proc_macro_hygiene, decl_macro)]
+// Features we require
+#![feature(unsize)]
 #![allow(clippy::cast_lossless)]
 
 #[macro_use]

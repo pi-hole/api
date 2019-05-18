@@ -9,49 +9,28 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    env::Env,
-    ftl::FtlConnectionType,
-    lists::{List, ListRepositoryGuard},
+    lists::{List, ListServiceGuard},
     routes::auth::User,
     util::{reply_success, Reply}
 };
-use rocket::State;
 
 /// Delete a domain from the whitelist
 #[delete("/dns/whitelist/<domain>")]
-pub fn delete_whitelist(
-    _auth: User,
-    env: State<Env>,
-    repo: ListRepositoryGuard,
-    ftl: State<FtlConnectionType>,
-    domain: String
-) -> Reply {
-    List::White.remove(&domain, &env, &*repo, &ftl)?;
+pub fn delete_whitelist(_auth: User, list_service: ListServiceGuard, domain: String) -> Reply {
+    list_service.remove(List::White, &domain)?;
     reply_success()
 }
 
 /// Delete a domain from the blacklist
 #[delete("/dns/blacklist/<domain>")]
-pub fn delete_blacklist(
-    _auth: User,
-    env: State<Env>,
-    repo: ListRepositoryGuard,
-    ftl: State<FtlConnectionType>,
-    domain: String
-) -> Reply {
-    List::Black.remove(&domain, &env, &*repo, &ftl)?;
+pub fn delete_blacklist(_auth: User, list_service: ListServiceGuard, domain: String) -> Reply {
+    list_service.remove(List::Black, &domain)?;
     reply_success()
 }
 
 /// Delete a domain from the regex list
 #[delete("/dns/regexlist/<domain>")]
-pub fn delete_regexlist(
-    _auth: User,
-    env: State<Env>,
-    repo: ListRepositoryGuard,
-    ftl: State<FtlConnectionType>,
-    domain: String
-) -> Reply {
-    List::Regex.remove(&domain, &env, &*repo, &ftl)?;
+pub fn delete_regexlist(_auth: User, list_service: ListServiceGuard, domain: String) -> Reply {
+    list_service.remove(List::Regex, &domain)?;
     reply_success()
 }
