@@ -334,8 +334,8 @@ mod test {
             .build();
 
         let params = HistoryParams {
-            from: Some(177180),
-            until: Some(177181),
+            from: Some(177_180),
+            until: Some(177_181),
             ..HistoryParams::default()
         };
 

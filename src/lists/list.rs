@@ -20,7 +20,7 @@ pub enum List {
 
 impl List {
     /// Check if the list accepts the domain as valid
-    pub fn accepts(&self, domain: &str) -> bool {
+    pub fn accepts(self, domain: &str) -> bool {
         match self {
             List::Regex => ValueType::Regex.is_valid(domain),
             // Allow hostnames to be white/blacklist-ed
