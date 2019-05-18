@@ -36,6 +36,9 @@ pub trait ListService {
 
     /// Remove a domain from the list and update FTL
     fn remove(&self, list: List, domain: &str) -> Result<(), Error>;
+
+    /// Get all of the domains in the list
+    fn get(&self, list: List) -> Result<Vec<String>, Error>;
 }
 
 service!(
@@ -112,6 +115,10 @@ impl<'r> ListService for ListServiceImpl<'r> {
             }
         }
     }
+
+    fn get(&self, list: List) -> Result<Vec<String>, Error> {
+        self.repo.get(list)
+    }
 }
 
 impl<'r> ListServiceImpl<'r> {
@@ -167,7 +174,8 @@ impl<'r> ListServiceImpl<'r> {
 #[derive(Clone)]
 pub struct ListServiceMock {
     add: Mock<(List, String), Result<(), Error>>,
-    remove: Mock<(List, String), Result<(), Error>>
+    remove: Mock<(List, String), Result<(), Error>>,
+    get: Mock<List, Result<Vec<String>, Error>>
 }
 
 #[cfg(test)]
@@ -175,7 +183,8 @@ impl ListServiceMock {
     pub fn new() -> Self {
         ListServiceMock {
             add: Mock::new(Ok(())),
-            remove: Mock::new(Ok(()))
+            remove: Mock::new(Ok(())),
+            get: Mock::new(Ok(Vec::new()))
         }
     }
 }
@@ -188,6 +197,10 @@ impl ListService for ListServiceMock {
 
     fn remove(&self, list: List, domain: &str) -> Result<(), Error> {
         self.remove.called((list, domain.to_owned()))
+    }
+
+    fn get(&self, list: List) -> Result<Vec<String>, Error> {
+        self.get.called(list)
     }
 }
 

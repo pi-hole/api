@@ -9,24 +9,24 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    lists::{List, ListRepositoryGuard},
+    lists::{List, ListServiceGuard},
     util::{reply_result, Reply}
 };
 
 /// Get the Whitelist domains
 #[get("/dns/whitelist")]
-pub fn get_whitelist(repo: ListRepositoryGuard) -> Reply {
-    reply_result(repo.get(List::White))
+pub fn get_whitelist(service: ListServiceGuard) -> Reply {
+    reply_result(service.get(List::White))
 }
 
 /// Get the Blacklist domains
 #[get("/dns/blacklist")]
-pub fn get_blacklist(repo: ListRepositoryGuard) -> Reply {
-    reply_result(repo.get(List::Black))
+pub fn get_blacklist(service: ListServiceGuard) -> Reply {
+    reply_result(service.get(List::Black))
 }
 
 /// Get the Regex list domains
 #[get("/dns/regexlist")]
-pub fn get_regexlist(repo: ListRepositoryGuard) -> Reply {
-    reply_result(repo.get(List::Regex))
+pub fn get_regexlist(service: ListServiceGuard) -> Reply {
+    reply_result(service.get(List::Regex))
 }
