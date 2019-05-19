@@ -274,7 +274,6 @@ mod test {
         };
 
         assert_eq!(service.get(list).unwrap(), vec![domain.to_owned()]);
-
         assert!(verify(repo.get.was_called_with(list)))
     }
 
@@ -304,21 +303,11 @@ mod test {
         ));
     }
 
-    /// The whitelist is retrieved correctly
+    /// The lists are retrieved correctly
     #[test]
-    fn get_whitelist() {
+    fn get() {
         get_test(List::White, "whitelist.com");
-    }
-
-    /// The blacklist is retrieved correctly
-    #[test]
-    fn get_blacklist() {
         get_test(List::Black, "blacklist.com");
-    }
-
-    /// The regexlist is retrieved correctly
-    #[test]
-    fn get_regexlist() {
         get_test(List::Regex, "regex.com");
     }
 
