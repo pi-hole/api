@@ -98,15 +98,30 @@ impl<'r> ListRepository for ListRepositoryImpl<'r> {
         match list {
             List::White => {
                 use crate::databases::gravity::whitelist::dsl::*;
-                select(exists(whitelist.filter(domain.eq(input_domain)))).get_result(db)
+                select(exists(
+                    whitelist
+                        .filter(enabled.eq(true))
+                        .filter(domain.eq(input_domain))
+                ))
+                .get_result(db)
             }
             List::Black => {
                 use crate::databases::gravity::blacklist::dsl::*;
-                select(exists(blacklist.filter(domain.eq(input_domain)))).get_result(db)
+                select(exists(
+                    blacklist
+                        .filter(enabled.eq(true))
+                        .filter(domain.eq(input_domain))
+                ))
+                .get_result(db)
             }
             List::Regex => {
                 use crate::databases::gravity::regex::dsl::*;
-                select(exists(regex.filter(domain.eq(input_domain)))).get_result(db)
+                select(exists(
+                    regex
+                        .filter(enabled.eq(true))
+                        .filter(domain.eq(input_domain))
+                ))
+                .get_result(db)
             }
         }
         .context(ErrorKind::GravityDatabase)
@@ -120,19 +135,19 @@ impl<'r> ListRepository for ListRepositoryImpl<'r> {
             List::White => {
                 use crate::databases::gravity::whitelist::dsl::*;
                 insert_into(whitelist)
-                    .values(&domain.eq(input_domain))
+                    .values(&(domain.eq(input_domain), enabled.eq(true)))
                     .execute(db)
             }
             List::Black => {
                 use crate::databases::gravity::blacklist::dsl::*;
                 insert_into(blacklist)
-                    .values(&domain.eq(input_domain))
+                    .values(&(domain.eq(input_domain), enabled.eq(true)))
                     .execute(db)
             }
             List::Regex => {
                 use crate::databases::gravity::regex::dsl::*;
                 insert_into(regex)
-                    .values(&domain.eq(input_domain))
+                    .values(&(domain.eq(input_domain), enabled.eq(true)))
                     .execute(db)
             }
         }
@@ -147,15 +162,30 @@ impl<'r> ListRepository for ListRepositoryImpl<'r> {
         match list {
             List::White => {
                 use crate::databases::gravity::whitelist::dsl::*;
-                delete(whitelist.filter(domain.eq(input_domain))).execute(db)
+                delete(
+                    whitelist
+                        .filter(enabled.eq(true))
+                        .filter(domain.eq(input_domain))
+                )
+                .execute(db)
             }
             List::Black => {
                 use crate::databases::gravity::blacklist::dsl::*;
-                delete(blacklist.filter(domain.eq(input_domain))).execute(db)
+                delete(
+                    blacklist
+                        .filter(enabled.eq(true))
+                        .filter(domain.eq(input_domain))
+                )
+                .execute(db)
             }
             List::Regex => {
                 use crate::databases::gravity::regex::dsl::*;
-                delete(regex.filter(domain.eq(input_domain))).execute(db)
+                delete(
+                    regex
+                        .filter(enabled.eq(true))
+                        .filter(domain.eq(input_domain))
+                )
+                .execute(db)
             }
         }
         .context(ErrorKind::GravityDatabase)?;
