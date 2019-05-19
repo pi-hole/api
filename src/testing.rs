@@ -254,15 +254,20 @@ impl TestBuilder {
         self
     }
 
+    /// Add a function that will hook into Rocket's startup to add custom
+    /// settings, such as state.
     pub fn add_rocket_hook(mut self, hook: impl FnOnce(Rocket) -> Rocket + 'static) -> Self {
         self.rocket_hooks.push(Box::new(hook));
         self
     }
 
+    /// Add a struct into Rocket's state
     pub fn add_state(self, state: impl Send + Sync + 'static) -> Self {
         self.add_rocket_hook(move |rocket| rocket.manage(state))
     }
 
+    /// Mock a service by adding it to Rocket's state. This is an alias of
+    /// `add_state`
     pub fn mock_service(self, service: impl Send + Sync + 'static) -> Self {
         self.add_state(service)
     }
