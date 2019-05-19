@@ -29,7 +29,7 @@ lazy_static! {
     /// A connection pool for tests which need a database connection
     static ref CONNECTION_POOL: Pool<ConnectionManager<SqliteConnection>> = {
         let manager = diesel::r2d2::ConnectionManager::new(TEST_GRAVITY_DATABASE_PATH);
-        diesel::r2d2::Pool::builder().build(manager).unwrap()
+        diesel::r2d2::Pool::builder().max_size(1).build(manager).unwrap()
     };
 }
 
