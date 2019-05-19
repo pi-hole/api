@@ -299,7 +299,7 @@ mod tests {
         get_test(List::Regex, vec!["(^|\\.)example\\.com$".to_owned()]);
     }
 
-    /// Assert that checking for existing domains works
+    /// Assert that checking for an existing domain works
     #[test]
     fn contains_existing() {
         contains_test(List::White, "test.com");
