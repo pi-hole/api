@@ -17,7 +17,7 @@ use nix::errno::Errno;
 use std::{
     sync::{
         mpsc::{channel, Sender},
-        Mutex
+        Mutex, PoisonError
     },
     thread
 };
@@ -68,7 +68,7 @@ impl ShmLock {
 
         // Lock access to the lock thread. Ignore the poison error because the
         // state of the sender should still be consistent.
-        let lock_thread = self.sender.lock().unwrap_or_else(|e| e.into_inner());
+        let lock_thread = self.sender.lock().unwrap_or_else(PoisonError::into_inner);
 
         lock_thread
             .send((request, sender))

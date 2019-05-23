@@ -41,7 +41,7 @@ impl<'test> FtlStrings<'test> {
                 if id == 0 {
                     Some("")
                 } else {
-                    strings.get(&id).map(|string| string.as_str())
+                    strings.get(&id).map(String::as_str)
                 }
             }
         }
