@@ -21,3 +21,5 @@ RUN curl -L -o ghr.tar.gz https://github.com/tcnksm/ghr/releases/download/v0.12.
 ENV TARGET_CC=musl-gcc \
     CARGO_TARGET_POWERPC64LE_UNKNOWN_LINUX_GNU_LINKER=musl-gcc \
     CC_x86_64_unknown_linux_musl=musl-gcc
+
+LABEL version=1

@@ -16,3 +16,5 @@ RUN curl -L -o ghr.tar.gz https://github.com/tcnksm/ghr/releases/download/v0.12.
     mv ghr_*_linux_amd64/ghr /usr/bin/ghr
 
 ENV PATH="/root/.cargo/bin:$PATH"
+
+LABEL version=1
