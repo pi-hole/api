@@ -35,6 +35,7 @@ pub enum ValueType {
     IPv4OptionalPort,
     Ipv4Mask,
     Ipv6,
+    Ipv6OptionalPort,
     Path,
     PortNumber,
     Regex,
@@ -159,15 +160,8 @@ impl ValueType {
                 let (ip, mask) = value.split_at(value.rfind('/').unwrap());
                 ValueType::Integer.is_valid(&mask.replace("/", "")) && is_ipv4_valid(ip)
             }
-            ValueType::Ipv6 => {
-                if let Ok(ipv6) = Ipv6Addr::from_str(value) {
-                    // Prohibited address ranges: Multicast & Unspecified
-                    // (all others permitted)
-                    !ipv6.is_multicast() && !ipv6.is_unspecified()
-                } else {
-                    false
-                }
-            }
+            ValueType::Ipv6 => is_ipv6_valid(value),
+            ValueType::Ipv6OptionalPort => get_ipv6_address_and_port(value).is_some(),
             ValueType::Path => {
                 // Test if a path and filename have been specified
                 let path = Path::new(value);
@@ -215,9 +209,49 @@ fn is_ipv4_valid(value: &str) -> bool {
     }
 }
 
+/// IPv6 - Check that the specified address is valid
+fn is_ipv6_valid(value: &str) -> bool {
+    match Ipv6Addr::from_str(value) {
+        Ok(ipv6) => {
+            // Prohibited address ranges: Multicast & Unspecified
+            // (all others permitted)
+            !ipv6.is_multicast() && !ipv6.is_unspecified()
+        }
+        Err(_) => false
+    }
+}
+
+/// Get the address and port of an string representing an IPv6 address with or
+/// without a port.
+///
+/// If the address is invalid, None is returned.
+/// Otherwise, the returned tuple represents the address and optional port
+pub fn get_ipv6_address_and_port(value: &str) -> Option<(&str, Option<usize>)> {
+    // If this is a valid IPv6 address without a port, we can stop here
+    if is_ipv6_valid(value) {
+        return Some((value, None));
+    }
+
+    // Extract the address and port using Regex
+    let ipv6_re = Regex::new(r"^\[([a-fA-F0-9:]+)]:(\d+)$").unwrap();
+
+    // If the value does not match the regex, we return None via ?
+    let captures = ipv6_re.captures(value)?;
+
+    // Get the IPv6 address and port
+    let address = captures.get(1).map(|m| m.as_str())?;
+    let port: usize = captures[2].parse().ok()?;
+
+    if is_ipv6_valid(address) && port <= 65535 {
+        Some((address, Some(port)))
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{get_if_addrs, is_ipv4_valid, ValueType};
+    use super::{get_if_addrs, get_ipv6_address_and_port, is_ipv4_valid, ValueType};
 
     #[test]
     fn test_value_type_valid() {
@@ -248,6 +282,11 @@ mod tests {
             (ValueType::IPv4OptionalPort, "192.168.3.3"),
             (ValueType::Ipv4Mask, "192.168.0.3/24"),
             (ValueType::Ipv6, "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c"),
+            (
+                ValueType::Ipv6OptionalPort,
+                "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c"
+            ),
+            (ValueType::Ipv6OptionalPort, "[1fff:0:a88:85a3::ac1f]:8001"),
             (ValueType::Path, "/tmp/directory/file.ext"),
             (ValueType::PortNumber, "9000"),
             (ValueType::Regex, "^.*example$"),
@@ -297,6 +336,8 @@ mod tests {
             (ValueType::Ipv4Mask, "192.168.2.9"),
             (ValueType::Ipv4Mask, "192.168.1.1/qwfp"),
             (ValueType::Ipv6, "192.168.0.3"),
+            (ValueType::Ipv6OptionalPort, "192.168.0.3"),
+            (ValueType::Ipv6OptionalPort, "1fff:0:a88:85a3::ac1f#8001"),
             (ValueType::Path, "~/tmp/directory/file.ext"),
             (ValueType::PortNumber, "65536"),
             (ValueType::Regex, "example\\"),
@@ -331,5 +372,25 @@ mod tests {
         for (value, result) in tests {
             assert_eq!(is_ipv4_valid(value), result);
         }
+    }
+
+    /// `get_ipv6_address_and_port` returns a tuple without a port when given
+    /// an IPv6 address with no port
+    #[test]
+    fn get_ipv6_info_no_port() {
+        assert_eq!(
+            get_ipv6_address_and_port("f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c"),
+            Some(("f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c", None))
+        );
+    }
+
+    /// `get_ipv6_address_and_port` returns a tuple with a port when given an
+    /// IPv6 address with a port
+    #[test]
+    fn get_ipv6_info_with_port() {
+        assert_eq!(
+            get_ipv6_address_and_port("[1fff:0:a88:85a3::ac1f]:8001"),
+            Some(("1fff:0:a88:85a3::ac1f", Some(8001)))
+        );
     }
 }
