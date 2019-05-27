@@ -601,7 +601,7 @@ dependencies = [
  "rmp 0.8.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "rocket 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rocket_contrib 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "rocket_cors 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rocket_cors 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rust-embed 4.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.91 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.91 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -875,10 +875,11 @@ dependencies = [
 
 [[package]]
 name = "rocket_cors"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "log 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 1.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rocket 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1456,7 +1457,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum rocket_codegen 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "5549dc59a729fbd0e6f5d5de33ba136340228871633485e4946664d36289ffd7"
 "checksum rocket_contrib 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "5af691b5f5c06c3a30213217696681d3d3bdc2f10428fa3ce6bbaeab156b6409"
 "checksum rocket_contrib_codegen 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f15ae227d29e895c715df464d074d0a610682cb98ad747bbfbf9b0a76fcece2a"
-"checksum rocket_cors 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d8adde8b1ed231f4a0288085605d869baa02503310a4f80c07ed53fde24dce1b"
+"checksum rocket_cors 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5cc2adec3a3048412611606169ec2f8bb0ff806c5bb4baeeb94f060751069f41"
 "checksum rocket_http 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "abec045da00893bd4eef6084307a4bec0742278a7635a6a8b943da023202a5f7"
 "checksum rust-embed 4.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "73b42ffc98958788a47b1abde479901c0dfc12d6185965b3f289d05d5655c305"
 "checksum rust-embed-impl 4.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bd0e740ca1e1969c2d3310bd2bda2024ed44ce473e527a2585aeaec1de9d81c3"
