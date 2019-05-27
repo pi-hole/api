@@ -23,7 +23,7 @@ use rocket::{
     config::{ConfigBuilder, Environment},
     Rocket
 };
-use rocket_cors::Cors;
+use rocket_cors::CorsOptions;
 
 #[cfg(test)]
 use {
@@ -101,10 +101,12 @@ fn setup(
     needs_database: bool
 ) -> Rocket {
     // Set up CORS
-    let cors = Cors {
+    let cors = CorsOptions {
         allow_credentials: true,
-        ..Cors::default()
-    };
+        ..CorsOptions::default()
+    }
+    .to_cors()
+    .unwrap();
 
     // Attach the databases if required
     let server = if needs_database {
