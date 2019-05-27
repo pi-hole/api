@@ -33,11 +33,11 @@ pub enum ValueType {
     Hostname,
     Integer,
     Interface,
-    Ipv4,
+    IPv4,
     IPv4OptionalPort,
-    Ipv4Mask,
-    Ipv6,
-    Ipv6OptionalPort,
+    IPv4Mask,
+    IPv6,
+    IPv6OptionalPort,
     Path,
     PortNumber,
     Regex,
@@ -130,7 +130,7 @@ impl ValueType {
                     .iter()
                     .any(|interface| interface.name == value)
             }
-            ValueType::Ipv4 => {
+            ValueType::IPv4 => {
                 // Valid and in allowable range
                 // (4 octets)
                 // Test if valid address falls within permitted ranges
@@ -155,7 +155,7 @@ impl ValueType {
                     false
                 }
             }
-            ValueType::Ipv4Mask => {
+            ValueType::IPv4Mask => {
                 // Valid, in allowable range, and with mask
                 // (4 octets, with mask)
                 if !value.contains('/') {
@@ -165,8 +165,8 @@ impl ValueType {
                 let (ip, mask) = value.split_at(value.rfind('/').unwrap());
                 ValueType::Integer.is_valid(&mask.replace("/", "")) && is_ipv4_valid(ip)
             }
-            ValueType::Ipv6 => is_ipv6_valid(value),
-            ValueType::Ipv6OptionalPort => get_ipv6_address_and_port(value).is_some(),
+            ValueType::IPv6 => is_ipv6_valid(value),
+            ValueType::IPv6OptionalPort => get_ipv6_address_and_port(value).is_some(),
             ValueType::Path => {
                 // Test if a path and filename have been specified
                 let path = Path::new(value);
@@ -276,7 +276,7 @@ mod tests {
                 "true"
             ),
             (
-                ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
+                ValueType::Array(&[ValueType::Hostname, ValueType::IPv4]),
                 "pi.hole,127.0.0.1"
             ),
             (ValueType::Boolean, "false"),
@@ -290,16 +290,16 @@ mod tests {
             (ValueType::Hostname, "localhost"),
             (ValueType::Integer, "8675309"),
             (ValueType::Interface, &available_interface),
-            (ValueType::Ipv4, "192.168.2.9"),
+            (ValueType::IPv4, "192.168.2.9"),
             (ValueType::IPv4OptionalPort, "192.168.4.5:80"),
             (ValueType::IPv4OptionalPort, "192.168.3.3"),
-            (ValueType::Ipv4Mask, "192.168.0.3/24"),
-            (ValueType::Ipv6, "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c"),
+            (ValueType::IPv4Mask, "192.168.0.3/24"),
+            (ValueType::IPv6, "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c"),
             (
-                ValueType::Ipv6OptionalPort,
+                ValueType::IPv6OptionalPort,
                 "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c"
             ),
-            (ValueType::Ipv6OptionalPort, "[1fff:0:a88:85a3::ac1f]:8001"),
+            (ValueType::IPv6OptionalPort, "[1fff:0:a88:85a3::ac1f]:8001"),
             (ValueType::Path, "/tmp/directory/file.ext"),
             (ValueType::PortNumber, "9000"),
             (ValueType::Regex, "^.*example$"),
@@ -330,11 +330,11 @@ mod tests {
                 "192.168.1.1"
             ),
             (
-                ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
+                ValueType::Array(&[ValueType::Hostname, ValueType::IPv4]),
                 "123, $test,"
             ),
             (
-                ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
+                ValueType::Array(&[ValueType::Hostname, ValueType::IPv4]),
                 "123,"
             ),
             (ValueType::Boolean, "yes"),
@@ -350,15 +350,15 @@ mod tests {
             (ValueType::Integer, "9.9"),
             (ValueType::Integer, "10m3"),
             (ValueType::Interface, "/dev/net/ev9d9"),
-            (ValueType::Ipv4, "192.168.0.3/24"),
-            (ValueType::Ipv4, "192.168.0.2:53"),
+            (ValueType::IPv4, "192.168.0.3/24"),
+            (ValueType::IPv4, "192.168.0.2:53"),
             (ValueType::IPv4OptionalPort, "192.168.4.5 port 1000"),
             (ValueType::IPv4OptionalPort, "192.168.6.8:arst"),
-            (ValueType::Ipv4Mask, "192.168.2.9"),
-            (ValueType::Ipv4Mask, "192.168.1.1/qwfp"),
-            (ValueType::Ipv6, "192.168.0.3"),
-            (ValueType::Ipv6OptionalPort, "192.168.0.3"),
-            (ValueType::Ipv6OptionalPort, "1fff:0:a88:85a3::ac1f#8001"),
+            (ValueType::IPv4Mask, "192.168.2.9"),
+            (ValueType::IPv4Mask, "192.168.1.1/qwfp"),
+            (ValueType::IPv6, "192.168.0.3"),
+            (ValueType::IPv6OptionalPort, "192.168.0.3"),
+            (ValueType::IPv6OptionalPort, "1fff:0:a88:85a3::ac1f#8001"),
             (ValueType::Path, "~/tmp/directory/file.ext"),
             (ValueType::PortNumber, "65536"),
             (ValueType::Regex, "example\\"),

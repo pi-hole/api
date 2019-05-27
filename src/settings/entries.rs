@@ -237,7 +237,7 @@ impl ConfigEntry for SetupVarsEntry {
     fn value_type(&self) -> ValueType {
         match self {
             SetupVarsEntry::ApiExcludeClients => {
-                ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4, ValueType::Ipv6])
+                ValueType::Array(&[ValueType::Hostname, ValueType::IPv4, ValueType::IPv6])
             }
             SetupVarsEntry::ApiExcludeDomains => ValueType::Array(&[ValueType::Hostname]),
             SetupVarsEntry::ApiQueryLogShow => {
@@ -248,20 +248,20 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DnsFqdnRequired => ValueType::Boolean,
             SetupVarsEntry::ConditionalForwarding => ValueType::Boolean,
             SetupVarsEntry::ConditionalForwardingDomain => ValueType::Hostname,
-            SetupVarsEntry::ConditionalForwardingIp => ValueType::Ipv4,
+            SetupVarsEntry::ConditionalForwardingIp => ValueType::IPv4,
             SetupVarsEntry::ConditionalForwardingReverse => ValueType::ConditionalForwardingReverse,
             SetupVarsEntry::DhcpActive => ValueType::Boolean,
-            SetupVarsEntry::DhcpEnd => ValueType::Ipv4,
+            SetupVarsEntry::DhcpEnd => ValueType::IPv4,
             SetupVarsEntry::DhcpIpv6 => ValueType::Boolean,
             SetupVarsEntry::DhcpLeasetime => ValueType::Integer,
-            SetupVarsEntry::DhcpStart => ValueType::Ipv4,
+            SetupVarsEntry::DhcpStart => ValueType::IPv4,
             SetupVarsEntry::DhcpRapidCommit => ValueType::Boolean,
-            SetupVarsEntry::DhcpRouter => ValueType::Ipv4,
+            SetupVarsEntry::DhcpRouter => ValueType::IPv4,
             SetupVarsEntry::DnsmasqListening => ValueType::String(&["all", "local", "single"]),
             SetupVarsEntry::Dnssec => ValueType::Boolean,
             SetupVarsEntry::HostRecord => ValueType::Domain,
-            SetupVarsEntry::Ipv4Address => ValueType::Ipv4Mask,
-            SetupVarsEntry::Ipv6Address => ValueType::Ipv6,
+            SetupVarsEntry::Ipv4Address => ValueType::IPv4Mask,
+            SetupVarsEntry::Ipv6Address => ValueType::IPv6,
             SetupVarsEntry::PiholeDns(_) => ValueType::IPv4OptionalPort,
             SetupVarsEntry::PiholeDomain => ValueType::Hostname,
             SetupVarsEntry::PiholeInterface => ValueType::Interface,
