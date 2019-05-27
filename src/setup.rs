@@ -20,7 +20,7 @@ use crate::{
     util::{Error, ErrorKind}
 };
 use rocket::config::{ConfigBuilder, Environment};
-use rocket_cors::Cors;
+use rocket_cors::CorsOptions;
 
 #[cfg(test)]
 use crate::databases::load_test_databases;
@@ -101,10 +101,12 @@ fn setup(
     needs_database: bool
 ) -> rocket::Rocket {
     // Set up CORS
-    let cors = Cors {
+    let cors = CorsOptions {
         allow_credentials: true,
-        ..Cors::default()
-    };
+        ..CorsOptions::default()
+    }
+    .to_cors()
+    .unwrap();
 
     // Attach the databases if required
     let server = if needs_database {
