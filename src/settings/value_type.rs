@@ -19,10 +19,12 @@ use std::{
 /// Categories of allowable values, shared across settings files
 #[cfg_attr(test, derive(Debug))]
 pub enum ValueType {
-    Boolean,
+    /// A value which matches at least one of the specified value types
+    Any(&'static [ValueType]),
     /// A comma separated array of strings which match at least one of the
     /// specified value types
     Array(&'static [ValueType]),
+    Boolean,
     ConditionalForwardingReverse,
     Decimal,
     Domain,
@@ -52,6 +54,9 @@ impl ValueType {
     /// e.g. 0.1.2.3 is a valid IPV4, but may not be a valid upstream DNS
     pub fn is_valid(&self, value: &str) -> bool {
         match *self {
+            ValueType::Any(value_types) => value_types
+                .iter()
+                .any(|value_type| value_type.is_valid(value)),
             ValueType::Array(value_types) => value.split(',').all(|value| {
                 value_types
                     .iter()
@@ -262,11 +267,19 @@ mod tests {
             .unwrap_or_else(|| "lo".to_owned());
 
         let tests = vec![
-            (ValueType::Boolean, "false"),
+            (
+                ValueType::Any(&[ValueType::Integer, ValueType::Boolean]),
+                "1234"
+            ),
+            (
+                ValueType::Any(&[ValueType::Integer, ValueType::Boolean]),
+                "true"
+            ),
             (
                 ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
                 "pi.hole,127.0.0.1"
             ),
+            (ValueType::Boolean, "false"),
             (
                 ValueType::ConditionalForwardingReverse,
                 "1.168.192.in-addr.arpa"
@@ -308,7 +321,14 @@ mod tests {
     #[test]
     fn test_value_type_invalid() {
         let tests = vec![
-            (ValueType::Boolean, "yes"),
+            (
+                ValueType::Any(&[ValueType::Integer, ValueType::Boolean]),
+                "3/4"
+            ),
+            (
+                ValueType::Any(&[ValueType::Integer, ValueType::Boolean]),
+                "192.168.1.1"
+            ),
             (
                 ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
                 "123, $test,"
@@ -317,6 +337,7 @@ mod tests {
                 ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
                 "123,"
             ),
+            (ValueType::Boolean, "yes"),
             (ValueType::ConditionalForwardingReverse, "www.pi-hole.net"),
             (ValueType::Decimal, "3/4"),
             (ValueType::Decimal, "3.14.15.26"),
