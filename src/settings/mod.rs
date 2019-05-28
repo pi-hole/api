@@ -17,5 +17,5 @@ pub use self::{
     dnsmasq::generate_dnsmasq_config,
     entries::{ConfigEntry, FtlConfEntry, SetupVarsEntry},
     privacy_level::FtlPrivacyLevel,
-    value_type::ValueType
+    value_type::*
 };

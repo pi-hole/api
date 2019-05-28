@@ -10,7 +10,7 @@
 
 use crate::{
     env::{Env, PiholeFile},
-    settings::{ConfigEntry, SetupVarsEntry},
+    settings::{get_ipv6_address_and_port, ConfigEntry, SetupVarsEntry},
     util::{Error, ErrorKind}
 };
 use failure::ResultExt;
@@ -71,10 +71,25 @@ fn write_servers(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Err
         }
 
         // Transform addresses with ports into the format dnsmasq understands
-        // Example: 127.0.0.1:5353 -> 127.0.0.1#5353
-        let dns = dns.replace(":", "#");
+        // Example: 127.0.0.1:5353               -> 127.0.0.1#5353
+        //          [1fff:0:a88:85a3::ac1f]:8001 -> 1fff:0:a88:85a3::ac1f#8001
+        let dnsmasq_address = match get_ipv6_address_and_port(&dns) {
+            Some((address, None)) => {
+                // This is an IPv6 address without a port
+                address.to_owned()
+            }
+            Some((address, Some(port))) => {
+                // This is an IPv6 address with a port
+                format!("{}#{}", address, port)
+            }
+            None => {
+                // This is an IPv4 address
+                dns.replace(":", "#")
+            }
+        };
 
-        writeln!(config_file, "server={}", dns).context(ErrorKind::DnsmasqConfigWrite)?;
+        writeln!(config_file, "server={}", dnsmasq_address)
+            .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
     Ok(())
@@ -296,6 +311,26 @@ mod tests {
             "PIHOLE_DNS_1=127.0.0.1:5353",
             write_servers
         );
+    }
+
+    /// An IPv6 DNS server without a port is written correctly
+    #[test]
+    fn dns_server_ipv6_no_port() {
+        test_config(
+            "server=f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c\n",
+            "PIHOLE_DNS_1=f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c",
+            write_servers
+        )
+    }
+
+    /// An IPv6 DNS server with a port is written using a #
+    #[test]
+    fn dns_server_ipv6_with_port() {
+        test_config(
+            "server=1fff:0:a88:85a3::ac1f#8001\n",
+            "PIHOLE_DNS_1=[1fff:0:a88:85a3::ac1f]:8001",
+            write_servers
+        )
     }
 
     /// Confirm that non-sequential DNS servers are ignored, that is, stop at
