@@ -89,9 +89,8 @@ where
     Trait: ?Sized + 'r,
     Impl: Unsize<Trait>;
 
-/// The test version of Service. It is either the implementation or something
-/// which dereferences to the mock (usually Rocket's `State`, but during tests
-/// it could be .
+/// The test version of Service. It is either the implementation or `State`
+/// from Rocket which dereferences to something which implements the trait.
 /// When it is being created as part of a request (FromRequest), it checks for
 /// the mock in the state before trying to load the implementation.
 #[cfg(test)]
