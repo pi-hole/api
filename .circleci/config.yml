@@ -2,7 +2,7 @@ version: 2
 
 .job_template: &job_template
   docker:
-    - image: pihole/api-build:$CIRCLE_JOB
+    - image: pihole/api-build:v1-$CIRCLE_JOB
   steps:
     - checkout
     - restore_cache:
