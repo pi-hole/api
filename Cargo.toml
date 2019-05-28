@@ -17,14 +17,14 @@ lto = true
 diesel = { version = "1.4", features = ["sqlite"] }
 rocket = "0.4"
 rocket_contrib = { version = "0.4", features = ["diesel_sqlite_pool"] }
-rocket_cors = { version = "0.4", default-features = false }
+rocket_cors = { version = "0.5", default-features = false }
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 rmp = "0.8"
 regex = "1.1.6"
 rust-embed = "4.4"
-toml = "0.4"
+toml = "0.5"
 failure = "0.1.1"
 failure_derive = "0.1.1"
 hostname = "0.1.5"
@@ -32,13 +32,14 @@ tempfile = "3.0.8"
 get_if_addrs = "0.5.3"
 shmem = "0.2.0"
 libc = "0.2.42"
-nix = "0.13"
+nix = "0.14"
 base64 = "0.10"
 task_scheduler = "0.2.0"
 structopt = "0.2.15"
 
 # Statically link SQLite (use the crate version provided by Diesel)
-libsqlite3-sys = { version = "*", features = ["bundled"] }
+# The highest version which Diesel currently allows is 0.12.0
+libsqlite3-sys = { version = "0.12.0", features = ["bundled"] }
 
 [dev-dependencies]
 serde_json = "1.0"
