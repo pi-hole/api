@@ -19,3 +19,5 @@ ENV PATH="/root/.cargo/bin:$PATH" \
     TARGET_CC=arm-linux-gnueabihf-gcc \
     CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc \
     CC_armv7_unknown_linux_gnueabihf=arm-linux-gnueabihf-gcc
+
+LABEL version=1

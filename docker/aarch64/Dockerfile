@@ -20,3 +20,5 @@ ENV PATH="/root/.cargo/bin:$PATH" \
     TARGET_CC=aarch64-linux-gnu-gcc \
     CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
     CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
+
+LABEL version=1
