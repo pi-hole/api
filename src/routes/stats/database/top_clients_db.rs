@@ -81,8 +81,8 @@ fn top_clients_db_impl(
         execute_top_clients_query(db, from, until, ignored_clients, blocked, ascending, limit)?
             .into_iter()
             .map(|(client_identifier, count)| {
-                if ValueType::Ipv4.is_valid(&client_identifier)
-                    || ValueType::Ipv6.is_valid(&client_identifier)
+                if ValueType::IPv4.is_valid(&client_identifier)
+                    || ValueType::IPv6.is_valid(&client_identifier)
                 {
                     // If the identifier is an IP address, use it as the client IP
                     TopClientItemReply {

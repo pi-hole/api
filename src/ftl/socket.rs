@@ -49,15 +49,11 @@ impl FtlConnectionType {
         match *self {
             FtlConnectionType::Socket => {
                 // Try to connect to FTL
-                let mut stream = match UnixStream::connect(SOCKET_LOCATION) {
-                    Ok(s) => s,
-                    Err(_) => return Err(Error::from(ErrorKind::FtlConnectionFail))
-                };
+                let mut stream =
+                    UnixStream::connect(SOCKET_LOCATION).context(ErrorKind::FtlConnectionFail)?;
 
                 // Send the command
-                stream
-                    .write_all(format!(">{}\n", command).as_bytes())
-                    .context(ErrorKind::FtlConnectionFail)?;
+                writeln!(stream, ">{}", command).context(ErrorKind::FtlConnectionFail)?;
 
                 // Return the connection so the API can read the response
                 Ok(FtlConnection(Box::new(BufReader::new(stream))))
