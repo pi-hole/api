@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    databases::{ftl::FtlDatabase, load_databases},
+    databases::{ftl::FtlDatabase, gravity::GravityDatabase, load_databases},
     env::{Config, Env},
     ftl::{FtlConnectionType, FtlMemory},
     routes::{
@@ -19,15 +19,16 @@ use crate::{
     settings::{ConfigEntry, SetupVarsEntry},
     util::{Error, ErrorKind}
 };
-use rocket::config::{ConfigBuilder, Environment};
+use rocket::{
+    config::{ConfigBuilder, Environment},
+    Rocket
+};
 use rocket_cors::CorsOptions;
 
 #[cfg(test)]
-use crate::databases::load_test_databases;
-#[cfg(test)]
-use rocket::{config::LoggingLevel, local::Client};
-#[cfg(test)]
-use std::collections::HashMap;
+use {
+    crate::databases::load_test_databases, rocket::config::LoggingLevel, std::collections::HashMap
+};
 
 #[catch(404)]
 fn not_found() -> Error {
@@ -73,8 +74,8 @@ pub fn test(
     ftl_memory: FtlMemory,
     env: Env,
     needs_database: bool
-) -> Client {
-    Client::new(setup(
+) -> Rocket {
+    setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Development)
                 .log_level(LoggingLevel::Debug)
@@ -87,19 +88,18 @@ pub fn test(
         env,
         "test_key".to_owned(),
         needs_database
-    ))
-    .unwrap()
+    )
 }
 
 /// General server setup
 fn setup(
-    server: rocket::Rocket,
+    server: Rocket,
     ftl_socket: FtlConnectionType,
     ftl_memory: FtlMemory,
     env: Env,
     api_key: String,
     needs_database: bool
-) -> rocket::Rocket {
+) -> Rocket {
     // Set up CORS
     let cors = CorsOptions {
         allow_credentials: true,
@@ -110,7 +110,9 @@ fn setup(
 
     // Attach the databases if required
     let server = if needs_database {
-        server.attach(FtlDatabase::fairing())
+        server
+            .attach(FtlDatabase::fairing())
+            .attach(GravityDatabase::fairing())
     } else {
         server
     };

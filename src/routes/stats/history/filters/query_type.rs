@@ -44,7 +44,7 @@ pub fn filter_query_type_db<'a>(
 mod test {
     use super::{filter_query_type, filter_query_type_db};
     use crate::{
-        databases::ftl::connect_to_test_db,
+        databases::ftl::connect_to_ftl_test_db,
         ftl::{FtlQuery, FtlQueryType},
         routes::stats::history::{
             database::execute_query, endpoints::HistoryParams, testing::test_queries
@@ -82,7 +82,7 @@ mod test {
         };
 
         let db_query = filter_query_type_db(queries.into_boxed(), &params);
-        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+        let filtered_queries = execute_query(&connect_to_ftl_test_db(), db_query).unwrap();
 
         for query in filtered_queries {
             assert_eq!(query.query_type, expected_query_type as i32);

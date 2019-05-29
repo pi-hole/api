@@ -3,15 +3,13 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// DNS API Endpoints
+// List Service and Repository (Whitelist, Blacklist, Regexlist)
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-mod add_list;
-mod common;
-mod delete_list;
-mod get_list;
-mod status;
+mod list;
+mod repository;
+mod service;
 
-pub use self::{add_list::*, delete_list::*, get_list::*, status::*};
+pub use self::{list::*, repository::*, service::*};

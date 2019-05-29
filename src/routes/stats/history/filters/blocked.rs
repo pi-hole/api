@@ -54,7 +54,7 @@ pub fn filter_blocked_db<'a>(
 mod test {
     use super::{filter_blocked, filter_blocked_db};
     use crate::{
-        databases::ftl::connect_to_test_db,
+        databases::ftl::connect_to_ftl_test_db,
         ftl::{FtlQuery, BLOCKED_STATUSES},
         routes::stats::history::{
             database::execute_query, endpoints::HistoryParams, testing::test_queries
@@ -92,7 +92,7 @@ mod test {
         };
 
         let db_query = filter_blocked_db(queries.into_boxed(), &params);
-        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+        let filtered_queries = execute_query(&connect_to_ftl_test_db(), db_query).unwrap();
 
         for query in filtered_queries {
             assert!(!BLOCKED_STATUSES.contains(&(query.status as i32)));

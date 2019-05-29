@@ -182,7 +182,7 @@ fn execute_top_domains_query(
 mod test {
     use super::top_domains_db_impl;
     use crate::{
-        databases::ftl::connect_to_test_db,
+        databases::ftl::connect_to_ftl_test_db,
         env::PiholeFile,
         routes::stats::top_domains::{TopDomainItemReply, TopDomainParams, TopDomainsReply},
         testing::TestEnvBuilder
@@ -242,7 +242,7 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let env = TestEnvBuilder::new()
             .file(PiholeFile::SetupVars, "")
             .file(PiholeFile::FtlConfig, "")
@@ -272,7 +272,7 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let env = TestEnvBuilder::new()
             .file(PiholeFile::SetupVars, "")
             .file(PiholeFile::FtlConfig, "")
@@ -298,7 +298,7 @@ mod test {
             blocked_queries: Some(0)
         };
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let env = TestEnvBuilder::new()
             .file(PiholeFile::SetupVars, "")
             .file(PiholeFile::FtlConfig, "")
@@ -332,7 +332,7 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let env = TestEnvBuilder::new()
             .file(PiholeFile::SetupVars, "")
             .file(PiholeFile::FtlConfig, "")
@@ -367,7 +367,7 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let env = TestEnvBuilder::new()
             .file(PiholeFile::SetupVars, "")
             .file(PiholeFile::FtlConfig, "")
@@ -402,7 +402,7 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let env = TestEnvBuilder::new()
             .file(
                 PiholeFile::SetupVars,

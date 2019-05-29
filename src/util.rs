@@ -20,7 +20,8 @@ use serde::Serialize;
 use shmem;
 use std::{
     env,
-    fmt::{self, Display}
+    fmt::{self, Display},
+    sync::Arc
 };
 
 /// Type alias for the most common return type of the API methods
@@ -89,9 +90,9 @@ pub fn reply_success() -> Reply {
 /// Wraps `ErrorKind` to provide context via `Context`.
 ///
 /// See https://boats.gitlab.io/failure/error-errorkind.html
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Error {
-    inner: Context<ErrorKind>
+    inner: Arc<Context<ErrorKind>>
 }
 
 /// The `ErrorKind` enum represents all the possible errors that the API can
@@ -148,7 +149,9 @@ pub enum ErrorKind {
     )]
     SharedMemoryVersion(usize, usize),
     #[fail(display = "Error while interacting with the FTL database")]
-    FtlDatabase
+    FtlDatabase,
+    #[fail(display = "Error while interacting with the Gravity database")]
+    GravityDatabase
 }
 
 impl Error {
@@ -235,7 +238,8 @@ impl ErrorKind {
             ErrorKind::SharedMemoryRead => "shared_memory_read",
             ErrorKind::SharedMemoryLock => "shared_memory_lock",
             ErrorKind::SharedMemoryVersion(_, _) => "shared_memory_version",
-            ErrorKind::FtlDatabase => "ftl_database"
+            ErrorKind::FtlDatabase => "ftl_database",
+            ErrorKind::GravityDatabase => "gravity_database"
         }
     }
 
@@ -263,7 +267,8 @@ impl ErrorKind {
             | ErrorKind::SharedMemoryRead
             | ErrorKind::SharedMemoryLock
             | ErrorKind::SharedMemoryVersion(_, _)
-            | ErrorKind::FtlDatabase => Status::InternalServerError
+            | ErrorKind::FtlDatabase
+            | ErrorKind::GravityDatabase => Status::InternalServerError
         }
     }
 
@@ -296,14 +301,16 @@ impl Display for Error {
 impl From<ErrorKind> for Error {
     fn from(kind: ErrorKind) -> Error {
         Error {
-            inner: Context::new(kind)
+            inner: Arc::new(Context::new(kind))
         }
     }
 }
 
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Error {
-        Error { inner }
+        Error {
+            inner: Arc::new(inner)
+        }
     }
 }
 

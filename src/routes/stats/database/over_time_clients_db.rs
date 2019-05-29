@@ -178,7 +178,7 @@ fn get_client_over_time(
 mod test {
     use super::{get_client_identifiers, get_client_over_time, over_time_clients_db_impl};
     use crate::{
-        databases::ftl::connect_to_test_db,
+        databases::ftl::connect_to_ftl_test_db,
         env::PiholeFile,
         ftl::ClientReply,
         routes::stats::over_time_clients::{OverTimeClientItem, OverTimeClients},
@@ -220,7 +220,7 @@ mod test {
             ]
         };
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let env = TestEnvBuilder::new()
             .file(PiholeFile::SetupVars, "")
             .build();
@@ -237,7 +237,7 @@ mod test {
     fn client_identifiers() {
         let expected = vec!["127.0.0.1".to_owned(), "10.1.1.1".to_owned()];
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let env = TestEnvBuilder::new()
             .file(PiholeFile::SetupVars, "")
             .build();
@@ -251,7 +251,7 @@ mod test {
     fn client_identifiers_excluded() {
         let expected = vec!["127.0.0.1".to_owned()];
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let env = TestEnvBuilder::new()
             .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=10.1.1.1")
             .build();
@@ -268,7 +268,7 @@ mod test {
         expected.insert(164_400, 25);
         expected.insert(165_000, 7);
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let actual =
             get_client_over_time(FROM_TIMESTAMP, UNTIL_TIMESTAMP, INTERVAL, "127.0.0.1", &db)
                 .unwrap();

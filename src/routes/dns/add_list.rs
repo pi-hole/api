@@ -9,15 +9,10 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    env::Env,
-    ftl::FtlConnectionType,
-    routes::{
-        auth::User,
-        dns::{common::reload_gravity, list::List}
-    },
+    lists::{List, ListServiceGuard},
+    routes::auth::User,
     util::{reply_success, Reply}
 };
-use rocket::State;
 use rocket_contrib::json::Json;
 
 /// Represents an API input containing a domain
@@ -28,29 +23,23 @@ pub struct DomainInput {
 
 /// Add a domain to the whitelist
 #[post("/dns/whitelist", data = "<domain_input>")]
-pub fn add_whitelist(_auth: User, env: State<Env>, domain_input: Json<DomainInput>) -> Reply {
-    let domain = &domain_input.0.domain;
-
-    // We need to add it to the whitelist and remove it from the blacklist
-    List::White.add(domain, &env)?;
-    List::Black.try_remove(domain, &env)?;
-
-    // At this point, since we haven't hit an error yet, reload gravity
-    reload_gravity(List::White, &env)?;
+pub fn add_whitelist(
+    _auth: User,
+    list_service: ListServiceGuard,
+    domain_input: Json<DomainInput>
+) -> Reply {
+    list_service.add(List::White, &domain_input.0.domain)?;
     reply_success()
 }
 
 /// Add a domain to the blacklist
 #[post("/dns/blacklist", data = "<domain_input>")]
-pub fn add_blacklist(_auth: User, env: State<Env>, domain_input: Json<DomainInput>) -> Reply {
-    let domain = &domain_input.0.domain;
-
-    // We need to add it to the blacklist and remove it from the whitelist
-    List::Black.add(domain, &env)?;
-    List::White.try_remove(domain, &env)?;
-
-    // At this point, since we haven't hit an error yet, reload gravity
-    reload_gravity(List::Black, &env)?;
+pub fn add_blacklist(
+    _auth: User,
+    list_service: ListServiceGuard,
+    domain_input: Json<DomainInput>
+) -> Reply {
+    list_service.add(List::Black, &domain_input.0.domain)?;
     reply_success()
 }
 
@@ -58,71 +47,58 @@ pub fn add_blacklist(_auth: User, env: State<Env>, domain_input: Json<DomainInpu
 #[post("/dns/regexlist", data = "<domain_input>")]
 pub fn add_regexlist(
     _auth: User,
-    env: State<Env>,
-    ftl: State<FtlConnectionType>,
+    list_service: ListServiceGuard,
     domain_input: Json<DomainInput>
 ) -> Reply {
-    let domain = &domain_input.0.domain;
-
-    // We only need to add it to the regex list
-    List::Regex.add(domain, &env)?;
-
-    // At this point, since we haven't hit an error yet, tell FTL to recompile regex
-    ftl.connect("recompile-regex")?.expect_eom()?;
+    list_service.add(List::Regex, &domain_input.0.domain)?;
     reply_success()
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
-        env::PiholeFile,
-        testing::{write_eom, TestBuilder}
+        lists::{List, ListServiceMock},
+        testing::TestBuilder
     };
+    use mock_it::verify;
     use rocket::http::Method;
 
-    #[test]
-    fn test_add_whitelist() {
+    /// Test that a successful add returns success
+    fn add_test(list: List, endpoint: &str, domain: &str) {
+        let service = ListServiceMock::new();
+
+        service
+            .add
+            .given((list, domain.to_owned()))
+            .will_return(Ok(()));
+
         TestBuilder::new()
-            .endpoint("/admin/api/dns/whitelist")
+            .endpoint(endpoint)
             .method(Method::Post)
-            .file_expect(PiholeFile::Whitelist, "", "example.com\n")
-            .file(PiholeFile::Blacklist, "")
-            .file(PiholeFile::Regexlist, "")
-            .file(PiholeFile::SetupVars, "")
-            .body(json!({ "domain": "example.com" }))
+            .mock_service(service.clone())
+            .body(json!({ "domain": domain }))
             .expect_json(json!({ "status": "success" }))
             .test();
+
+        assert!(verify(
+            service.add.was_called_with((list, domain.to_owned()))
+        ));
     }
 
     #[test]
-    fn test_add_blacklist() {
-        TestBuilder::new()
-            .endpoint("/admin/api/dns/blacklist")
-            .method(Method::Post)
-            .file_expect(PiholeFile::Blacklist, "", "example.com\n")
-            .file(PiholeFile::Whitelist, "")
-            .file(PiholeFile::Regexlist, "")
-            .file(PiholeFile::SetupVars, "")
-            .body(json!({ "domain": "example.com" }))
-            .expect_json(json!({ "status": "success" }))
-            .test();
+    fn add_whitelist() {
+        add_test(List::White, "/admin/api/dns/whitelist", "example.com");
     }
 
+    /// A successful add returns success
+    #[test]
+    fn add_blacklist() {
+        add_test(List::Black, "/admin/api/dns/blacklist", "example.com");
+    }
+
+    /// A successful add returns success
     #[test]
     fn test_add_regexlist() {
-        let mut data = Vec::new();
-        write_eom(&mut data);
-
-        TestBuilder::new()
-            .endpoint("/admin/api/dns/regexlist")
-            .method(Method::Post)
-            .ftl("recompile-regex", data)
-            .file_expect(PiholeFile::Regexlist, "", "^.*example.com$\n")
-            .file(PiholeFile::Whitelist, "")
-            .file(PiholeFile::Blacklist, "")
-            .file(PiholeFile::SetupVars, "IPV4_ADDRESS=10.1.1.1")
-            .body(json!({ "domain": "^.*example.com$" }))
-            .expect_json(json!({ "status": "success" }))
-            .test();
+        add_test(List::Regex, "/admin/api/dns/regexlist", "^.*example.com$");
     }
 }

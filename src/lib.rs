@@ -8,7 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+// Features Rocket requires
 #![feature(proc_macro_hygiene, decl_macro)]
+// Features we require
+#![feature(unsize)]
 #![allow(clippy::cast_lossless)]
 
 #[macro_use]
@@ -22,12 +25,20 @@ extern crate rocket_contrib;
 #[macro_use]
 extern crate rust_embed;
 
+#[cfg(test)]
+#[macro_use]
+extern crate lazy_static;
+
 pub use crate::cli::handle_cli;
+
+#[macro_use]
+pub mod service;
 
 mod cli;
 mod databases;
 mod env;
 mod ftl;
+mod lists;
 mod routes;
 mod settings;
 mod setup;

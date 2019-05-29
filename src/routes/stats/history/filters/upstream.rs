@@ -90,7 +90,7 @@ pub fn filter_upstream_db<'a>(
 mod test {
     use super::{filter_upstream, filter_upstream_db};
     use crate::{
-        databases::ftl::connect_to_test_db,
+        databases::ftl::connect_to_ftl_test_db,
         ftl::{FtlQuery, ShmLockGuard},
         routes::stats::history::{
             database::execute_query,
@@ -194,7 +194,7 @@ mod test {
         };
 
         let db_query = filter_upstream_db(queries.into_boxed(), &params);
-        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+        let filtered_queries = execute_query(&connect_to_ftl_test_db(), db_query).unwrap();
 
         for query in filtered_queries {
             assert_eq!(query.upstream, Some("8.8.8.8".to_owned()));

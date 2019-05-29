@@ -52,7 +52,7 @@ pub fn skip_to_cursor_db(
 mod test {
     use super::{skip_to_cursor, skip_to_cursor_db};
     use crate::{
-        databases::ftl::{connect_to_test_db, FtlDbQuery},
+        databases::ftl::{connect_to_ftl_test_db, FtlDbQuery},
         ftl::FtlQuery,
         routes::stats::history::{
             database::execute_query,
@@ -118,7 +118,7 @@ mod test {
         }];
 
         let db_query = skip_to_cursor_db(queries.into_boxed(), Some(1));
-        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+        let filtered_queries = execute_query(&connect_to_ftl_test_db(), db_query).unwrap();
 
         assert_eq!(filtered_queries, expected_queries);
     }

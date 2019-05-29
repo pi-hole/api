@@ -3,15 +3,10 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// DNS API Endpoints
+// Gravity Database Models
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-mod add_list;
-mod common;
-mod delete_list;
-mod get_list;
-mod status;
-
-pub use self::{add_list::*, delete_list::*, get_list::*, status::*};
+#[database("gravity_database")]
+pub struct GravityDatabase(diesel::SqliteConnection);

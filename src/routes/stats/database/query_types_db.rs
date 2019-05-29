@@ -85,7 +85,7 @@ pub fn get_query_type_counts(
 #[cfg(test)]
 mod test {
     use super::get_query_type_counts;
-    use crate::{databases::ftl::connect_to_test_db, ftl::FtlQueryType};
+    use crate::{databases::ftl::connect_to_ftl_test_db, ftl::FtlQueryType};
     use std::collections::HashMap;
 
     const FROM_TIMESTAMP: u64 = 0;
@@ -103,7 +103,7 @@ mod test {
         expected.insert(FtlQueryType::PTR, 23);
         expected.insert(FtlQueryType::TXT, 0);
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let actual = get_query_type_counts(&db, FROM_TIMESTAMP, UNTIL_TIMESTAMP).unwrap();
 
         assert_eq!(actual, expected);

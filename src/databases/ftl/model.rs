@@ -8,8 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use crate::ftl::{FtlDnssecType, FtlQueryReplyType};
-use rocket_contrib::json::JsonValue;
+use crate::{
+    ftl::{FtlDnssecType, FtlQueryReplyType},
+    routes::stats::QueryReply
+};
 
 #[database("ftl_database")]
 pub struct FtlDatabase(diesel::SqliteConnection);
@@ -39,17 +41,17 @@ pub struct FtlDbQuery {
     pub upstream: Option<String>
 }
 
-impl Into<JsonValue> for FtlDbQuery {
-    fn into(self) -> JsonValue {
-        json!({
-            "timestamp": self.timestamp,
-            "type": self.query_type as u8,
-            "status": self.status as u8,
-            "domain": self.domain,
-            "client": self.client,
-            "dnssec": FtlDnssecType::Unknown as u8,
-            "reply": FtlQueryReplyType::Unknown as u8,
-            "response_time": 0
-        })
+impl Into<QueryReply> for FtlDbQuery {
+    fn into(self) -> QueryReply {
+        QueryReply {
+            timestamp: self.timestamp as u64,
+            r#type: self.query_type as u8,
+            status: self.status as u8,
+            domain: self.domain,
+            client: self.client,
+            dnssec: FtlDnssecType::Unknown as u8,
+            reply: FtlQueryReplyType::Unknown as u8,
+            response_time: 0
+        }
     }
 }

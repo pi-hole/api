@@ -3,7 +3,7 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// FTL Database Support
+// Gravity Database Support
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
@@ -22,21 +22,21 @@ mod schema;
 pub use self::{model::*, schema::*};
 
 #[cfg(test)]
-pub const TEST_FTL_DATABASE_PATH: &str = "test/FTL.db";
+pub const TEST_GRAVITY_DATABASE_PATH: &str = "test/gravity.db";
 
 #[cfg(test)]
 lazy_static! {
     /// A connection pool for tests which need a database connection
     static ref CONNECTION_POOL: Pool<ConnectionManager<SqliteConnection>> = {
-        let manager = diesel::r2d2::ConnectionManager::new(TEST_FTL_DATABASE_PATH);
-        diesel::r2d2::Pool::builder().build(manager).unwrap()
+        let manager = diesel::r2d2::ConnectionManager::new(TEST_GRAVITY_DATABASE_PATH);
+        diesel::r2d2::Pool::builder().max_size(1).build(manager).unwrap()
     };
 }
 
 /// Connect to the testing database
 #[cfg(test)]
-pub fn connect_to_ftl_test_db() -> FtlDatabase {
-    let db = FtlDatabase(CONNECTION_POOL.get().unwrap());
+pub fn connect_to_gravity_test_db() -> GravityDatabase {
+    let db = GravityDatabase(CONNECTION_POOL.get().unwrap());
     start_test_transaction(&db as &SqliteConnection);
 
     db

@@ -92,7 +92,7 @@ pub fn filter_excluded_domains_db<'a>(
 mod tests {
     use super::{filter_excluded_domains, filter_excluded_domains_db};
     use crate::{
-        databases::ftl::connect_to_test_db,
+        databases::ftl::connect_to_ftl_test_db,
         env::PiholeFile,
         ftl::{FtlQuery, ShmLockGuard},
         routes::stats::history::{
@@ -159,7 +159,7 @@ mod tests {
             .build();
 
         let db_query = filter_excluded_domains_db(queries.into_boxed(), &env).unwrap();
-        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+        let filtered_queries = execute_query(&connect_to_ftl_test_db(), db_query).unwrap();
 
         for query in filtered_queries {
             assert_ne!(query.domain, "0.ubuntu.pool.ntp.org".to_owned());
