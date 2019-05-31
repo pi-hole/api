@@ -35,7 +35,7 @@ libc = "0.2.42"
 nix = "0.14"
 base64 = "0.10"
 task_scheduler = "0.2.0"
-structopt = "0.2.15"
+structopt = "0.2.16"
 
 # Statically link SQLite (use the crate version provided by Diesel)
 # The highest version which Diesel currently allows is 0.12.0
