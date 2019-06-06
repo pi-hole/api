@@ -41,7 +41,7 @@ pub struct FtlQuery {
     /// Saved in units of 1/10 milliseconds (1 = 0.1ms, 2 = 0.2ms,
     /// 2500 = 250.0ms, etc.)
     pub response_time: libc::c_ulong,
-    pub database_id: libc::int64_t,
+    pub database_id: i64,
     pub time_index: libc::c_uint,
     pub is_complete: bool
 }
