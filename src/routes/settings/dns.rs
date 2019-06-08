@@ -172,7 +172,7 @@ mod test {
 
     /// Basic test for reported settings
     #[test]
-    fn test_get_dns_multiple_upstreams() {
+    fn multiple_upstreams() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dns")
             .file(
@@ -222,7 +222,7 @@ mod test {
 
     /// Test that default settings are reported if not present
     #[test]
-    fn test_get_dns_minimal_setup() {
+    fn minimal_setup() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dns")
             .file(PiholeFile::SetupVars, "")
@@ -245,7 +245,7 @@ mod test {
 
     /// Test updating with new settings
     #[test]
-    fn test_put_dns() {
+    fn put_dns() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dns")
             .method(Method::Put)
