@@ -129,36 +129,31 @@ pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
         SetupVarsEntry::PiholeDns(i + 1).write(&dns, &env)?;
     }
 
-    // Write DNS settings to SetupVars
+    // Write DNS settings
     SetupVarsEntry::DnsFqdnRequired.write(&settings.options.fqdn_required.to_string(), &env)?;
     SetupVarsEntry::DnsBogusPriv.write(&settings.options.bogus_priv.to_string(), &env)?;
     SetupVarsEntry::Dnssec.write(&settings.options.dnssec.to_string(), &env)?;
     SetupVarsEntry::DnsmasqListening.write(&settings.options.listening_type, &env)?;
 
-    if settings.conditional_forwarding.enabled {
-        let address_segments: Vec<&str> = settings
-            .conditional_forwarding
-            .router_ip
-            .split('.')
-            .take(3)
-            .collect();
-        let reverse_address = format!(
-            "{}.{}.{}.in-addr.arpa",
-            address_segments[2], address_segments[1], address_segments[0]
-        );
+    // Write conditional forwarding settings
+    let address_segments: Vec<&str> = settings
+        .conditional_forwarding
+        .router_ip
+        .split('.')
+        .take(3)
+        .collect();
+    let reverse_address = format!(
+        "{}.{}.{}.in-addr.arpa",
+        address_segments[2], address_segments[1], address_segments[0]
+    );
 
-        SetupVarsEntry::ConditionalForwarding.write("true", &env)?;
-        SetupVarsEntry::ConditionalForwardingReverse.write(&reverse_address, &env)?;
-        SetupVarsEntry::ConditionalForwardingIp
-            .write(&settings.conditional_forwarding.router_ip, &env)?;
-        SetupVarsEntry::ConditionalForwardingDomain
-            .write(&settings.conditional_forwarding.domain, &env)?;
-    } else {
-        SetupVarsEntry::ConditionalForwarding.write("false", &env)?;
-        SetupVarsEntry::ConditionalForwardingReverse.delete(&env)?;
-        SetupVarsEntry::ConditionalForwardingIp.delete(&env)?;
-        SetupVarsEntry::ConditionalForwardingDomain.delete(&env)?;
-    }
+    SetupVarsEntry::ConditionalForwarding
+        .write(&settings.conditional_forwarding.enabled.to_string(), &env)?;
+    SetupVarsEntry::ConditionalForwardingReverse.write(&reverse_address, &env)?;
+    SetupVarsEntry::ConditionalForwardingIp
+        .write(&settings.conditional_forwarding.router_ip, &env)?;
+    SetupVarsEntry::ConditionalForwardingDomain
+        .write(&settings.conditional_forwarding.domain, &env)?;
 
     generate_dnsmasq_config(&env)?;
     restart_dns(&env)?;
