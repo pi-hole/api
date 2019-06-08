@@ -70,7 +70,28 @@ pub trait ConfigEntry {
     /// Read this setting from the config file it appears in.
     /// If the setting is not found, its default value is returned.
     fn read(&self, env: &Env) -> Result<String, Error> {
-        let lines = env.read_file_lines(self.file())?;
+        let lines = match env.read_file_lines(self.file()) {
+            Ok(lines) => lines,
+            Err(e) => {
+                // If the file does not exist, use the default
+
+                // Chaining `if let` is not supported yet, so we have to nest
+                // them. https://github.com/rust-lang/rust/issues/53667
+                if let ErrorKind::FileRead(_) = e.kind() {
+                    if let Some(io::ErrorKind::NotFound) = e
+                        .cause()
+                        .unwrap()
+                        .downcast_ref::<io::Error>()
+                        .map(io::Error::kind)
+                    {
+                        return Ok(self.get_default().to_owned());
+                    }
+                }
+
+                // Return the original error if it was not a "not found" error
+                return Err(e);
+            }
+        };
         let key = self.key();
 
         // Check every line for the key (filter out lines which could not be read)
@@ -434,84 +455,102 @@ impl ConfigEntry for FtlConfEntry {
 #[cfg(test)]
 mod tests {
     use super::{ConfigEntry, SetupVarsEntry};
-    use crate::{env::PiholeFile, testing::TestEnvBuilder};
+    use crate::{
+        env::{Env, PiholeFile},
+        testing::TestEnvBuilder
+    };
+
+    /// Run a test with a single file.
+    ///
+    /// The file is populated with some initial data, the test is run, and the
+    /// file is checked against the expected data.
+    fn test_with_file(
+        file: PiholeFile,
+        initial_data: &str,
+        expected_data: &str,
+        test_fn: impl FnOnce(Env)
+    ) {
+        // Create the environment
+        let env_builder = TestEnvBuilder::new().file_expect(file, initial_data, expected_data);
+        let mut test_file = env_builder.clone_test_files().into_iter().next().unwrap();
+        let env = env_builder.build();
+
+        // Run the test
+        test_fn(env);
+
+        // Check the file's final contents
+        let mut buffer = String::new();
+        test_file.assert_expected(&mut buffer);
+    }
 
     /// Test to make sure when writing a setting, a similar setting does not
     /// get deleted. Example: Adding PIHOLE_DNS_1 should not delete
     /// PIHOLE_DNS_10
     #[test]
     fn write_similar_keys() {
-        let env_builder = TestEnvBuilder::new().file_expect(
+        test_with_file(
             PiholeFile::SetupVars,
             "PIHOLE_DNS_10=1.1.1.1\n",
             "PIHOLE_DNS_10=1.1.1.1\n\
-             PIHOLE_DNS_1=2.2.2.2\n"
+             PIHOLE_DNS_1=2.2.2.2\n",
+            |env| {
+                SetupVarsEntry::PiholeDns(1).write("2.2.2.2", &env).unwrap();
+            }
         );
-        let mut test_file = env_builder.clone_test_files().into_iter().next().unwrap();
-        let env = env_builder.build();
-
-        SetupVarsEntry::PiholeDns(1).write("2.2.2.2", &env).unwrap();
-
-        let mut buffer = String::new();
-        test_file.assert_expected(&mut buffer);
     }
 
+    /// When a entry is deleted, it is removed from the file
     #[test]
     fn delete_value() {
-        let env_builder =
-            TestEnvBuilder::new().file_expect(PiholeFile::SetupVars, "PIHOLE_DNS_1=1.2.3.4\n", "");
-        let mut test_file = env_builder.clone_test_files().into_iter().next().unwrap();
-        let env = env_builder.build();
-
-        SetupVarsEntry::PiholeDns(1).write("", &env).unwrap();
-
-        let mut buffer = String::new();
-        test_file.assert_expected(&mut buffer);
+        test_with_file(PiholeFile::SetupVars, "PIHOLE_DNS_1=1.2.3.4\n", "", |env| {
+            SetupVarsEntry::PiholeDns(1).write("", &env).unwrap();
+        });
     }
 
+    /// When an entry is written to, it cleans out any duplicates
     #[test]
     fn write_over_duplicate_keys() {
-        let env_builder = TestEnvBuilder::new().file_expect(
+        test_with_file(
             PiholeFile::SetupVars,
             "PIHOLE_DNS_1=2.2.2.2\n\
              PIHOLE_DNS_1=1.2.3.4\n",
-            "PIHOLE_DNS_1=5.6.7.8\n"
+            "PIHOLE_DNS_1=5.6.7.8\n",
+            |env| {
+                SetupVarsEntry::PiholeDns(1).write("5.6.7.8", &env).unwrap();
+            }
         );
-        let mut test_file = env_builder.clone_test_files().into_iter().next().unwrap();
-        let env = env_builder.build();
-
-        SetupVarsEntry::PiholeDns(1).write("5.6.7.8", &env).unwrap();
-
-        let mut buffer = String::new();
-        test_file.assert_expected(&mut buffer);
     }
 
+    /// When an entry is written to, it overwrites existing values, even empty
+    /// ones
     #[test]
     fn write_over_null_value() {
-        let env_builder = TestEnvBuilder::new().file_expect(
+        test_with_file(
             PiholeFile::SetupVars,
             "PIHOLE_DNS_1=\n",
-            "PIHOLE_DNS_1=1.2.3.4\n"
+            "PIHOLE_DNS_1=1.2.3.4\n",
+            |env| {
+                SetupVarsEntry::PiholeDns(1).write("1.2.3.4", &env).unwrap();
+            }
         );
-        let mut test_file = env_builder.clone_test_files().into_iter().next().unwrap();
-        let env = env_builder.build();
-
-        SetupVarsEntry::PiholeDns(1).write("1.2.3.4", &env).unwrap();
-
-        let mut buffer = String::new();
-        test_file.assert_expected(&mut buffer);
     }
 
+    /// Entries are written to an empty file successfully
     #[test]
     fn write_to_empty_file() {
-        let env_builder =
-            TestEnvBuilder::new().file_expect(PiholeFile::SetupVars, "", "PIHOLE_DNS_1=1.1.1.1\n");
-        let mut test_file = env_builder.clone_test_files().into_iter().next().unwrap();
-        let env = env_builder.build();
+        test_with_file(PiholeFile::SetupVars, "", "PIHOLE_DNS_1=1.1.1.1\n", |env| {
+            SetupVarsEntry::PiholeDns(1).write("1.1.1.1", &env).unwrap();
+        });
+    }
 
-        SetupVarsEntry::PiholeDns(1).write("1.1.1.1", &env).unwrap();
+    /// Reading from a missing file returns the default value
+    #[test]
+    fn read_from_missing_file() {
+        let env = TestEnvBuilder::new().build();
 
-        let mut buffer = String::new();
-        test_file.assert_expected(&mut buffer);
+        let value = SetupVarsEntry::WebLanguage.read(&env).unwrap();
+        let default = SetupVarsEntry::WebLanguage.get_default();
+
+        assert_eq!(value, default);
     }
 }
