@@ -202,15 +202,18 @@ fn write_dhcp(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error>
     };
 
     // Main DHCP settings. The "wpad" lines fix CERT vulnerability VU#598349 by
-    // preventing clients from using "wpad" as their hostname.
+    // preventing clients from using "wpad" as their hostname. We also prevent
+    // clients from using "localhost" as their hostname, as this confuses
+    // Windows
     writeln!(
         config_file,
         "dhcp-authoritative\n\
          dhcp-leasefile=/etc/pihole/dhcp.leases\n\
          dhcp-range={},{},{}\n\
          dhcp-option=option:router,{}\n\
-         dhcp-name-match=set:wpad-ignore,wpad\n\
-         dhcp-ignore-names=tag:wpad-ignore\n\
+         dhcp-name-match=set:hostname-ignore,wpad\n\
+         dhcp-name-match=set:hostname-ignore,localhost\n\
+         dhcp-ignore-names=tag:hostname-ignore\n\
          domain={}",
         SetupVarsEntry::DhcpStart.read(env)?,
         SetupVarsEntry::DhcpEnd.read(env)?,
@@ -427,8 +430,9 @@ mod tests {
              dhcp-leasefile=/etc/pihole/dhcp.leases\n\
              dhcp-range=192.168.1.50,192.168.1.150,24h\n\
              dhcp-option=option:router,192.168.1.1\n\
-             dhcp-name-match=set:wpad-ignore,wpad\n\
-             dhcp-ignore-names=tag:wpad-ignore\n\
+             dhcp-name-match=set:hostname-ignore,wpad\n\
+             dhcp-name-match=set:hostname-ignore,localhost\n\
+             dhcp-ignore-names=tag:hostname-ignore\n\
              domain=lan\n\
              dhcp-rapid-commit\n",
             "PIHOLE_INTERFACE=eth0\n\
@@ -452,8 +456,9 @@ mod tests {
              dhcp-leasefile=/etc/pihole/dhcp.leases\n\
              dhcp-range=192.168.1.50,192.168.1.150,24h\n\
              dhcp-option=option:router,192.168.1.1\n\
-             dhcp-name-match=set:wpad-ignore,wpad\n\
-             dhcp-ignore-names=tag:wpad-ignore\n\
+             dhcp-name-match=set:hostname-ignore,wpad\n\
+             dhcp-name-match=set:hostname-ignore,localhost\n\
+             dhcp-ignore-names=tag:hostname-ignore\n\
              domain=lan\n\
              dhcp-rapid-commit\n\
              dhcp-option=option6:dns-server,[::]\n\
@@ -480,8 +485,9 @@ mod tests {
              dhcp-leasefile=/etc/pihole/dhcp.leases\n\
              dhcp-range=192.168.1.50,192.168.1.150,infinite\n\
              dhcp-option=option:router,192.168.1.1\n\
-             dhcp-name-match=set:wpad-ignore,wpad\n\
-             dhcp-ignore-names=tag:wpad-ignore\n\
+             dhcp-name-match=set:hostname-ignore,wpad\n\
+             dhcp-name-match=set:hostname-ignore,localhost\n\
+             dhcp-ignore-names=tag:hostname-ignore\n\
              domain=lan\n\
              dhcp-rapid-commit\n\
              dhcp-option=option6:dns-server,[::]\n\
