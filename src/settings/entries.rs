@@ -70,7 +70,28 @@ pub trait ConfigEntry {
     /// Read this setting from the config file it appears in.
     /// If the setting is not found, its default value is returned.
     fn read(&self, env: &Env) -> Result<String, Error> {
-        let lines = env.read_file_lines(self.file())?;
+        let lines = match env.read_file_lines(self.file()) {
+            Ok(lines) => lines,
+            Err(e) => {
+                // If the file does not exist, use the default
+
+                // Chaining `if let` is not supported yet, so we have to nest
+                // them. https://github.com/rust-lang/rust/issues/53667
+                if let ErrorKind::FileRead(_) = e.kind() {
+                    if let Some(io::ErrorKind::NotFound) = e
+                        .cause()
+                        .unwrap()
+                        .downcast_ref::<io::Error>()
+                        .map(io::Error::kind)
+                    {
+                        return Ok(self.get_default().to_owned());
+                    }
+                }
+
+                // Return the original error if it was not a "not found" error
+                return Err(e);
+            }
+        };
         let key = self.key();
 
         // Check every line for the key (filter out lines which could not be read)
@@ -520,5 +541,16 @@ mod tests {
         test_with_file(PiholeFile::SetupVars, "", "PIHOLE_DNS_1=1.1.1.1\n", |env| {
             SetupVarsEntry::PiholeDns(1).write("1.1.1.1", &env).unwrap();
         });
+    }
+
+    /// Reading from a missing file returns the default value
+    #[test]
+    fn read_from_missing_file() {
+        let env = TestEnvBuilder::new().build();
+
+        let value = SetupVarsEntry::WebLanguage.read(&env).unwrap();
+        let default = SetupVarsEntry::WebLanguage.get_default();
+
+        assert_eq!(value, default);
     }
 }
