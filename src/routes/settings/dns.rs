@@ -63,13 +63,13 @@ pub struct DnsConditionalForwarding {
 impl DnsConditionalForwarding {
     /// Check if the conditional forwarding options are valid
     fn is_valid(&self) -> bool {
-        // If conditional forwarding is turned on, no setting may be empty and
-        // the CIDR must be valid (0 <= CIDR <= 32)
-        if self.enabled && (self.router_ip.is_empty() || self.domain.is_empty() || self.cidr > 32) {
+        // If conditional forwarding is turned on, no setting may be empty
+        if self.enabled && (self.router_ip.is_empty() || self.domain.is_empty()) {
             return false;
         }
 
-        SetupVarsEntry::DhcpRouter.is_valid(&self.router_ip)
+        self.cidr <= 32
+            && SetupVarsEntry::DhcpRouter.is_valid(&self.router_ip)
             && SetupVarsEntry::ConditionalForwardingDomain.is_valid(&self.domain)
     }
 }
