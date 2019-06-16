@@ -190,7 +190,7 @@ pub enum SetupVarsEntry {
     ConditionalForwarding,
     ConditionalForwardingDomain,
     ConditionalForwardingIp,
-    ConditionalForwardingReverse,
+    ConditionalForwardingCIDR,
     DhcpActive,
     DhcpEnd,
     DhcpIpv6,
@@ -230,8 +230,8 @@ impl ConfigEntry for SetupVarsEntry {
                 Cow::Borrowed("CONDITIONAL_FORWARDING_DOMAIN")
             }
             SetupVarsEntry::ConditionalForwardingIp => Cow::Borrowed("CONDITIONAL_FORWARDING_IP"),
-            SetupVarsEntry::ConditionalForwardingReverse => {
-                Cow::Borrowed("CONDITIONAL_FORWARDING_REVERSE")
+            SetupVarsEntry::ConditionalForwardingCIDR => {
+                Cow::Borrowed("CONDITIONAL_FORWARDING_CIDR")
             }
             SetupVarsEntry::DhcpActive => Cow::Borrowed("DHCP_ACTIVE"),
             SetupVarsEntry::DhcpEnd => Cow::Borrowed("DHCP_END"),
@@ -270,7 +270,7 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::ConditionalForwarding => ValueType::Boolean,
             SetupVarsEntry::ConditionalForwardingDomain => ValueType::Hostname,
             SetupVarsEntry::ConditionalForwardingIp => ValueType::IPv4,
-            SetupVarsEntry::ConditionalForwardingReverse => ValueType::ConditionalForwardingReverse,
+            SetupVarsEntry::ConditionalForwardingCIDR => ValueType::Integer,
             SetupVarsEntry::DhcpActive => ValueType::Boolean,
             SetupVarsEntry::DhcpEnd => ValueType::IPv4,
             SetupVarsEntry::DhcpIpv6 => ValueType::Boolean,
@@ -306,7 +306,7 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::ConditionalForwarding => "false",
             SetupVarsEntry::ConditionalForwardingDomain => "",
             SetupVarsEntry::ConditionalForwardingIp => "",
-            SetupVarsEntry::ConditionalForwardingReverse => "",
+            SetupVarsEntry::ConditionalForwardingCIDR => "24",
             SetupVarsEntry::DhcpActive => "false",
             SetupVarsEntry::DhcpEnd => "",
             SetupVarsEntry::DhcpIpv6 => "false",

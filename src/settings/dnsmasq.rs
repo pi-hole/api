@@ -173,12 +173,16 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
     if SetupVarsEntry::ConditionalForwarding.is_true(env)? {
         let ip = SetupVarsEntry::ConditionalForwardingIp.read(env)?;
 
+        // Add an entry to use the custom upstream for the custom domain,
+        // and add an entry to forward reverse lookups to the custom upstream
         writeln!(
             config_file,
-            "server=/{}/{}\nserver=/{}/{}",
+            "server=/{}/{}\n\
+             rev-server={}/{},{}",
             SetupVarsEntry::ConditionalForwardingDomain.read(env)?,
             ip,
-            SetupVarsEntry::ConditionalForwardingReverse.read(env)?,
+            ip,
+            SetupVarsEntry::ConditionalForwardingCIDR.read(env)?,
             ip
         )
         .context(ErrorKind::DnsmasqConfigWrite)?;
@@ -390,7 +394,7 @@ mod tests {
             host-record=domain.com,127.0.0.1\n\
             local-service\n\
             server=/domain.com/8.8.8.8\n\
-            server=/8.8.8.in-addr.arpa/8.8.8.8\n",
+            rev-server=8.8.8.8/24,8.8.8.8\n",
             "DNS_FQDN_REQUIRED=true\n\
             DNS_BOGUS_PRIV=true\n\
             DNSSEC=true\n\
@@ -399,7 +403,7 @@ mod tests {
             CONDITIONAL_FORWARDING=true\n\
             CONDITIONAL_FORWARDING_IP=8.8.8.8\n\
             CONDITIONAL_FORWARDING_DOMAIN=domain.com\n\
-            CONDITIONAL_FORWARDING_REVERSE=8.8.8.in-addr.arpa",
+            CONDITIONAL_FORWARDING_CIDR=24",
             write_dns_options
         );
     }

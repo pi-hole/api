@@ -56,7 +56,8 @@ impl DnsOptions {
 pub struct DnsConditionalForwarding {
     enabled: bool,
     router_ip: String,
-    domain: String
+    domain: String,
+    cidr: usize
 }
 
 impl DnsConditionalForwarding {
@@ -67,9 +68,8 @@ impl DnsConditionalForwarding {
             return false;
         }
 
-        // `enabled` is already known to be valid because it was already parsed into
-        // a boolean
-        SetupVarsEntry::DhcpRouter.is_valid(&self.router_ip)
+        self.cidr <= 32
+            && SetupVarsEntry::DhcpRouter.is_valid(&self.router_ip)
             && SetupVarsEntry::ConditionalForwardingDomain.is_valid(&self.domain)
     }
 }
@@ -105,7 +105,8 @@ pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
         conditional_forwarding: DnsConditionalForwarding {
             enabled: SetupVarsEntry::ConditionalForwarding.is_true(&env)?,
             router_ip: SetupVarsEntry::ConditionalForwardingIp.read(&env)?,
-            domain: SetupVarsEntry::ConditionalForwardingDomain.read(&env)?
+            domain: SetupVarsEntry::ConditionalForwardingDomain.read(&env)?,
+            cidr: SetupVarsEntry::ConditionalForwardingCIDR.read_as(&env)?
         }
     };
 
@@ -129,36 +130,21 @@ pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
         SetupVarsEntry::PiholeDns(i + 1).write(&dns, &env)?;
     }
 
-    // Write DNS settings to SetupVars
+    // Write DNS settings
     SetupVarsEntry::DnsFqdnRequired.write(&settings.options.fqdn_required.to_string(), &env)?;
     SetupVarsEntry::DnsBogusPriv.write(&settings.options.bogus_priv.to_string(), &env)?;
     SetupVarsEntry::Dnssec.write(&settings.options.dnssec.to_string(), &env)?;
     SetupVarsEntry::DnsmasqListening.write(&settings.options.listening_type, &env)?;
 
-    if settings.conditional_forwarding.enabled {
-        let address_segments: Vec<&str> = settings
-            .conditional_forwarding
-            .router_ip
-            .split('.')
-            .take(3)
-            .collect();
-        let reverse_address = format!(
-            "{}.{}.{}.in-addr.arpa",
-            address_segments[2], address_segments[1], address_segments[0]
-        );
-
-        SetupVarsEntry::ConditionalForwarding.write("true", &env)?;
-        SetupVarsEntry::ConditionalForwardingReverse.write(&reverse_address, &env)?;
-        SetupVarsEntry::ConditionalForwardingIp
-            .write(&settings.conditional_forwarding.router_ip, &env)?;
-        SetupVarsEntry::ConditionalForwardingDomain
-            .write(&settings.conditional_forwarding.domain, &env)?;
-    } else {
-        SetupVarsEntry::ConditionalForwarding.write("false", &env)?;
-        SetupVarsEntry::ConditionalForwardingReverse.delete(&env)?;
-        SetupVarsEntry::ConditionalForwardingIp.delete(&env)?;
-        SetupVarsEntry::ConditionalForwardingDomain.delete(&env)?;
-    }
+    // Write conditional forwarding settings
+    SetupVarsEntry::ConditionalForwarding
+        .write(&settings.conditional_forwarding.enabled.to_string(), &env)?;
+    SetupVarsEntry::ConditionalForwardingIp
+        .write(&settings.conditional_forwarding.router_ip, &env)?;
+    SetupVarsEntry::ConditionalForwardingDomain
+        .write(&settings.conditional_forwarding.domain, &env)?;
+    SetupVarsEntry::ConditionalForwardingCIDR
+        .write(&settings.conditional_forwarding.cidr.to_string(), &env)?;
 
     generate_dnsmasq_config(&env)?;
     restart_dns(&env)?;
@@ -172,7 +158,7 @@ mod test {
 
     /// Basic test for reported settings
     #[test]
-    fn test_get_dns_multiple_upstreams() {
+    fn multiple_upstreams() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dns")
             .file(
@@ -192,13 +178,14 @@ mod test {
                  CONDITIONAL_FORWARDING=true\n\
                  CONDITIONAL_FORWARDING_IP=192.168.1.1\n\
                  CONDITIONAL_FORWARDING_DOMAIN=hub\n\
-                 CONDITIONAL_FORWARDING_REVERSE=1.168.192.in-addr.arpa\n"
+                 CONDITIONAL_FORWARDING_CIDR=24\n"
             )
             .expect_json(json!({
                 "conditional_forwarding": {
                     "domain": "hub",
                     "enabled": true,
-                    "router_ip": "192.168.1.1"
+                    "router_ip": "192.168.1.1",
+                    "cidr": 24
                 },
                 "options": {
                     "bogus_priv": true,
@@ -222,7 +209,7 @@ mod test {
 
     /// Test that default settings are reported if not present
     #[test]
-    fn test_get_dns_minimal_setup() {
+    fn minimal_setup() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dns")
             .file(PiholeFile::SetupVars, "")
@@ -230,7 +217,8 @@ mod test {
                 "conditional_forwarding": {
                     "domain": "",
                     "enabled": false,
-                    "router_ip": ""
+                    "router_ip": "",
+                    "cidr": 24
                 },
                 "options": {
                     "bogus_priv": true,
@@ -245,7 +233,7 @@ mod test {
 
     /// Test updating with new settings
     #[test]
-    fn test_put_dns() {
+    fn put_dns() {
         TestBuilder::new()
             .endpoint("/admin/api/settings/dns")
             .method(Method::Put)
@@ -259,9 +247,9 @@ mod test {
                 DNSSEC=true\n\
                 DNSMASQ_LISTENING=local\n\
                 CONDITIONAL_FORWARDING=true\n\
-                CONDITIONAL_FORWARDING_REVERSE=1.168.192.in-addr.arpa\n\
                 CONDITIONAL_FORWARDING_IP=192.168.1.1\n\
-                CONDITIONAL_FORWARDING_DOMAIN=local\n"
+                CONDITIONAL_FORWARDING_DOMAIN=local\n\
+                CONDITIONAL_FORWARDING_CIDR=24\n"
             )
             .file_expect(
                 PiholeFile::DnsmasqConfig,
@@ -289,7 +277,7 @@ mod test {
                     trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D\n\
                     local-service\n\
                     server=/local/192.168.1.1\n\
-                    server=/1.168.192.in-addr.arpa/192.168.1.1\n"
+                    rev-server=192.168.1.1/24,192.168.1.1\n"
             )
             .body(json!({
                 "upstream_dns": [
@@ -298,7 +286,8 @@ mod test {
                 "conditional_forwarding": {
                     "domain": "local",
                     "enabled": true,
-                    "router_ip": "192.168.1.1"
+                    "router_ip": "192.168.1.1",
+                    "cidr": 24
                 },
                 "options": {
                     "bogus_priv": true,
