@@ -73,6 +73,7 @@ version: 2
           sha1sum ${BIN_NAME} > ${BIN_NAME}.sha1
           cat ${BIN_NAME}.sha1
 
+          mkdir -p ~/.ssh
           ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
           sftp -b - $SSH_USER@$SSH_HOST <<< "-mkdir ${DIR}
           put ${BIN_NAME}* ${DIR}
@@ -117,6 +118,7 @@ version: 2
           [[ -z "$FTL_SECRET" || "$CIRCLE_PR_NUMBER" != "" ]] && exit 0
           DIR="${CIRCLE_TAG:-${CIRCLE_BRANCH}}"
           mv ~/rpmbuild/RPMS/$RPM_ARCH/pihole-api*.rpm .
+          mkdir -p ~/.ssh
           ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
           sftp -b - $SSH_USER@$SSH_HOST <<< "-mkdir ${DIR}
           put pihole-api*.rpm ${DIR}"
