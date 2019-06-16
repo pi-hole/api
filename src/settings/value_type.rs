@@ -25,7 +25,6 @@ pub enum ValueType {
     /// specified value types
     Array(&'static [ValueType]),
     Boolean,
-    ConditionalForwardingReverse,
     Decimal,
     Domain,
     #[allow(dead_code)]
@@ -66,14 +65,6 @@ impl ValueType {
                 "true" | "false" => true,
                 _ => false
             },
-            ValueType::ConditionalForwardingReverse => {
-                // Specific reverse domain
-                let reverse_re = Regex::new(
-                    r"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}([a-zA-Z0-9\-\.])+$"
-                )
-                .unwrap();
-                reverse_re.is_match(value)
-            }
             ValueType::Decimal => {
                 // Numeric, at least one leading digit, optional decimal point and trailing
                 // digits.
@@ -280,10 +271,6 @@ mod tests {
                 "pi.hole,127.0.0.1"
             ),
             (ValueType::Boolean, "false"),
-            (
-                ValueType::ConditionalForwardingReverse,
-                "1.168.192.in-addr.arpa"
-            ),
             (ValueType::Decimal, "3.14"),
             (ValueType::Domain, "domain.com"),
             (ValueType::Filename, "c3po"),
@@ -338,7 +325,6 @@ mod tests {
                 "123,"
             ),
             (ValueType::Boolean, "yes"),
-            (ValueType::ConditionalForwardingReverse, "www.pi-hole.net"),
             (ValueType::Decimal, "3/4"),
             (ValueType::Decimal, "3.14.15.26"),
             (ValueType::Domain, "D0#A!N"),
