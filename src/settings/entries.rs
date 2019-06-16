@@ -269,7 +269,9 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DnsFqdnRequired => ValueType::Boolean,
             SetupVarsEntry::ConditionalForwarding => ValueType::Boolean,
             SetupVarsEntry::ConditionalForwardingDomain => ValueType::Hostname,
-            SetupVarsEntry::ConditionalForwardingIp => ValueType::IPv4,
+            SetupVarsEntry::ConditionalForwardingIp => {
+                ValueType::Any(&[ValueType::IPv4, ValueType::IPv6])
+            }
             SetupVarsEntry::ConditionalForwardingCIDR => ValueType::Integer,
             SetupVarsEntry::DhcpActive => ValueType::Boolean,
             SetupVarsEntry::DhcpEnd => ValueType::IPv4,
