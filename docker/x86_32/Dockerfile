@@ -4,7 +4,7 @@ FROM debian:stretch
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates gcc gcc-multilib git \
-        libsqlite3-dev:i386 build-essential debhelper dh-systemd && \
+        libsqlite3-dev:i386 build-essential debhelper dh-systemd openssh-client && \
     rm -rf /var/lib/apt/lists/* && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2019-05-11 && \
     export PATH="/root/.cargo/bin:$PATH" && \
@@ -17,4 +17,4 @@ RUN curl -L -o ghr.tar.gz https://github.com/tcnksm/ghr/releases/download/v0.12.
 
 ENV PATH="/root/.cargo/bin:$PATH"
 
-LABEL version=1
+LABEL version=2

@@ -1,3 +1,5 @@
 FROM centos:7
 
-RUN yum install -y rpm-build rpm-devel make && yum clean all
+RUN yum install -y rpm-build rpm-devel make openssh-clients && yum clean all
+
+LABEL version=1

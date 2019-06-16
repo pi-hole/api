@@ -2,7 +2,7 @@ version: 2
 
 .job_template: &job_template
   docker:
-    - image: pihole/api-build:v1-$CIRCLE_JOB
+    - image: pihole/api-build:v2-$CIRCLE_JOB
   steps:
     - checkout
     - restore_cache:
@@ -100,7 +100,7 @@ version: 2
 
 .rpm_template: &rpm_template
   docker:
-    - image: pihole/rpm-builder
+    - image: pihole/rpm-builder:v1
   steps:
     - attach_workspace:
         at: .
