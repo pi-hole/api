@@ -3,7 +3,7 @@ FROM debian:stretch
 # Install Rust
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates libc-dev musl-tools git \
-        libsqlite3-dev build-essential debhelper dh-systemd && \
+        libsqlite3-dev build-essential debhelper dh-systemd openssh-client && \
     rm -rf /var/lib/apt/lists/* && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2019-05-11 && \
     export PATH="/root/.cargo/bin:$PATH" && \
@@ -22,4 +22,4 @@ ENV TARGET_CC=musl-gcc \
     CARGO_TARGET_POWERPC64LE_UNKNOWN_LINUX_GNU_LINKER=musl-gcc \
     CC_x86_64_unknown_linux_musl=musl-gcc
 
-LABEL version=1
+LABEL version=2

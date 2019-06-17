@@ -2,7 +2,7 @@ version: 2
 
 .job_template: &job_template
   docker:
-    - image: pihole/api-build:v1-$CIRCLE_JOB
+    - image: pihole/api-build:v2-$CIRCLE_JOB
   steps:
     - checkout
     - restore_cache:
@@ -67,23 +67,22 @@ version: 2
     - run:
         name: "Upload"
         command: |
-          [ -z "$FTL_SECRET" ] && exit 0
+          [[ -z "$FTL_SECRET" || "$CIRCLE_PR_NUMBER" != "" ]] && exit 0
+          DIR="${CIRCLE_TAG:-${CIRCLE_BRANCH}}"
 
           sha1sum ${BIN_NAME} > ${BIN_NAME}.sha1
           cat ${BIN_NAME}.sha1
 
-          curl https://ftl.pi-hole.net:8080/FTL-client -o FTL-client
-          chmod +x ./FTL-client
-          [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}" "${FTL_SECRET}"
-          [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}.sha1" "${FTL_SECRET}"
-          [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" pihole-api*.deb "${FTL_SECRET}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
+          sftp -b - $SSH_USER@$SSH_HOST <<< "-mkdir ${DIR}
+          put ${BIN_NAME}* ${DIR}
+          put pihole-api*.deb ${DIR}"
 
-          if [[ "$CIRCLE_PR_NUMBER" == "" && "$CIRCLE_JOB" == "x86_64-musl" ]]; then
+          if [[ "$CIRCLE_JOB" == "x86_64-musl" ]]; then
             echo "${CIRCLE_SHA1:0:7}" > API_HASH
-            ./FTL-client "${CIRCLE_BRANCH}" API_HASH "${FTL_SECRET}"
+            sftp $SSH_USER@$SSH_HOST <<< "put API_HASH ${DIR}"
           fi
-
-          rm ./FTL-client
       # Save the files necessary for building the RPM
     - persist_to_workspace:
         root: .
@@ -101,7 +100,7 @@ version: 2
 
 .rpm_template: &rpm_template
   docker:
-    - image: pihole/rpm-builder
+    - image: pihole/rpm-builder:v1
   steps:
     - attach_workspace:
         at: .
@@ -116,12 +115,13 @@ version: 2
     - run:
         name: "Upload"
         command: |
-          [ -z "$FTL_SECRET" ] && exit 0
-          curl https://ftl.pi-hole.net:8080/FTL-client -o FTL-client
-          chmod +x ./FTL-client
+          [[ -z "$FTL_SECRET" || "$CIRCLE_PR_NUMBER" != "" ]] && exit 0
+          DIR="${CIRCLE_TAG:-${CIRCLE_BRANCH}}"
           mv ~/rpmbuild/RPMS/$RPM_ARCH/pihole-api*.rpm .
-          [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" pihole-api*.rpm "${FTL_SECRET}"
-          rm ./FTL-client
+          mkdir -p ~/.ssh
+          ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
+          sftp -b - $SSH_USER@$SSH_HOST <<< "-mkdir ${DIR}
+          put pihole-api*.rpm ${DIR}"
 
 jobs:
   arm:
