@@ -59,7 +59,7 @@ pub fn start() -> Result<(), Error> {
         FtlConnectionType::Socket,
         FtlMemory::production(),
         env,
-        key,
+        if key.is_empty() { None } else { Some(key) },
         true
     )
     .launch();
@@ -73,7 +73,8 @@ pub fn test(
     ftl_data: HashMap<String, Vec<u8>>,
     ftl_memory: FtlMemory,
     env: Env,
-    needs_database: bool
+    needs_database: bool,
+    api_key: Option<String>
 ) -> Rocket {
     setup(
         rocket::custom(
@@ -86,7 +87,7 @@ pub fn test(
         FtlConnectionType::Test(ftl_data),
         ftl_memory,
         env,
-        "test_key".to_owned(),
+        api_key,
         needs_database
     )
 }
@@ -97,7 +98,7 @@ fn setup(
     ftl_socket: FtlConnectionType,
     ftl_memory: FtlMemory,
     env: Env,
-    api_key: String,
+    api_key: Option<String>,
     needs_database: bool
 ) -> Rocket {
     // Set up CORS
