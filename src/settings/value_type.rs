@@ -35,8 +35,10 @@ pub enum ValueType {
     IPv4,
     IPv4OptionalPort,
     IPv4Mask,
+    IPv4CIDR,
     IPv6,
     IPv6OptionalPort,
+    IPv6CIDR,
     Path,
     PortNumber,
     Regex,
@@ -52,7 +54,7 @@ impl ValueType {
     /// Note: values are validated for format, not correctness.
     /// e.g. 0.1.2.3 is a valid IPV4, but may not be a valid upstream DNS
     pub fn is_valid(&self, value: &str) -> bool {
-        match *self {
+        match self {
             ValueType::Any(value_types) => value_types
                 .iter()
                 .any(|value_type| value_type.is_valid(value)),
@@ -156,8 +158,18 @@ impl ValueType {
                 let (ip, mask) = value.split_at(value.rfind('/').unwrap());
                 ValueType::Integer.is_valid(&mask.replace("/", "")) && is_ipv4_valid(ip)
             }
+            ValueType::IPv4CIDR => ValueType::String(&["8", "16", "24", "32"]).is_valid(value),
             ValueType::IPv6 => is_ipv6_valid(value),
             ValueType::IPv6OptionalPort => get_ipv6_address_and_port(value).is_some(),
+            ValueType::IPv6CIDR => {
+                // The CIDR must be a positive number
+                let cidr: usize = match value.parse() {
+                    Ok(cidr) => cidr,
+                    Err(_) => return false
+                };
+
+                cidr > 0 && cidr <= 128 && cidr % 4 == 0
+            }
             ValueType::Path => {
                 // Test if a path and filename have been specified
                 let path = Path::new(value);
@@ -281,12 +293,14 @@ mod tests {
             (ValueType::IPv4OptionalPort, "192.168.4.5:80"),
             (ValueType::IPv4OptionalPort, "192.168.3.3"),
             (ValueType::IPv4Mask, "192.168.0.3/24"),
+            (ValueType::IPv4CIDR, "24"),
             (ValueType::IPv6, "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c"),
             (
                 ValueType::IPv6OptionalPort,
                 "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c"
             ),
             (ValueType::IPv6OptionalPort, "[1fff:0:a88:85a3::ac1f]:8001"),
+            (ValueType::IPv6CIDR, "64"),
             (ValueType::Path, "/tmp/directory/file.ext"),
             (ValueType::PortNumber, "9000"),
             (ValueType::Regex, "^.*example$"),
@@ -342,9 +356,14 @@ mod tests {
             (ValueType::IPv4OptionalPort, "192.168.6.8:arst"),
             (ValueType::IPv4Mask, "192.168.2.9"),
             (ValueType::IPv4Mask, "192.168.1.1/qwfp"),
+            (ValueType::IPv4CIDR, "-1"),
+            (ValueType::IPv4CIDR, "124"),
             (ValueType::IPv6, "192.168.0.3"),
             (ValueType::IPv6OptionalPort, "192.168.0.3"),
             (ValueType::IPv6OptionalPort, "1fff:0:a88:85a3::ac1f#8001"),
+            (ValueType::IPv6CIDR, "-1"),
+            (ValueType::IPv6CIDR, "23"),
+            (ValueType::IPv6CIDR, "150"),
             (ValueType::Path, "~/tmp/directory/file.ext"),
             (ValueType::PortNumber, "65536"),
             (ValueType::Regex, "example\\"),

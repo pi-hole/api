@@ -72,15 +72,13 @@ impl DnsConditionalForwarding {
             return false;
         }
 
-        // The CIDR number can only be a certain size, depending on the address
-        // type used
-        if (ValueType::IPv4.is_valid(&self.ip) && self.cidr > 32)
-            || (ValueType::IPv6.is_valid(&self.ip) && self.cidr > 128)
-        {
-            return false;
-        }
+        let cidr_str = self.cidr.to_string();
 
-        SetupVarsEntry::ConditionalForwardingIp.is_valid(&self.ip)
+        // If it is an IPv4 address, check that the CIDR is a valid IPv4 CIDR
+        ((ValueType::IPv4.is_valid(&self.ip) && ValueType::IPv4CIDR.is_valid(&cidr_str))
+            // If it is an IPv6 address, check that the CIDR is a valid IPv6 CIDR
+            || (ValueType::IPv6.is_valid(&self.ip) && ValueType::IPv6CIDR.is_valid(&cidr_str)))
+            && SetupVarsEntry::ConditionalForwardingIp.is_valid(&self.ip)
             && SetupVarsEntry::ConditionalForwardingDomain.is_valid(&self.domain)
     }
 }
