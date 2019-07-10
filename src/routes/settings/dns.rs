@@ -11,7 +11,7 @@
 use crate::{
     env::Env,
     routes::{auth::User, settings::common::restart_dns},
-    settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry},
+    settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry, ValueType},
     util::{reply_data, reply_success, Error, ErrorKind, Reply}
 };
 use rocket::State;
@@ -54,9 +54,13 @@ impl DnsOptions {
 
 #[derive(Serialize, Deserialize)]
 pub struct DnsConditionalForwarding {
+    /// If conditional forwarding is enabled
     enabled: bool,
-    router_ip: String,
+    /// The IP address of the server to use for the domain
+    ip: String,
+    /// The domain to conditionally forward
     domain: String,
+    /// The CIDR range of addresses to forward
     cidr: usize
 }
 
@@ -64,12 +68,17 @@ impl DnsConditionalForwarding {
     /// Check if the conditional forwarding options are valid
     fn is_valid(&self) -> bool {
         // If conditional forwarding is turned on, no setting may be empty
-        if self.enabled && (self.router_ip.is_empty() || self.domain.is_empty()) {
+        if self.enabled && (self.ip.is_empty() || self.domain.is_empty()) {
             return false;
         }
 
-        self.cidr <= 32
-            && SetupVarsEntry::DhcpRouter.is_valid(&self.router_ip)
+        let cidr_str = self.cidr.to_string();
+
+        // If it is an IPv4 address, check that the CIDR is a valid IPv4 CIDR
+        ((ValueType::IPv4.is_valid(&self.ip) && ValueType::IPv4CIDR.is_valid(&cidr_str))
+            // If it is an IPv6 address, check that the CIDR is a valid IPv6 CIDR
+            || (ValueType::IPv6.is_valid(&self.ip) && ValueType::IPv6CIDR.is_valid(&cidr_str)))
+            && SetupVarsEntry::ConditionalForwardingIp.is_valid(&self.ip)
             && SetupVarsEntry::ConditionalForwardingDomain.is_valid(&self.domain)
     }
 }
@@ -104,7 +113,7 @@ pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
         },
         conditional_forwarding: DnsConditionalForwarding {
             enabled: SetupVarsEntry::ConditionalForwarding.is_true(&env)?,
-            router_ip: SetupVarsEntry::ConditionalForwardingIp.read(&env)?,
+            ip: SetupVarsEntry::ConditionalForwardingIp.read(&env)?,
             domain: SetupVarsEntry::ConditionalForwardingDomain.read(&env)?,
             cidr: SetupVarsEntry::ConditionalForwardingCIDR.read_as(&env)?
         }
@@ -139,8 +148,7 @@ pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
     // Write conditional forwarding settings
     SetupVarsEntry::ConditionalForwarding
         .write(&settings.conditional_forwarding.enabled.to_string(), &env)?;
-    SetupVarsEntry::ConditionalForwardingIp
-        .write(&settings.conditional_forwarding.router_ip, &env)?;
+    SetupVarsEntry::ConditionalForwardingIp.write(&settings.conditional_forwarding.ip, &env)?;
     SetupVarsEntry::ConditionalForwardingDomain
         .write(&settings.conditional_forwarding.domain, &env)?;
     SetupVarsEntry::ConditionalForwardingCIDR
@@ -184,7 +192,7 @@ mod test {
                 "conditional_forwarding": {
                     "domain": "hub",
                     "enabled": true,
-                    "router_ip": "192.168.1.1",
+                    "ip": "192.168.1.1",
                     "cidr": 24
                 },
                 "options": {
@@ -217,7 +225,7 @@ mod test {
                 "conditional_forwarding": {
                     "domain": "",
                     "enabled": false,
-                    "router_ip": "",
+                    "ip": "",
                     "cidr": 24
                 },
                 "options": {
@@ -247,9 +255,9 @@ mod test {
                 DNSSEC=true\n\
                 DNSMASQ_LISTENING=local\n\
                 CONDITIONAL_FORWARDING=true\n\
-                CONDITIONAL_FORWARDING_IP=192.168.1.1\n\
+                CONDITIONAL_FORWARDING_IP=fe80::dead:beef:dead:beef\n\
                 CONDITIONAL_FORWARDING_DOMAIN=local\n\
-                CONDITIONAL_FORWARDING_CIDR=24\n"
+                CONDITIONAL_FORWARDING_CIDR=120\n"
             )
             .file_expect(
                 PiholeFile::DnsmasqConfig,
@@ -276,8 +284,8 @@ mod test {
                     trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5\n\
                     trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D\n\
                     local-service\n\
-                    server=/local/192.168.1.1\n\
-                    rev-server=192.168.1.1/24,192.168.1.1\n"
+                    server=/local/fe80::dead:beef:dead:beef\n\
+                    rev-server=fe80::dead:beef:dead:beef/120,fe80::dead:beef:dead:beef\n"
             )
             .body(json!({
                 "upstream_dns": [
@@ -286,8 +294,8 @@ mod test {
                 "conditional_forwarding": {
                     "domain": "local",
                     "enabled": true,
-                    "router_ip": "192.168.1.1",
-                    "cidr": 24
+                    "ip": "fe80::dead:beef:dead:beef",
+                    "cidr": 120
                 },
                 "options": {
                     "bogus_priv": true,
