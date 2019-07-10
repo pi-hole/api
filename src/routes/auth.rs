@@ -11,7 +11,6 @@
 use crate::util::{reply_success, Error, ErrorKind, Reply};
 use rocket::{
     http::{Cookie, Cookies},
-    outcome::IntoOutcome,
     request::{self, FromRequest, Request, State},
     Outcome
 };
@@ -27,47 +26,32 @@ pub struct User {
 
 /// Stores the API key in the server state
 pub struct AuthData {
-    key: String,
+    key: Option<String>,
     next_id: AtomicUsize
 }
 
 impl User {
-    /// Try to authenticate the user using `input_key`. If it succeeds, a new
-    /// cookie will be created.
-    fn authenticate(request: &Request, input_key: &str) -> request::Outcome<Self, Error> {
-        let auth_data: State<AuthData> = match request.guard().succeeded() {
-            Some(auth_data) => auth_data,
-            None => return Error::from(ErrorKind::Unknown).into_outcome()
-        };
-
-        if auth_data.key_matches(input_key) {
-            let user = auth_data.create_user();
-
-            // Set a new encrypted cookie with the user's ID
-            request.cookies().add_private(
-                Cookie::build(USER_ATTR, user.id.to_string())
-                    // Allow the web interface to read the cookie
-                    .http_only(false)
-                    .finish()
-            );
-
-            Outcome::Success(user)
-        } else {
-            Error::from(ErrorKind::Unauthorized).into_outcome()
-        }
-    }
-
-    /// Try to get the user ID from cookies. An error is returned if none are
-    /// found.
-    fn check_cookies(mut cookies: Cookies) -> request::Outcome<Self, Error> {
+    /// Try to get the user ID from cookies
+    fn get_from_cookie(cookies: &mut Cookies) -> Option<Self> {
         cookies
             .get_private(USER_ATTR)
             .and_then(|cookie| cookie.value().parse().ok())
             .map(|id| User { id })
-            .into_outcome((
-                ErrorKind::Unauthorized.status(),
-                Error::from(ErrorKind::Unauthorized)
-            ))
+    }
+
+    /// Create a new user and store the ID in a cookie
+    fn create_and_store_user(request: &Request, auth_data: &AuthData) -> User {
+        let user = auth_data.create_user();
+
+        // Set a new encrypted cookie with the user's ID
+        request.cookies().add_private(
+            Cookie::build(USER_ATTR, user.id.to_string())
+                // Allow the web interface to read the cookie
+                .http_only(false)
+                .finish()
+        );
+
+        user
     }
 
     /// Log the user out by removing the cookie
@@ -80,26 +64,41 @@ impl<'a, 'r> FromRequest<'a, 'r> for User {
     type Error = Error;
 
     fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
-        match request.headers().get_one(AUTH_HEADER) {
-            // Try to authenticate, and if that fails check cookies
-            Some(key) => {
-                let auth_result = User::authenticate(request, key);
+        // Check if the user has already authenticated and has a valid cookie
+        if let Some(user) = User::get_from_cookie(&mut request.cookies()) {
+            return Outcome::Success(user);
+        }
 
-                if auth_result.is_success() {
-                    auth_result
-                } else {
-                    User::check_cookies(request.cookies())
-                }
+        // Load the auth data
+        let auth_data: State<AuthData> = match request.guard().succeeded() {
+            Some(auth_data) => auth_data,
+            None => return Error::from(ErrorKind::Unknown).into_outcome()
+        };
+
+        // Check if a key is required for authentication
+        if !auth_data.key_required() {
+            return Outcome::Success(User::create_and_store_user(request, &auth_data));
+        }
+
+        // Check the user's key, if provided
+        if let Some(key) = request.headers().get_one(AUTH_HEADER) {
+            if auth_data.key_matches(key) {
+                // The key matches, so create and store a new user and cookie
+                Outcome::Success(Self::create_and_store_user(request, &auth_data))
+            } else {
+                // The key does not match
+                Error::from(ErrorKind::Unauthorized).into_outcome()
             }
-            // No attempt to authenticate, so check cookies
-            None => User::check_cookies(request.cookies())
+        } else {
+            // A key is required but not provided
+            Error::from(ErrorKind::Unauthorized).into_outcome()
         }
     }
 }
 
 impl AuthData {
     /// Create a new API key
-    pub fn new(key: String) -> AuthData {
+    pub fn new(key: Option<String>) -> AuthData {
         AuthData {
             key,
             next_id: AtomicUsize::new(1)
@@ -108,7 +107,17 @@ impl AuthData {
 
     /// Check if the key matches the server's key
     fn key_matches(&self, key: &str) -> bool {
-        self.key == key
+        self.key
+            .as_ref()
+            // If a password is required, check that the given one matches
+            .map(|api_key| api_key == key)
+            // If no password is required, authenticate the user
+            .unwrap_or(true)
+    }
+
+    /// Check if a key is required to authenticate
+    fn key_required(&self) -> bool {
+        self.key.is_some()
     }
 
     /// Create a new user and increment `next_id`
@@ -184,6 +193,20 @@ mod test {
                     "message": "Unauthorized",
                     "data": Value::Null
                 }
+            }))
+            .test();
+    }
+
+    /// If no password is set for the API, an unauthenticated auth request is
+    /// authorized
+    #[test]
+    fn no_password_required() {
+        TestBuilder::new()
+            .endpoint("/admin/api/auth")
+            .should_auth(false)
+            .auth_required(false)
+            .expect_json(json!({
+                "status": "success"
             }))
             .test();
     }

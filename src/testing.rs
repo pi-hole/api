@@ -144,6 +144,7 @@ pub struct TestBuilder {
     method: Method,
     headers: Vec<Header<'static>>,
     should_auth: bool,
+    auth_required: bool,
     body_data: Option<serde_json::Value>,
     ftl_data: HashMap<String, Vec<u8>>,
     ftl_memory: FtlMemory,
@@ -161,6 +162,7 @@ impl TestBuilder {
             method: Method::Get,
             headers: Vec::new(),
             should_auth: true,
+            auth_required: true,
             body_data: None,
             ftl_data: HashMap::new(),
             ftl_memory: FtlMemory::Test {
@@ -202,6 +204,12 @@ impl TestBuilder {
 
     pub fn should_auth(mut self, should_auth: bool) -> Self {
         self.should_auth = should_auth;
+        self
+    }
+
+    /// If the server requires authentication for protected routes
+    pub fn auth_required(mut self, auth_required: bool) -> Self {
+        self.auth_required = auth_required;
         self
     }
 
@@ -276,12 +284,19 @@ impl TestBuilder {
         // Save the files for verification
         let test_files = self.test_env_builder.clone_test_files();
 
+        let api_key = if self.auth_required {
+            Some("test_key".to_owned())
+        } else {
+            None
+        };
+
         // Configure the test server
         let mut rocket = setup::test(
             self.ftl_data,
             self.ftl_memory,
             self.test_env_builder.build(),
-            self.needs_database
+            self.needs_database,
+            api_key
         );
 
         // Execute the Rocket hooks
