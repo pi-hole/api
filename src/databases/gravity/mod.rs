@@ -9,7 +9,9 @@
 // Please see LICENSE file for your rights under this license.
 
 #[cfg(test)]
-use crate::databases::{foreign_key_connection::SqliteFKConnectionManager, start_test_transaction};
+use crate::databases::{
+    common::start_test_transaction, foreign_key_connection::SqliteFKConnectionManager
+};
 #[cfg(test)]
 use diesel::{r2d2::Pool, SqliteConnection};
 
