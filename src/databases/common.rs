@@ -19,7 +19,7 @@ use std::collections::HashMap;
 #[cfg(test)]
 use crate::databases::{
     foreign_key_connection::{SqliteFKConnection, SqliteFKConnectionManager},
-    ftl::TEST_FTL_DATABASE_PATH,
+    ftl::TEST_FTL_DATABASE_SCHEMA,
     gravity::TEST_GRAVITY_DATABASE_SCHEMA
 };
 #[cfg(test)]
@@ -55,7 +55,10 @@ pub fn load_test_databases() -> HashMap<&'static str, HashMap<&'static str, Valu
     let mut ftl_database = HashMap::new();
     let mut gravity_database = HashMap::new();
 
-    ftl_database.insert("url", Value::from(TEST_FTL_DATABASE_PATH));
+    ftl_database.insert("url", Value::from(":memory:"));
+    ftl_database.insert("pool_size", Value::from(8));
+    ftl_database.insert("test_schema", Value::from(TEST_FTL_DATABASE_SCHEMA));
+
     gravity_database.insert("url", Value::from(":memory:"));
     gravity_database.insert("pool_size", Value::from(1));
     gravity_database.insert("test_schema", Value::from(TEST_GRAVITY_DATABASE_SCHEMA));

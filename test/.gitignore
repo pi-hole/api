@@ -1,2 +1,5 @@
 # SQLite temporary files
 *-journal
+
+# Test databases (created from SQL schema files for testing queries)
+*.db
