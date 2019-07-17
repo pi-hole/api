@@ -15,4 +15,4 @@ pub mod gravity;
 
 pub use self::common::load_databases;
 #[cfg(test)]
-pub use self::common::load_test_databases;
+pub use self::common::{create_memory_db, load_test_databases};

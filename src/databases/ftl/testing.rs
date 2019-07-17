@@ -12,15 +12,18 @@ use crate::databases::{
     common::start_test_transaction, foreign_key_connection::SqliteFKConnectionManager,
     ftl::FtlDatabase
 };
-use diesel::{r2d2::Pool, SqliteConnection};
+use diesel::{
+    r2d2::{ConnectionManager, Pool},
+    SqliteConnection
+};
 
 pub const TEST_FTL_DATABASE_PATH: &str = "test/FTL.db";
 
 lazy_static! {
     /// A connection pool for tests which need a database connection
     static ref CONNECTION_POOL: Pool<SqliteFKConnectionManager> = {
-        let manager = SqliteFKConnectionManager::new(TEST_FTL_DATABASE_PATH);
-        diesel::r2d2::Pool::builder().build(manager).unwrap()
+        let manager = SqliteFKConnectionManager(ConnectionManager::new(TEST_FTL_DATABASE_PATH));
+        Pool::builder().build(manager).unwrap()
     };
 }
 

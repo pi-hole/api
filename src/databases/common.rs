@@ -17,14 +17,21 @@ use rocket::config::Value;
 use std::collections::HashMap;
 
 #[cfg(test)]
-use crate::databases::ftl::TEST_FTL_DATABASE_PATH;
-#[cfg(test)]
-use crate::databases::gravity::TEST_GRAVITY_DATABASE_PATH;
+use crate::databases::{
+    foreign_key_connection::{SqliteFKConnection, SqliteFKConnectionManager},
+    ftl::TEST_FTL_DATABASE_PATH,
+    gravity::TEST_GRAVITY_DATABASE_SCHEMA
+};
 #[cfg(test)]
 use diesel::{
     connection::{Connection, TransactionManager},
+    r2d2::Pool,
     SqliteConnection
 };
+#[cfg(test)]
+use rocket_contrib::databases::{DatabaseConfig, Poolable};
+#[cfg(test)]
+use std::collections::BTreeMap;
 
 /// Load the database URLs from the API config into the Rocket config format
 pub fn load_databases(env: &Env) -> Result<HashMap<&str, HashMap<&str, Value>>, Error> {
@@ -49,7 +56,9 @@ pub fn load_test_databases() -> HashMap<&'static str, HashMap<&'static str, Valu
     let mut gravity_database = HashMap::new();
 
     ftl_database.insert("url", Value::from(TEST_FTL_DATABASE_PATH));
-    gravity_database.insert("url", Value::from(TEST_GRAVITY_DATABASE_PATH));
+    gravity_database.insert("url", Value::from(":memory:"));
+    gravity_database.insert("pool_size", Value::from(1));
+    gravity_database.insert("test_schema", Value::from(TEST_GRAVITY_DATABASE_SCHEMA));
 
     databases.insert("ftl_database", ftl_database);
     databases.insert("gravity_database", gravity_database);
@@ -69,4 +78,19 @@ pub fn start_test_transaction(db: &SqliteConnection) {
     }
 
     db.begin_test_transaction().unwrap();
+}
+
+/// Create an in-memory SQLite database with the given schema (SQL commands)
+#[cfg(test)]
+pub fn create_memory_db(schema: &str, pool_size: u32) -> Pool<SqliteFKConnectionManager> {
+    let mut extras = BTreeMap::new();
+    extras.insert("test_schema".to_owned(), Value::from(schema));
+
+    let config = DatabaseConfig {
+        url: ":memory:",
+        pool_size,
+        extras
+    };
+
+    SqliteFKConnection::pool(config).unwrap()
 }
