@@ -26,6 +26,7 @@ use diesel::{
     SqliteConnection
 };
 
+mod foreign_key_connection;
 pub mod ftl;
 pub mod gravity;
 
