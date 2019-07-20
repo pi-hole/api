@@ -1,4 +1,4 @@
-PRAGMA FOREIGN_KEYS=ON;
+PRAGMA FOREIGN_KEYS = ON;
 
 CREATE TABLE ftl
 (
@@ -55,7 +55,15 @@ VALUES
     (1, 19382);
 
 INSERT INTO network
-VALUES (1, '10.1.1.1', '00:00:00:00:00:00', 'eth0', 'gateway', 1546832160, 1547002023, 6, '');
+VALUES (1,
+        '10.1.1.1',
+        '00:00:00:00:00:00',
+        'eth0',
+        'gateway',
+        1546832160,
+        1547002023,
+        6,
+        'Fantasy Devices Inc');
 
 INSERT INTO queries
 VALUES (1, 0, 6, 3, '1.1.1.10.in-addr.arpa', '127.0.0.1', NULL),
