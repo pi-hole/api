@@ -56,6 +56,7 @@ impl Poolable for SqliteFKConnection {
 }
 
 /// A SQLite connection manager which automatically turns on foreign key support
+/// and adds a busy timeout
 pub struct SqliteFKConnectionManager(pub ConnectionManager<SqliteConnection>);
 
 impl r2d2::ManageConnection for SqliteFKConnectionManager {
@@ -66,7 +67,11 @@ impl r2d2::ManageConnection for SqliteFKConnectionManager {
         let conn = self.0.connect()?;
 
         // Turn on foreign key support
-        conn.execute("PRAGMA FOREIGN_KEYS=ON")
+        conn.execute("PRAGMA FOREIGN_KEYS = ON")
+            .map_err(r2d2::Error::QueryError)?;
+
+        // Add a busy timeout of one second
+        conn.execute("PRAGMA busy_timeout = 1000")
             .map_err(r2d2::Error::QueryError)?;
 
         Ok(SqliteFKConnection(conn))
