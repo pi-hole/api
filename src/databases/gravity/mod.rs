@@ -8,33 +8,11 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-#[cfg(test)]
-use crate::databases::{foreign_key_connection::SqliteFKConnectionManager, start_test_transaction};
-#[cfg(test)]
-use diesel::{r2d2::Pool, SqliteConnection};
-
 mod model;
 mod schema;
+#[cfg(test)]
+mod testing;
 
+#[cfg(test)]
+pub use self::testing::*;
 pub use self::{model::*, schema::*};
-
-#[cfg(test)]
-pub const TEST_GRAVITY_DATABASE_PATH: &str = "test/gravity.db";
-
-#[cfg(test)]
-lazy_static! {
-    /// A connection pool for tests which need a database connection
-    static ref CONNECTION_POOL: Pool<SqliteFKConnectionManager> = {
-        let manager = SqliteFKConnectionManager::new(TEST_GRAVITY_DATABASE_PATH);
-        diesel::r2d2::Pool::builder().max_size(1).build(manager).unwrap()
-    };
-}
-
-/// Connect to the testing database
-#[cfg(test)]
-pub fn connect_to_gravity_test_db() -> GravityDatabase {
-    let db = GravityDatabase(CONNECTION_POOL.get().unwrap());
-    start_test_transaction(&db as &SqliteConnection);
-
-    db
-}

@@ -8,15 +8,22 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use diesel::{r2d2, Connection};
+use diesel::{
+    connection::SimpleConnection,
+    r2d2::{self, ConnectionManager, CustomizeConnection, Pool},
+    Connection, SqliteConnection
+};
+use rocket::config::Value;
 use rocket_contrib::databases::{DatabaseConfig, Poolable};
 use std::ops::{Deref, DerefMut};
 
 /// A wrapper around `SqliteConnection` for use by `SqliteFKConnectionManager`
-pub struct SqliteFKConnection(diesel::SqliteConnection);
+pub struct SqliteFKConnection(SqliteConnection);
 
+// Implement the dereference traits so it can be used in place of a normal
+// SqliteConnection
 impl Deref for SqliteFKConnection {
-    type Target = diesel::SqliteConnection;
+    type Target = SqliteConnection;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -29,28 +36,27 @@ impl DerefMut for SqliteFKConnection {
     }
 }
 
-// This implementation is mostly copied from the implementation for
-// `SqliteConnection`, but uses `SqliteFKConnectionManager`
 impl Poolable for SqliteFKConnection {
     type Manager = SqliteFKConnectionManager;
     type Error = rocket_contrib::databases::r2d2::Error;
 
-    fn pool(config: DatabaseConfig) -> Result<r2d2::Pool<Self::Manager>, Self::Error> {
-        let manager = SqliteFKConnectionManager::new(config.url);
-        r2d2::Pool::builder()
-            .max_size(config.pool_size)
-            .build(manager)
+    fn pool(config: DatabaseConfig) -> Result<Pool<Self::Manager>, Self::Error> {
+        let manager = SqliteFKConnectionManager(ConnectionManager::new(config.url));
+        let mut builder = Pool::builder().max_size(config.pool_size);
+
+        // When testing, run the schema SQL to build the database
+        if cfg!(test) {
+            if let Some(Value::String(schema)) = config.extras.get("test_schema").cloned() {
+                builder = builder.connection_customizer(Box::new(DatabaseSchemaApplier { schema }));
+            }
+        }
+
+        builder.build(manager)
     }
 }
 
 /// A SQLite connection manager which automatically turns on foreign key support
-pub struct SqliteFKConnectionManager(pub diesel::r2d2::ConnectionManager<diesel::SqliteConnection>);
-
-impl SqliteFKConnectionManager {
-    pub fn new(database_url: &str) -> Self {
-        SqliteFKConnectionManager(diesel::r2d2::ConnectionManager::new(database_url))
-    }
-}
+pub struct SqliteFKConnectionManager(pub ConnectionManager<SqliteConnection>);
 
 impl r2d2::ManageConnection for SqliteFKConnectionManager {
     type Connection = SqliteFKConnection;
@@ -61,7 +67,7 @@ impl r2d2::ManageConnection for SqliteFKConnectionManager {
 
         // Turn on foreign key support
         conn.execute("PRAGMA FOREIGN_KEYS=ON")
-            .map_err(diesel::r2d2::Error::QueryError)?;
+            .map_err(r2d2::Error::QueryError)?;
 
         Ok(SqliteFKConnection(conn))
     }
@@ -72,5 +78,19 @@ impl r2d2::ManageConnection for SqliteFKConnectionManager {
 
     fn has_broken(&self, conn: &mut Self::Connection) -> bool {
         self.0.has_broken(conn)
+    }
+}
+
+/// Applies a schema to the database after connecting
+#[derive(Debug)]
+struct DatabaseSchemaApplier {
+    schema: String
+}
+
+impl CustomizeConnection<SqliteFKConnection, r2d2::Error> for DatabaseSchemaApplier {
+    fn on_acquire(&self, conn: &mut SqliteFKConnection) -> Result<(), r2d2::Error> {
+        // Apply the schema in a transaction
+        conn.transaction(|| conn.batch_execute(&self.schema))
+            .map_err(r2d2::Error::QueryError)
     }
 }
