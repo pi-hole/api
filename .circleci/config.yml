@@ -60,7 +60,7 @@ version: 2
           export CARGO_INCREMENTAL=0
           export RUSTFLAGS="-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Zno-landing-pads"
 
-          time cargo test --target $TARGET
+          time cargo test
     - run:
         name: "Upload Code Coverage"
         command: |
