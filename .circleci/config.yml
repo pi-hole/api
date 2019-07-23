@@ -68,7 +68,7 @@ version: 2
             exit 0
           fi
 
-          grcov target -t lcov --branch --ignore-not-existing --ignore-dir "/*" -o lcov.info
+          grcov target -t lcov --branch --ignore-not-existing --ignore-dir "/*" --ignore-dir "*build.rs" -o lcov.info
           bash <(curl -s https://codecov.io/bash) -f lcov.info
     - run:
         name: "Build DEB"
