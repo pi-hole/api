@@ -106,7 +106,7 @@ version: 2
           - debian/pihole-API.service
           - rpm/pihole-api.spec
     - save_cache:
-        key: v3-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
+        key: v4-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
         paths:
           - target
           - /root/.cargo
