@@ -9,7 +9,7 @@ version: 2
         keys:
           # Find a cache corresponding to this specific target and Cargo.lock checksum.
           # There are two dashes used between job and checksum to avoid x86_64 using the x86_64-musl cache
-          - v3-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
+          - v4-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
     - run:
         name: "Download Web"
         command: |
