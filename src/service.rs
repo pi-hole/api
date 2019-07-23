@@ -15,7 +15,7 @@
 //! implement. The code which uses the service references it as a trait object.
 //!
 //! Example:
-//! ```
+//! ```rust,ignore
 //! trait MyService {
 //!     fn something(&self);
 //! }
@@ -51,7 +51,7 @@ use rocket::State;
 /// the request guard which will be created.
 ///
 /// Example:
-/// ```
+/// ```rust,ignore
 /// service!(MyServiceGuard, MyService, MyServiceImpl, MyServiceMock);
 ///
 /// // Now you can use the guard
