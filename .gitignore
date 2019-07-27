@@ -16,3 +16,10 @@ CMakeLists.txt
 .idea
 !.idea/codeStyles/*
 !.idea/codeStyleSettings.xml
+
+### Testing
+# Code coverage info file
+lcov.info
+
+# Code coverage HTML report
+/report/
