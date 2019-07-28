@@ -9,8 +9,8 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    lists::{List, ListServiceGuard},
     routes::auth::User,
+    services::lists::{List, ListServiceGuard},
     util::{reply_success, Reply}
 };
 use rocket_contrib::json::Json;
@@ -57,7 +57,7 @@ pub fn add_regexlist(
 #[cfg(test)]
 mod test {
     use crate::{
-        lists::{List, ListServiceMock},
+        services::lists::{List, ListServiceMock},
         testing::TestBuilder
     };
     use mock_it::verify;

@@ -11,7 +11,7 @@
 use crate::{
     env::Env,
     ftl::FtlConnectionType,
-    lists::{List, ListRepository, ListRepositoryGuard},
+    services::lists::{List, ListRepository, ListRepositoryGuard},
     util::{Error, ErrorKind}
 };
 use failure::ResultExt;
@@ -241,7 +241,7 @@ mod test {
     use super::List;
     use crate::{
         ftl::FtlConnectionType,
-        lists::{ListRepositoryMock, ListService, ListServiceImpl},
+        services::lists::{ListRepositoryMock, ListService, ListServiceImpl},
         testing::{write_eom, TestEnvBuilder}
     };
     use mock_it::verify;
