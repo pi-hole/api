@@ -8,7 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use crate::databases::foreign_key_connection::SqliteFKConnection;
+use crate::databases::custom_connection::CustomSqliteConnection;
 
 #[database("gravity_database")]
-pub struct GravityDatabase(SqliteFKConnection);
+pub struct GravityDatabase(CustomSqliteConnection);
