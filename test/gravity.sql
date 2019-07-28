@@ -161,6 +161,19 @@ BEGIN
     UPDATE adlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE address = NEW.address;
 END;
 
+-- Update to v2
+
+CREATE TABLE domain_audit
+(
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    domain     TEXT UNIQUE NOT NULL,
+    date_added INTEGER     NOT NULL DEFAULT (cast(strftime('%s', 'now') as int))
+);
+
+UPDATE info
+SET value = 2
+WHERE property = 'version';
+
 -- BEGIN TEST DATA
 
 INSERT INTO whitelist

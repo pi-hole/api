@@ -45,6 +45,14 @@ table! {
 }
 
 table! {
+    domain_audit (id) {
+        id -> Integer,
+        domain -> Text,
+        date_added -> Integer,
+    }
+}
+
+table! {
     gravity (domain) {
         domain -> Text,
     }
@@ -116,6 +124,7 @@ allow_tables_to_appear_in_same_query!(
     adlist_by_group,
     blacklist,
     blacklist_by_group,
+    domain_audit,
     gravity,
     group,
     info,
