@@ -1,5 +1,7 @@
 PRAGMA FOREIGN_KEYS = ON;
 
+-- BEGIN SCHEMA
+
 CREATE TABLE ftl
 (
     id    INTEGER PRIMARY KEY NOT NULL,
@@ -37,6 +39,8 @@ CREATE TABLE queries
 );
 
 CREATE INDEX idx_queries_timestamps ON queries (timestamp);
+
+-- BEGIN TEST DATA
 
 INSERT INTO ftl
 VALUES
