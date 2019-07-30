@@ -41,7 +41,7 @@ mod test {
 
     /// Test that the domains are returned correctly
     fn get_test(list: List, endpoint: &str, domains: Vec<String>) {
-        let service = ListServiceMock::new();
+        let service = ListServiceMock::default();
 
         service.get.given(list).will_return(Ok(domains.clone()));
 

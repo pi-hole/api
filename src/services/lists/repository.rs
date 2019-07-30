@@ -205,8 +205,8 @@ pub struct ListRepositoryMock {
 }
 
 #[cfg(test)]
-impl ListRepositoryMock {
-    pub fn new() -> Self {
+impl Default for ListRepositoryMock {
+    fn default() -> Self {
         ListRepositoryMock {
             get: Mock::new(Ok(Vec::new())),
             contains: Mock::new(Ok(false)),
@@ -217,7 +217,7 @@ impl ListRepositoryMock {
 }
 
 #[cfg(test)]
-impl<'r> ListRepository for ListRepositoryMock {
+impl ListRepository for ListRepositoryMock {
     fn get(&self, list: List) -> Result<Vec<String>, Error> {
         self.get.called(list)
     }

@@ -46,7 +46,7 @@ mod test {
 
     /// Test that a successful delete returns success
     fn delete_test(list: List, endpoint: &str, domain: &str) {
-        let service = ListServiceMock::new();
+        let service = ListServiceMock::default();
 
         service
             .remove

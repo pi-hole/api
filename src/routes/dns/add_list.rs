@@ -65,7 +65,7 @@ mod test {
 
     /// Test that a successful add returns success
     fn add_test(list: List, endpoint: &str, domain: &str) {
-        let service = ListServiceMock::new();
+        let service = ListServiceMock::default();
 
         service
             .add

@@ -179,8 +179,8 @@ pub struct ListServiceMock {
 }
 
 #[cfg(test)]
-impl ListServiceMock {
-    pub fn new() -> Self {
+impl Default for ListServiceMock {
+    fn default() -> Self {
         ListServiceMock {
             add: Mock::new(Ok(())),
             remove: Mock::new(Ok(())),
@@ -261,7 +261,7 @@ mod test {
     fn get_test(list: List, domain: &str) {
         let env = TestEnvBuilder::new().build();
         let ftl = get_ftl();
-        let repo = ListRepositoryMock::new();
+        let repo = ListRepositoryMock::default();
 
         repo.get
             .given(list)
@@ -281,7 +281,7 @@ mod test {
     fn delete_test(list: List, domain: &str) {
         let env = TestEnvBuilder::new().build();
         let ftl = get_ftl();
-        let repo = ListRepositoryMock::new();
+        let repo = ListRepositoryMock::default();
 
         repo.contains
             .given((list, domain.to_owned()))
@@ -317,7 +317,7 @@ mod test {
     fn add_whitelist() {
         let env = TestEnvBuilder::new().build();
         let ftl = get_ftl();
-        let repo = ListRepositoryMock::new();
+        let repo = ListRepositoryMock::default();
 
         repo.contains
             .given((List::White, "example.com".to_owned()))
@@ -349,7 +349,7 @@ mod test {
     fn add_blacklist() {
         let env = TestEnvBuilder::new().build();
         let ftl = get_ftl();
-        let repo = ListRepositoryMock::new();
+        let repo = ListRepositoryMock::default();
 
         repo.contains
             .given((List::Black, "example.com".to_owned()))
@@ -381,7 +381,7 @@ mod test {
     fn add_regexlist() {
         let env = TestEnvBuilder::new().build();
         let ftl = get_ftl();
-        let repo = ListRepositoryMock::new();
+        let repo = ListRepositoryMock::default();
 
         repo.contains
             .given((List::Regex, "example.com".to_owned()))
