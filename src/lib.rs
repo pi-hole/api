@@ -32,13 +32,12 @@ extern crate lazy_static;
 pub use crate::cli::handle_cli;
 
 #[macro_use]
-pub mod service;
+pub mod services;
 
 mod cli;
 mod databases;
 mod env;
 mod ftl;
-mod lists;
 mod routes;
 mod settings;
 mod setup;

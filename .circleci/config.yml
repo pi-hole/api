@@ -9,7 +9,7 @@ version: 2
         keys:
           # Find a cache corresponding to this specific target and Cargo.lock checksum.
           # There are two dashes used between job and checksum to avoid x86_64 using the x86_64-musl cache
-          - v4-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
+          - v5-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
     - run:
         name: "Download Web"
         command: |
@@ -43,7 +43,7 @@ version: 2
     - run:
         name: "Code Lint Check"
         command: |
-          [[ "$CIRCLE_JOB" != "x86_64-musl" ]] || cargo clippy --release --all-targets --all-features -- -D clippy::all
+          [[ "$CIRCLE_JOB" != "x86_64-musl" ]] || cargo clippy --all-targets --all-features -- -D clippy::all
     - run:
         name: "Build"
         command: |
@@ -59,6 +59,9 @@ version: 2
           # These flags are used so the test results can be used for code coverage
           export CARGO_INCREMENTAL=0
           export RUSTFLAGS="-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Zno-landing-pads"
+
+          # Delete previous code coverage info
+          find target -name *.gcda -type f -delete
 
           time cargo test
     - run:
@@ -106,7 +109,7 @@ version: 2
           - debian/pihole-API.service
           - rpm/pihole-api.spec
     - save_cache:
-        key: v4-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
+        key: v5-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
         paths:
           - target
           - /root/.cargo

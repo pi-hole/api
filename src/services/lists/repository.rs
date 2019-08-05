@@ -10,7 +10,7 @@
 
 use crate::{
     databases::gravity::GravityDatabase,
-    lists::List,
+    services::lists::List,
     util::{Error, ErrorKind}
 };
 use diesel::{delete, dsl::exists, insert_into, prelude::*, select};
@@ -205,8 +205,8 @@ pub struct ListRepositoryMock {
 }
 
 #[cfg(test)]
-impl ListRepositoryMock {
-    pub fn new() -> Self {
+impl Default for ListRepositoryMock {
+    fn default() -> Self {
         ListRepositoryMock {
             get: Mock::new(Ok(Vec::new())),
             contains: Mock::new(Ok(false)),
@@ -217,7 +217,7 @@ impl ListRepositoryMock {
 }
 
 #[cfg(test)]
-impl<'r> ListRepository for ListRepositoryMock {
+impl ListRepository for ListRepositoryMock {
     fn get(&self, list: List) -> Result<Vec<String>, Error> {
         self.get.called(list)
     }
@@ -238,7 +238,7 @@ impl<'r> ListRepository for ListRepositoryMock {
 #[cfg(test)]
 mod tests {
     use super::{ListRepository, ListRepositoryImpl};
-    use crate::{databases::gravity::connect_to_gravity_test_db, lists::List};
+    use crate::{databases::gravity::connect_to_gravity_test_db, services::lists::List};
 
     /// Assert that the list of domains retrieved from the database equals the
     /// expected list

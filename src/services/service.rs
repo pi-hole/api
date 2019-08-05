@@ -64,11 +64,11 @@ macro_rules! service {
     ($service_guard:ident, $service_trait:ident, $service_impl:ident, $service_mock:ident) => {
         #[cfg(not(test))]
         pub type $service_guard<'r> =
-            $crate::service::Service<'r, $service_trait, $service_impl<'r>>;
+            $crate::services::Service<'r, $service_trait, $service_impl<'r>>;
 
         #[cfg(test)]
         pub type $service_guard<'r> =
-            $crate::service::Service<'r, $service_trait, $service_impl<'r>, $service_mock>;
+            $crate::services::Service<'r, $service_trait, $service_impl<'r>, $service_mock>;
 
         #[cfg(test)]
         impl std::ops::Deref for $service_mock {
