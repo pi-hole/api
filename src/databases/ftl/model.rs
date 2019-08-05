@@ -9,13 +9,13 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    databases::foreign_key_connection::SqliteFKConnection,
+    databases::custom_connection::CustomSqliteConnection,
     ftl::{FtlDnssecType, FtlQueryReplyType},
     routes::stats::QueryReply
 };
 
 #[database("ftl_database")]
-pub struct FtlDatabase(SqliteFKConnection);
+pub struct FtlDatabase(CustomSqliteConnection);
 
 #[allow(dead_code)]
 pub enum FtlTableEntry {
