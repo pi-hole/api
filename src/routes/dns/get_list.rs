@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    lists::{List, ListServiceGuard},
+    services::lists::{List, ListServiceGuard},
     util::{reply_result, Reply}
 };
 
@@ -34,14 +34,14 @@ pub fn get_regexlist(service: ListServiceGuard) -> Reply {
 #[cfg(test)]
 mod test {
     use crate::{
-        lists::{List, ListServiceMock},
+        services::lists::{List, ListServiceMock},
         testing::TestBuilder
     };
     use mock_it::verify;
 
     /// Test that the domains are returned correctly
     fn get_test(list: List, endpoint: &str, domains: Vec<String>) {
-        let service = ListServiceMock::new();
+        let service = ListServiceMock::default();
 
         service.get.given(list).will_return(Ok(domains.clone()));
 
