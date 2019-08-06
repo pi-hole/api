@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 mod common;
-mod foreign_key_connection;
+mod custom_connection;
 pub mod ftl;
 pub mod gravity;
 

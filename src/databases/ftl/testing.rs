@@ -10,7 +10,7 @@
 
 use crate::databases::{
     common::{create_memory_db, start_test_transaction},
-    foreign_key_connection::SqliteFKConnectionManager,
+    custom_connection::CustomSqliteConnectionManager,
     ftl::FtlDatabase
 };
 use diesel::{r2d2::Pool, SqliteConnection};
@@ -19,7 +19,7 @@ pub const TEST_FTL_DATABASE_SCHEMA: &str = include_str!("../../../test/FTL.sql")
 
 lazy_static! {
     /// A connection pool for tests which need a database connection
-    static ref CONNECTION_POOL: Pool<SqliteFKConnectionManager> = {
+    static ref CONNECTION_POOL: Pool<CustomSqliteConnectionManager> = {
         create_memory_db(TEST_FTL_DATABASE_SCHEMA, 8)
     };
 }

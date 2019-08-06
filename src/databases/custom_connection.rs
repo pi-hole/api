@@ -3,7 +3,7 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// Foreign Key Enabled SQLite Connection
+// Custom SQLite Connection
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
@@ -17,12 +17,13 @@ use rocket::config::Value;
 use rocket_contrib::databases::{DatabaseConfig, Poolable};
 use std::ops::{Deref, DerefMut};
 
-/// A wrapper around `SqliteConnection` for use by `SqliteFKConnectionManager`
-pub struct SqliteFKConnection(SqliteConnection);
+/// A wrapper around `SqliteConnection` for use by
+/// `CustomSqliteConnectionManager`
+pub struct CustomSqliteConnection(SqliteConnection);
 
 // Implement the dereference traits so it can be used in place of a normal
 // SqliteConnection
-impl Deref for SqliteFKConnection {
+impl Deref for CustomSqliteConnection {
     type Target = SqliteConnection;
 
     fn deref(&self) -> &Self::Target {
@@ -30,18 +31,18 @@ impl Deref for SqliteFKConnection {
     }
 }
 
-impl DerefMut for SqliteFKConnection {
+impl DerefMut for CustomSqliteConnection {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl Poolable for SqliteFKConnection {
-    type Manager = SqliteFKConnectionManager;
+impl Poolable for CustomSqliteConnection {
+    type Manager = CustomSqliteConnectionManager;
     type Error = rocket_contrib::databases::r2d2::Error;
 
     fn pool(config: DatabaseConfig) -> Result<Pool<Self::Manager>, Self::Error> {
-        let manager = SqliteFKConnectionManager(ConnectionManager::new(config.url));
+        let manager = CustomSqliteConnectionManager(ConnectionManager::new(config.url));
         let mut builder = Pool::builder().max_size(config.pool_size);
 
         // When testing, run the schema SQL to build the database
@@ -55,26 +56,21 @@ impl Poolable for SqliteFKConnection {
     }
 }
 
-/// A SQLite connection manager which automatically turns on foreign key support
-/// and adds a busy timeout
-pub struct SqliteFKConnectionManager(pub ConnectionManager<SqliteConnection>);
+/// A custom SQLite connection manager which automatically adds a busy timeout
+pub struct CustomSqliteConnectionManager(pub ConnectionManager<SqliteConnection>);
 
-impl r2d2::ManageConnection for SqliteFKConnectionManager {
-    type Connection = SqliteFKConnection;
+impl r2d2::ManageConnection for CustomSqliteConnectionManager {
+    type Connection = CustomSqliteConnection;
     type Error = r2d2::Error;
 
     fn connect(&self) -> Result<Self::Connection, Self::Error> {
         let conn = self.0.connect()?;
 
-        // Turn on foreign key support
-        conn.execute("PRAGMA FOREIGN_KEYS = ON")
-            .map_err(r2d2::Error::QueryError)?;
-
         // Add a busy timeout of one second
         conn.execute("PRAGMA busy_timeout = 1000")
             .map_err(r2d2::Error::QueryError)?;
 
-        Ok(SqliteFKConnection(conn))
+        Ok(CustomSqliteConnection(conn))
     }
 
     fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
@@ -92,8 +88,8 @@ struct DatabaseSchemaApplier {
     schema: String
 }
 
-impl CustomizeConnection<SqliteFKConnection, r2d2::Error> for DatabaseSchemaApplier {
-    fn on_acquire(&self, conn: &mut SqliteFKConnection) -> Result<(), r2d2::Error> {
+impl CustomizeConnection<CustomSqliteConnection, r2d2::Error> for DatabaseSchemaApplier {
+    fn on_acquire(&self, conn: &mut CustomSqliteConnection) -> Result<(), r2d2::Error> {
         // Apply the schema in a transaction
         conn.transaction(|| conn.batch_execute(&self.schema))
             .map_err(r2d2::Error::QueryError)

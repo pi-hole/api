@@ -18,7 +18,7 @@ use std::collections::HashMap;
 
 #[cfg(test)]
 use crate::databases::{
-    foreign_key_connection::{SqliteFKConnection, SqliteFKConnectionManager},
+    custom_connection::{CustomSqliteConnection, CustomSqliteConnectionManager},
     ftl::TEST_FTL_DATABASE_SCHEMA,
     gravity::TEST_GRAVITY_DATABASE_SCHEMA
 };
@@ -85,7 +85,7 @@ pub fn start_test_transaction(db: &SqliteConnection) {
 
 /// Create an in-memory SQLite database with the given schema (SQL commands)
 #[cfg(test)]
-pub fn create_memory_db(schema: &str, pool_size: u32) -> Pool<SqliteFKConnectionManager> {
+pub fn create_memory_db(schema: &str, pool_size: u32) -> Pool<CustomSqliteConnectionManager> {
     let mut extras = BTreeMap::new();
     extras.insert("test_schema".to_owned(), Value::from(schema));
 
@@ -95,5 +95,5 @@ pub fn create_memory_db(schema: &str, pool_size: u32) -> Pool<SqliteFKConnection
         extras
     };
 
-    SqliteFKConnection::pool(config).unwrap()
+    CustomSqliteConnection::pool(config).unwrap()
 }
