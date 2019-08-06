@@ -22,7 +22,7 @@ use std::{
 const CONFIG_LOCATION: &str = "/etc/pihole/API.toml";
 
 /// The API config options
-#[derive(Deserialize, Default, Clone)]
+#[derive(Deserialize, Default, Clone, Debug)]
 pub struct Config {
     #[serde(default)]
     pub general: General,
