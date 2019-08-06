@@ -9,13 +9,20 @@
 // Please see LICENSE file for your rights under this license.
 
 table! {
-    adlists (id) {
+    adlist (id) {
         id -> Integer,
         address -> Text,
         enabled -> Bool,
         date_added -> Integer,
         date_modified -> Integer,
         comment -> Nullable<Text>,
+    }
+}
+
+table! {
+    adlist_by_group (adlist_id, group_id) {
+        adlist_id -> Integer,
+        group_id -> Integer,
     }
 }
 
@@ -31,8 +38,32 @@ table! {
 }
 
 table! {
+    blacklist_by_group (blacklist_id, group_id) {
+        blacklist_id -> Integer,
+        group_id -> Integer,
+    }
+}
+
+table! {
+    domain_audit (id) {
+        id -> Integer,
+        domain -> Text,
+        date_added -> Integer,
+    }
+}
+
+table! {
     gravity (domain) {
         domain -> Text,
+    }
+}
+
+table! {
+    group (id) {
+        id -> Integer,
+        enabled -> Bool,
+        name -> Text,
+        description -> Nullable<Text>,
     }
 }
 
@@ -55,6 +86,13 @@ table! {
 }
 
 table! {
+    regex_by_group (regex_id, group_id) {
+        regex_id -> Integer,
+        group_id -> Integer,
+    }
+}
+
+table! {
     whitelist (id) {
         id -> Integer,
         domain -> Text,
@@ -65,4 +103,33 @@ table! {
     }
 }
 
-allow_tables_to_appear_in_same_query!(adlists, blacklist, gravity, info, regex, whitelist,);
+table! {
+    whitelist_by_group (whitelist_id, group_id) {
+        whitelist_id -> Integer,
+        group_id -> Integer,
+    }
+}
+
+joinable!(adlist_by_group -> adlist (adlist_id));
+joinable!(adlist_by_group -> group (group_id));
+joinable!(blacklist_by_group -> blacklist (blacklist_id));
+joinable!(blacklist_by_group -> group (group_id));
+joinable!(regex_by_group -> group (group_id));
+joinable!(regex_by_group -> regex (regex_id));
+joinable!(whitelist_by_group -> group (group_id));
+joinable!(whitelist_by_group -> whitelist (whitelist_id));
+
+allow_tables_to_appear_in_same_query!(
+    adlist,
+    adlist_by_group,
+    blacklist,
+    blacklist_by_group,
+    domain_audit,
+    gravity,
+    group,
+    info,
+    regex,
+    regex_by_group,
+    whitelist,
+    whitelist_by_group,
+);
