@@ -45,6 +45,10 @@ version: 2
         command: |
           [[ "$CIRCLE_JOB" != "x86_64-musl" ]] || cargo clippy --all-targets --all-features -- -D clippy::all
     - run:
+        name: "Cargo-Audit"
+        command: |
+          [[ "$CIRCLE_JOB" != "x86_64-musl" ]] || cargo install --force cargo-audit && cargo audit
+    - run:
         name: "Build"
         command: |
           time cargo build --release --target $TARGET
