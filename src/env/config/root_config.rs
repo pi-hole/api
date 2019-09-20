@@ -49,7 +49,13 @@ impl Config {
         let mut file = match File::open(config_location) {
             Ok(f) => f,
             Err(e) => match e.kind() {
-                io::ErrorKind::NotFound => return Ok(Self::default()),
+                io::ErrorKind::NotFound => {
+                    println!(
+                        "Cannot find config file {}, using default config",
+                        config_location
+                    );
+                    return Ok(Self::default());
+                }
                 _ => {
                     return Err(Error::from(
                         e.context(ErrorKind::FileRead(config_location.to_owned()))
