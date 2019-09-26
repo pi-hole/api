@@ -11,11 +11,14 @@
 use diesel::{
     connection::SimpleConnection,
     r2d2::{self, ConnectionManager, CustomizeConnection, Pool},
-    Connection, SqliteConnection
+    Connection, ConnectionError, SqliteConnection
 };
 use rocket::config::Value;
 use rocket_contrib::databases::{DatabaseConfig, Poolable};
-use std::ops::{Deref, DerefMut};
+use std::{
+    ops::{Deref, DerefMut},
+    path::Path
+};
 
 /// A wrapper around `SqliteConnection` for use by
 /// `CustomSqliteConnectionManager`
@@ -42,7 +45,10 @@ impl Poolable for CustomSqliteConnection {
     type Error = rocket_contrib::databases::r2d2::Error;
 
     fn pool(config: DatabaseConfig) -> Result<Pool<Self::Manager>, Self::Error> {
-        let manager = CustomSqliteConnectionManager(ConnectionManager::new(config.url));
+        let manager = CustomSqliteConnectionManager {
+            manager: ConnectionManager::new(config.url),
+            database_url: config.url.to_owned()
+        };
         let mut builder = Pool::builder().max_size(config.pool_size);
 
         // When testing, run the schema SQL to build the database
@@ -57,14 +63,26 @@ impl Poolable for CustomSqliteConnection {
 }
 
 /// A custom SQLite connection manager which automatically adds a busy timeout
-pub struct CustomSqliteConnectionManager(pub ConnectionManager<SqliteConnection>);
+/// and fails if the database does not exist
+pub struct CustomSqliteConnectionManager {
+    pub manager: ConnectionManager<SqliteConnection>,
+    database_url: String
+}
 
 impl r2d2::ManageConnection for CustomSqliteConnectionManager {
     type Connection = CustomSqliteConnection;
     type Error = r2d2::Error;
 
     fn connect(&self) -> Result<Self::Connection, Self::Error> {
-        let conn = self.0.connect()?;
+        // Don't connect to missing databases. If we did connect, it would make
+        // a zero-sized DB without a schema. This would mess up other services.
+        if self.database_url != ":memory:" && !Path::new(&self.database_url).exists() {
+            return Err(r2d2::Error::ConnectionError(
+                ConnectionError::BadConnection(format!("{} does not exist", self.database_url))
+            ));
+        }
+
+        let conn = self.manager.connect()?;
 
         // Add a busy timeout of one second
         conn.execute("PRAGMA busy_timeout = 1000")
@@ -74,11 +92,11 @@ impl r2d2::ManageConnection for CustomSqliteConnectionManager {
     }
 
     fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
-        self.0.is_valid(conn)
+        self.manager.is_valid(conn)
     }
 
     fn has_broken(&self, conn: &mut Self::Connection) -> bool {
-        self.0.has_broken(conn)
+        self.manager.has_broken(conn)
     }
 }
 
