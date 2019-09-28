@@ -167,6 +167,7 @@ fn setup(
         // Mount the API
         .mount(&api_mount_path_str, routes![
             version::version,
+            auth::get_auth_mode,
             auth::check,
             auth::logout,
             stats::get_summary,
