@@ -10,7 +10,7 @@
 
 use crate::{
     databases::ftl::FtlDatabase,
-    env::{Env, PiholeFile},
+    env::Env,
     ftl::BLOCKED_STATUSES,
     routes::{
         auth::User,
@@ -23,6 +23,7 @@ use crate::{
             top_domains::{TopDomainItemReply, TopDomainParams, TopDomainsReply}
         }
     },
+    services::domain_audit::{DomainAuditRepository, DomainAuditRepositoryGuard},
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, sqlite::SqliteConnection};
@@ -37,14 +38,16 @@ pub fn top_domains_db(
     db: FtlDatabase,
     from: u64,
     until: u64,
-    params: Form<TopDomainParams>
+    params: Form<TopDomainParams>,
+    domain_audit: DomainAuditRepositoryGuard
 ) -> Reply {
     reply_result(top_domains_db_impl(
         &env,
         &db as &SqliteConnection,
         from,
         until,
-        params.into_inner()
+        params.into_inner(),
+        &*domain_audit
     ))
 }
 
@@ -54,7 +57,8 @@ fn top_domains_db_impl(
     db: &SqliteConnection,
     from: u64,
     until: u64,
-    params: TopDomainParams
+    params: TopDomainParams,
+    domain_audit: &dyn DomainAuditRepository
 ) -> Result<TopDomainsReply, Error> {
     // Resolve the parameters
     let limit = params.limit.unwrap_or(10);
@@ -84,7 +88,7 @@ fn top_domains_db_impl(
     }
 
     // Find domains which should not be considered
-    let ignored_domains = get_ignored_domains(env, audit)?;
+    let ignored_domains = get_ignored_domains(env, audit, domain_audit)?;
 
     // Fetch the top domains and map into the reply structure
     let top_domains: Vec<TopDomainItemReply> =
@@ -114,7 +118,11 @@ fn top_domains_db_impl(
 
 /// Get the list of domains to ignore. If the audit flag is true, audited
 /// domains are ignored (only show unaudited domains).
-fn get_ignored_domains(env: &Env, audit: bool) -> Result<Vec<String>, Error> {
+fn get_ignored_domains(
+    env: &Env,
+    audit: bool,
+    domain_audit: &dyn DomainAuditRepository
+) -> Result<Vec<String>, Error> {
     // Ignore domains excluded via SetupVars
     let mut ignored_domains = get_excluded_domains(env)?;
 
@@ -123,7 +131,7 @@ fn get_ignored_domains(env: &Env, audit: bool) -> Result<Vec<String>, Error> {
 
     // If audit flag is true, only include unaudited domains
     if audit {
-        ignored_domains.extend(env.read_file_lines(PiholeFile::AuditLog)?);
+        ignored_domains.extend(domain_audit.get_all()?);
     }
 
     Ok(ignored_domains)
@@ -185,6 +193,7 @@ mod test {
         databases::ftl::connect_to_ftl_test_db,
         env::PiholeFile,
         routes::stats::top_domains::{TopDomainItemReply, TopDomainParams, TopDomainsReply},
+        services::domain_audit::DomainAuditRepositoryMock,
         testing::TestEnvBuilder
     };
 
@@ -248,8 +257,15 @@ mod test {
             .file(PiholeFile::FtlConfig, "")
             .build();
         let params = TopDomainParams::default();
-        let actual =
-            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+        let actual = top_domains_db_impl(
+            &env,
+            &*db,
+            FROM_TIMESTAMP,
+            UNTIL_TIMESTAMP,
+            params,
+            &DomainAuditRepositoryMock::default()
+        )
+        .unwrap();
 
         assert_eq!(actual, expected);
     }
@@ -281,8 +297,15 @@ mod test {
             limit: Some(2),
             ..TopDomainParams::default()
         };
-        let actual =
-            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+        let actual = top_domains_db_impl(
+            &env,
+            &*db,
+            FROM_TIMESTAMP,
+            UNTIL_TIMESTAMP,
+            params,
+            &DomainAuditRepositoryMock::default()
+        )
+        .unwrap();
 
         assert_eq!(actual, expected);
     }
@@ -307,8 +330,15 @@ mod test {
             blocked: Some(true),
             ..TopDomainParams::default()
         };
-        let actual =
-            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+        let actual = top_domains_db_impl(
+            &env,
+            &*db,
+            FROM_TIMESTAMP,
+            UNTIL_TIMESTAMP,
+            params,
+            &DomainAuditRepositoryMock::default()
+        )
+        .unwrap();
 
         assert_eq!(actual, expected);
     }
@@ -342,8 +372,15 @@ mod test {
             limit: Some(2),
             ..TopDomainParams::default()
         };
-        let actual =
-            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+        let actual = top_domains_db_impl(
+            &env,
+            &*db,
+            FROM_TIMESTAMP,
+            UNTIL_TIMESTAMP,
+            params,
+            &DomainAuditRepositoryMock::default()
+        )
+        .unwrap();
 
         assert_eq!(actual, expected);
     }
@@ -371,15 +408,27 @@ mod test {
         let env = TestEnvBuilder::new()
             .file(PiholeFile::SetupVars, "")
             .file(PiholeFile::FtlConfig, "")
-            .file(PiholeFile::AuditLog, "1.ubuntu.pool.ntp.org")
             .build();
         let params = TopDomainParams {
             audit: Some(true),
             limit: Some(2),
             ..TopDomainParams::default()
         };
-        let actual =
-            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+        let domain_audit = DomainAuditRepositoryMock::default();
+        domain_audit
+            .get_all
+            .given(())
+            .will_return(Ok(vec!["1.ubuntu.pool.ntp.org".to_owned()]));
+
+        let actual = top_domains_db_impl(
+            &env,
+            &*db,
+            FROM_TIMESTAMP,
+            UNTIL_TIMESTAMP,
+            params,
+            &domain_audit
+        )
+        .unwrap();
 
         assert_eq!(actual, expected);
     }
@@ -409,15 +458,21 @@ mod test {
                 "API_EXCLUDE_DOMAINS=1.ubuntu.pool.ntp.org"
             )
             .file(PiholeFile::FtlConfig, "")
-            .file(PiholeFile::AuditLog, "")
             .build();
         let params = TopDomainParams {
             audit: Some(true),
             limit: Some(2),
             ..TopDomainParams::default()
         };
-        let actual =
-            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+        let actual = top_domains_db_impl(
+            &env,
+            &*db,
+            FROM_TIMESTAMP,
+            UNTIL_TIMESTAMP,
+            params,
+            &DomainAuditRepositoryMock::default()
+        )
+        .unwrap();
 
         assert_eq!(actual, expected);
     }
