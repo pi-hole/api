@@ -13,7 +13,7 @@ use serde::{Deserialize, Deserializer};
 use std::{net::Ipv4Addr, str::FromStr};
 
 /// General config settings
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct General {
     /// The address to host the API on
     #[serde(default = "default_address")]

@@ -46,6 +46,8 @@ pub fn start() -> Result<(), Error> {
     let env = Env::Production(config);
     let key = SetupVarsEntry::WebPassword.read(&env)?;
 
+    println!("{:#?}", env.config());
+
     setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Production)
