@@ -16,8 +16,8 @@ use crate::ftl::memory_model::MAGIC_BYTE;
 
 /// The domain struct stored in shared memory
 #[repr(C)]
-#[cfg_attr(test, derive(PartialEq, Debug))]
-#[derive(Copy, Clone)]
+#[cfg_attr(test, derive(Debug))]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct FtlDomain {
     magic: libc::c_uchar,
     pub regex_match: FtlRegexMatch,
@@ -67,8 +67,8 @@ impl Default for FtlDomain {
 /// The regex state a domain can hold. Unknown is the default state, before it
 /// is checked when a query of the domain comes in.
 #[repr(u8)]
-#[cfg_attr(test, derive(PartialEq, Debug))]
-#[derive(Copy, Clone)]
+#[cfg_attr(test, derive(Debug))]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 #[allow(dead_code)]
 pub enum FtlRegexMatch {
     Unknown,

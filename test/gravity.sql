@@ -205,3 +205,6 @@ VALUES ('test.com'),
        ('vra.outbrain.com'),
        ('vra4.com'),
        ('vriaj.com');
+
+INSERT INTO domain_audit (domain)
+VALUES ('audited.domain');
