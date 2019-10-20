@@ -3,15 +3,11 @@
 // Network-wide ad blocking via your own hardware.
 //
 // API
-// Services (and supporting code) of the API
+// Domain Audit Log Services
 //
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-#[macro_use]
-mod service;
+mod repository;
 
-pub mod domain_audit;
-pub mod lists;
-
-pub use self::service::*;
+pub use self::repository::*;

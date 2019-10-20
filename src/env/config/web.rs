@@ -11,7 +11,7 @@
 use std::{ffi::OsStr, path::PathBuf};
 
 /// Configuration settings for hosting the web interface
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct WebConfig {
     /// If the web interface should be hosted
     #[serde(default = "default_enabled")]

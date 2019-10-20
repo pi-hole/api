@@ -9,16 +9,18 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    env::{Env, PiholeFile},
+    env::Env,
     ftl::{FtlDomain, FtlMemory},
     routes::{
         auth::User,
         stats::common::{remove_excluded_domains, remove_hidden_domains}
     },
+    services::domain_audit::{DomainAuditRepository, DomainAuditRepositoryGuard},
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
     util::{reply_result, Error, Reply}
 };
 use rocket::{request::Form, State};
+use std::{collections::HashSet, iter::FromIterator};
 
 /// Return the top domains
 #[get("/stats/top_domains?<params..>")]
@@ -26,9 +28,15 @@ pub fn top_domains(
     _auth: User,
     ftl_memory: State<FtlMemory>,
     env: State<Env>,
-    params: Form<TopDomainParams>
+    params: Form<TopDomainParams>,
+    domain_audit: DomainAuditRepositoryGuard
 ) -> Reply {
-    reply_result(get_top_domains(&ftl_memory, &env, params.into_inner()))
+    reply_result(get_top_domains(
+        &ftl_memory,
+        &env,
+        params.into_inner(),
+        &*domain_audit
+    ))
 }
 
 /// Represents the possible GET parameters for top (blocked) domains requests
@@ -63,7 +71,8 @@ pub struct TopDomainItemReply {
 fn get_top_domains(
     ftl_memory: &FtlMemory,
     env: &Env,
-    params: TopDomainParams
+    params: TopDomainParams,
+    domain_audit: &dyn DomainAuditRepository
 ) -> Result<TopDomainsReply, Error> {
     // Resolve the parameters
     let limit = params.limit.unwrap_or(10);
@@ -116,12 +125,10 @@ fn get_top_domains(
 
     // If audit flag is true, only include unaudited domains
     if audit {
-        let audited_domains = env.read_file_lines(PiholeFile::AuditLog)?;
+        let audited_domains: HashSet<String> = domain_audit.get_all().map(HashSet::from_iter)?;
 
-        // Get a vector of references to strings, to better compare with the domains
-        let audited_domains: Vec<&str> = audited_domains.iter().map(String::as_str).collect();
-
-        domains.retain(|domain| !audited_domains.contains(&domain.get_domain(&strings)));
+        // Only keep unaudited domains
+        domains.retain(|domain| !audited_domains.contains(domain.get_domain(&strings)));
     }
 
     // Sort the domains (descending by default)
@@ -239,6 +246,7 @@ mod test {
     use crate::{
         env::PiholeFile,
         ftl::{FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch, FtlSettings},
+        services::domain_audit::DomainAuditRepositoryMock,
         testing::TestBuilder
     };
     use std::collections::HashMap;
@@ -282,6 +290,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains")
             .ftl_memory(test_data())
+            .mock_service(DomainAuditRepositoryMock::default())
             .file(PiholeFile::SetupVars, "")
             .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
@@ -300,6 +309,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains?limit=1")
             .ftl_memory(test_data())
+            .mock_service(DomainAuditRepositoryMock::default())
             .file(PiholeFile::SetupVars, "")
             .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
@@ -318,6 +328,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains?blocked=true")
             .ftl_memory(test_data())
+            .mock_service(DomainAuditRepositoryMock::default())
             .file(PiholeFile::SetupVars, "")
             .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
@@ -337,6 +348,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains?ascending=true")
             .ftl_memory(test_data())
+            .mock_service(DomainAuditRepositoryMock::default())
             .file(PiholeFile::SetupVars, "")
             .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
@@ -353,12 +365,19 @@ mod test {
     /// audited domains
     #[test]
     fn audit() {
+        let domain_audit = DomainAuditRepositoryMock::default();
+
+        domain_audit
+            .get_all
+            .given(())
+            .will_return(Ok(vec!["example.net".to_owned()]));
+
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains?audit=true")
             .ftl_memory(test_data())
+            .mock_service(domain_audit)
             .file(PiholeFile::SetupVars, "")
             .file(PiholeFile::FtlConfig, "")
-            .file(PiholeFile::AuditLog, "example.net")
             .expect_json(json!({
                 "top_domains": [
                     { "domain": "github.com", "count": 20 }
@@ -374,6 +393,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/top_domains")
             .ftl_memory(test_data())
+            .mock_service(DomainAuditRepositoryMock::default())
             .file(PiholeFile::SetupVars, "API_EXCLUDE_DOMAINS=example.net")
             .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
