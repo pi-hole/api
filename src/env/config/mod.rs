@@ -10,6 +10,7 @@
 
 mod file_locations;
 mod general;
+mod ldap;
 mod root_config;
 mod web;
 

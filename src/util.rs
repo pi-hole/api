@@ -151,7 +151,17 @@ pub enum ErrorKind {
     #[fail(display = "Error while interacting with the FTL database")]
     FtlDatabase,
     #[fail(display = "Error while interacting with the Gravity database")]
-    GravityDatabase
+    GravityDatabase,
+    #[fail(display = "Missing key")]
+    LdapMissingKey,
+    #[fail(display = "Missing username")]
+    LdapMissingUsername,
+    #[fail(display = "Bind error")]
+    LdapBindError,
+    #[fail(display = "Unauthorized")]
+    LdapUnauthorized,
+    #[fail(display = "Connection error")]
+    LdapConnectError
 }
 
 impl Error {
@@ -239,7 +249,12 @@ impl ErrorKind {
             ErrorKind::SharedMemoryLock => "shared_memory_lock",
             ErrorKind::SharedMemoryVersion(_, _) => "shared_memory_version",
             ErrorKind::FtlDatabase => "ftl_database",
-            ErrorKind::GravityDatabase => "gravity_database"
+            ErrorKind::GravityDatabase => "gravity_database",
+            ErrorKind::LdapMissingKey => "ldap_missing_key",
+            ErrorKind::LdapMissingUsername => "ldap_missing_username",
+            ErrorKind::LdapConnectError => "ldap_connection_error",
+            ErrorKind::LdapBindError => "ldap_bind_error",
+            ErrorKind::LdapUnauthorized => "ldap_unauthorized"
         }
     }
 
@@ -248,10 +263,12 @@ impl ErrorKind {
         match self {
             ErrorKind::NotFound => Status::NotFound,
             ErrorKind::AlreadyExists => Status::Conflict,
-            ErrorKind::InvalidDomain | ErrorKind::BadRequest | ErrorKind::InvalidSettingValue => {
-                Status::BadRequest
-            }
-            ErrorKind::Unauthorized => Status::Unauthorized,
+            ErrorKind::InvalidDomain
+            | ErrorKind::BadRequest
+            | ErrorKind::InvalidSettingValue
+            | ErrorKind::LdapMissingUsername
+            | ErrorKind::LdapMissingKey => Status::BadRequest,
+            ErrorKind::Unauthorized | ErrorKind::LdapUnauthorized => Status::Unauthorized,
             ErrorKind::Unknown
             | ErrorKind::GravityError
             | ErrorKind::FtlConnectionFail
@@ -268,7 +285,9 @@ impl ErrorKind {
             | ErrorKind::SharedMemoryLock
             | ErrorKind::SharedMemoryVersion(_, _)
             | ErrorKind::FtlDatabase
-            | ErrorKind::GravityDatabase => Status::InternalServerError
+            | ErrorKind::GravityDatabase
+            | ErrorKind::LdapBindError
+            | ErrorKind::LdapConnectError => Status::InternalServerError
         }
     }
 

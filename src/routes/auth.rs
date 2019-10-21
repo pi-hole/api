@@ -8,7 +8,12 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use crate::util::{reply_success, Error, ErrorKind, Reply};
+use crate::{
+    env::Env,
+    util::{reply_data, reply_success, Error, ErrorKind, Reply}
+};
+use failure::ResultExt;
+use ldap3::LdapConn;
 use rocket::{
     http::{Cookie, Cookies},
     request::{self, FromRequest, Request, State},
@@ -18,6 +23,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 const USER_ATTR: &str = "user_id";
 const AUTH_HEADER: &str = "X-Pi-hole-Authenticate";
+const AUTH_HEADER_USERNAME: &str = "X-Pi-hole-Authenticate-username";
 
 /// When used as a request guard, requests must be authenticated
 pub struct User {
@@ -28,6 +34,11 @@ pub struct User {
 pub struct AuthData {
     key: Option<String>,
     next_id: AtomicUsize
+}
+
+#[derive(Serialize)]
+pub struct AuthMode {
+    pub mode: String
 }
 
 impl User {
@@ -75,25 +86,59 @@ impl<'a, 'r> FromRequest<'a, 'r> for User {
             None => return Error::from(ErrorKind::Unknown).into_outcome()
         };
 
-        // Check if a key is required for authentication
-        if !auth_data.key_required() {
-            return Outcome::Success(User::create_and_store_user(request, &auth_data));
-        }
+        let key_opt = request.headers().get_one(AUTH_HEADER);
+        let env: State<Env> = match request.guard().succeeded() {
+            Some(env) => env,
+            None => return Error::from(ErrorKind::Unknown).into_outcome()
+        };
+        let ldap_config = &env.config().ldap;
 
-        // Check the user's key, if provided
-        if let Some(key) = request.headers().get_one(AUTH_HEADER) {
-            if auth_data.key_matches(key) {
-                // The key matches, so create and store a new user and cookie
-                Outcome::Success(Self::create_and_store_user(request, &auth_data))
-            } else {
-                // The key does not match
-                Error::from(ErrorKind::Unauthorized).into_outcome()
+        if ldap_config.enabled {
+            let key = match key_opt {
+                Some(key) => key,
+                None => return Error::from(ErrorKind::LdapMissingKey).into_outcome()
+            };
+            let username = match request.headers().get_one(AUTH_HEADER_USERNAME) {
+                Some(username) => username,
+                None => return Error::from(ErrorKind::LdapMissingUsername).into_outcome()
+            };
+
+            match ldap_login(&ldap_config.address, &ldap_config.bind_dn, username, key) {
+                Ok(_) => Outcome::Success(User::create_and_store_user(request, &auth_data)),
+                Err(e) => e.into_outcome()
             }
         } else {
-            // A key is required but not provided
-            Error::from(ErrorKind::Unauthorized).into_outcome()
+            // Check if a key is required for authentication
+            if !auth_data.key_required() {
+                return Outcome::Success(User::create_and_store_user(request, &auth_data));
+            }
+
+            // Check the user's key, if provided
+            if let Some(key) = key_opt {
+                if auth_data.key_matches(key) {
+                    // The key matches, so create and store a new user and cookie
+                    Outcome::Success(Self::create_and_store_user(request, &auth_data))
+                } else {
+                    // The key does not match
+                    Error::from(ErrorKind::Unauthorized).into_outcome()
+                }
+            } else {
+                // A key is required but not provided
+                Error::from(ErrorKind::Unauthorized).into_outcome()
+            }
         }
     }
+}
+
+fn ldap_login(ldap_address: &str, bind_dn: &str, username: &str, key: &str) -> Result<(), Error> {
+    let bind_dn = bind_dn.replace("{}", username);
+    LdapConn::new(&ldap_address)
+        .context(ErrorKind::LdapConnectError)?
+        .simple_bind(&bind_dn, key)
+        .context(ErrorKind::LdapBindError)?
+        .success()
+        .context(ErrorKind::LdapUnauthorized)?;
+    Ok(())
 }
 
 impl AuthData {
@@ -126,6 +171,15 @@ impl AuthData {
             id: self.next_id.fetch_add(1, Ordering::Relaxed)
         }
     }
+}
+/// Get current auth mode (key/ldap) for UI to show corresponding controls
+#[get("/auth/mode")]
+pub fn get_auth_mode(env: State<Env>) -> Reply {
+    let ldap_config = &env.config().ldap;
+    let mode = if ldap_config.enabled { "ldap" } else { "key" };
+    reply_data(AuthMode {
+        mode: mode.to_owned()
+    })
 }
 
 /// Provides an endpoint to authenticate or check if already authenticated

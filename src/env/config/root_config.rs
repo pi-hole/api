@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    env::config::{file_locations::Files, general::General, web::WebConfig},
+    env::config::{file_locations::Files, general::General, ldap::LdapConfig, web::WebConfig},
     util::{Error, ErrorKind}
 };
 use failure::{Fail, ResultExt};
@@ -29,7 +29,9 @@ pub struct Config {
     #[serde(default)]
     pub file_locations: Files,
     #[serde(default)]
-    pub web: WebConfig
+    pub web: WebConfig,
+    #[serde(default)]
+    pub ldap: LdapConfig
 }
 
 impl Config {
